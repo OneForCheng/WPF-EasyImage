@@ -1,0 +1,36 @@
+﻿<Window
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Name="ImageWin" 
+        x:Class="EasyImage.ImageWindow"
+    mc:Ignorable="d"
+        Title="EasyImage"  Height="350" Width="525" Background="Transparent" WindowStyle="None" AllowsTransparency="True" Topmost="True" WindowState="Maximized" ShowInTaskbar="False"  Loaded="WindowLoaded" KeyDown="WindowKeyDown" KeyUp="WindowKeyUp">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles/MoveResizeRotateStyle.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <!--<SolidColorBrush x:Key="OpacityBrush" Color="Gray" Opacity="0.3" />-->
+            <RoutedCommand x:Key="Hidden" />
+        </ResourceDictionary>
+    </Window.Resources>
+    <Window.InputBindings>
+        <KeyBinding Modifiers="Alt" Key="F4" Command="{StaticResource Hidden}"/>
+    </Window.InputBindings>
+    <Window.CommandBindings>
+        <CommandBinding Command="{StaticResource Hidden}" CanExecute="HiddenWindow" Executed="HiddenWindow"/>
+    </Window.CommandBindings>
+    <Canvas x:Name="MainCanvas">
+        <Canvas x:Name="ImageCanvas">
+            <!--<Label x:Name="testLbl" FontSize="30" Foreground="Red" Margin="100" Width="2000" Content=""></Label>
+            <Rectangle x:Name="TestRec" Width="0" Height="0" Stroke="#FFFD0000"></Rectangle>
+            <Rectangle x:Name="TestRec1" Width="0" Height="0" Stroke="#FF16F100"></Rectangle>-->
+            <!--<ContentControl Selector.IsSelected="True" Template="{StaticResource MoveResizeRotateTemplate}">
+                <Image  Source="Resources/Images/icon/default_normal.png"/>
+            </ContentControl>-->
+        </Canvas>
+        <Image x:Name="MainMenuIcon" Source="Resources/Images/icon/default_normal.png"/>
+    </Canvas>
+</Window>
