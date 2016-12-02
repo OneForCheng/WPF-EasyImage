@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -7,6 +8,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using DealImage.Save;
 using EasyImage.Actioins;
 using EasyImage.Enum;
 using Microsoft.Win32;
@@ -66,32 +68,7 @@ namespace EasyImage
             }
         }
 
-        private void Element_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            var element = sender as T;
-            if (element == null) return;
-            if ((Keyboard.Modifiers & ModifierKeys.Control) > 0)
-            {
-                Selector.SetIsSelected(element, !Selector.GetIsSelected(element));
-            }
-            else
-            {
-                if (Selector.GetIsSelected(element)) return;
-                SelectNone();
-                Selector.SetIsSelected(element, true);
-            }
-        }
-
-        private static void Element_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            var element = sender as T;
-            var rotateControl = element?.Template.FindName("RotateThumbControl", element) as Control;
-            if (rotateControl != null)
-            {
-                rotateControl.Visibility = element.Width < 30 ? Visibility.Hidden : Visibility.Visible;
-            }
-        }
-
+       
         private void Element_ZIndexTop(object sender, RoutedEventArgs e)
         {
             var elements = SelectedElements.OrderByDescending(Panel.GetZIndex);
@@ -135,6 +112,89 @@ namespace EasyImage
                 transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Bottommost)));
             }
             ActionManager.Execute(transactions);
+        }
+
+        private void Element_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var element = sender as T;
+            if (element == null) return;
+            if ((Keyboard.Modifiers & ModifierKeys.Control) > 0)
+            {
+                Selector.SetIsSelected(element, !Selector.GetIsSelected(element));
+            }
+            else
+            {
+                if (Selector.GetIsSelected(element)) return;
+                SelectNone();
+                Selector.SetIsSelected(element, true);
+            }
+
+        }
+
+        private static void Element_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            var element = sender as T;
+            var rotateControl = element?.Template.FindName("RotateThumbControl", element) as Control;
+            if (rotateControl != null)
+            {
+                rotateControl.Visibility = element.Width < 30 ? Visibility.Hidden : Visibility.Visible;
+            }
+        }
+        private void Menu_ExchangeImageFromClip(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+
+        }
+
+        private void Menu_ExchangeImageFromFile(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var dialog = new OpenFileDialog
+            {
+                CheckPathExists = true,
+                Filter = "Image Files (*.jpg; *.jpeg; *.png; *.gif; *.bmp; *.ico)|*.jpg; *.jpeg; *.png; *.gif; *.bmp; *.ico"
+            };
+            var showDialog = dialog.ShowDialog();
+            if (showDialog != null && !(bool)showDialog) return;
+            var element = SelectedElements.First();
+            if (element == null) return;
+            ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = new BitmapImage(new Uri(dialog.FileName)), Stretch = Stretch.Fill }));
+        }
+
+        private void Element_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            e.Handled = true;
+            var element = sender as T;
+            if (element == null) return;
+            var count = SelectedElements.Count();
+            if (count <= 0) return;
+            e.Handled = false;
+            var menuItem = element.ContextMenu.Items[0] as MenuItem;
+            if (menuItem == null) return;
+            menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void Menu_SaveImage(object sender, RoutedEventArgs e)
+        {
+            var dialog = new SaveFileDialog
+            {
+                //CheckFileExists = true,
+                CheckPathExists = true,
+                AddExtension = true,
+                FilterIndex = 3,
+                FileName = "图形1",
+                DereferenceLinks = true,
+                Filter = "GIF 可交换的图形格式 (*.gif)|*.gif|JPEG 文件交换格式 (*.jpg)|*.jpg|PNG 可移植网络图形格式 (*.png)|*.png|TIFF Tag 图像文件格式 (*.tif)|*.tif|设备无关位图 (*.bmp)|*.bmp",
+                RestoreDirectory = true,
+                ValidateNames = true,
+            };
+            var showDialog = dialog.ShowDialog();
+            if (showDialog == null || !showDialog.Value) return;
+            var filePath = dialog.FileName;
+
+            var element = SelectedElements.First();
+            element.SaveControlToImage(filePath);
+            
         }
 
         #endregion Properties and Events
@@ -523,67 +583,11 @@ namespace EasyImage
             #endregion
 
             #region 添加事件
-            element.PreviewMouseRightButtonDown += Element_PreviewMouseRightButtonDown;
             element.PreviewMouseDown += Element_PreviewMouseDown;
+            element.ContextMenuOpening += Element_ContextMenuOpening;
             element.SizeChanged += Element_SizeChanged;
 
             #endregion
-        }
-
-        private void Menu_SaveImage(object sender, RoutedEventArgs e)
-        {
-            var dialog = new SaveFileDialog
-            {
-                //CheckFileExists = true,
-                CheckPathExists = true,
-                AddExtension = true,
-                FilterIndex = 3,
-                FileName = "图形1",
-                DereferenceLinks = true,
-                Filter = "GIF 可交换的图形格式 (*.gif)|*.gif|JPEG 文件交换格式 (*.jpg)|*.jpg|PNG 可移植网络图形格式 (*.png)|*.png|设备无关位图 (*.bmp)|*.bmp",
-                RestoreDirectory = true,
-                ValidateNames = true,
-            };
-            var showDialog = dialog.ShowDialog();
-            if (showDialog == null || !showDialog.Value) return;
-            var filePath = dialog.FileName;
-            //var fileText = "";
-            //for (int i = 0; i < dataList.Count(); i++)
-            //{
-            //    fileText += "===================================\n";
-            //    fileText += "编号:" + (i + 1) + "\n状态:" + dataList[i].NoteStatus + "\n创建时间:" + dataList[i].NoteCreateTime + "\n最后一次修改时间:" + dataList[i].NoteLastModifyTime + "\n内容:\n";
-            //    fileText += dataList[i].NoteContent.Trim();
-            //    fileText += "\n===================================\n\n";
-            //}
-            //File.WriteAllText(filePath, fileText, System.Text.Encoding.Default);
-        }
-
-        private void Menu_ExchangeImageFromClip(object sender, RoutedEventArgs e)
-        {
-            if (SelectedElements.Count() != 1) return;
-
-        }
-
-        private void Menu_ExchangeImageFromFile(object sender, RoutedEventArgs e)
-        {
-            if(SelectedElements.Count() != 1)return;
-            var dialog = new OpenFileDialog
-            {
-                Filter = "Image Files (*.jpg; *.jpeg; *.png; *.gif; *.bmp; *.ico)|*.jpg; *.jpeg; *.png; *.gif; *.bmp; *.ico"
-            };
-            var showDialog = dialog.ShowDialog();
-            if (showDialog != null && !(bool)showDialog) return;
-            var element = SelectedElements.First();
-            if(element == null) return;
-            ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = new BitmapImage(new Uri(dialog.FileName)), Stretch = Stretch.Fill}));
-        }
-
-        private void Element_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            var element = sender as T;
-            var menuItem = element?.ContextMenu.Items[0] as MenuItem;
-            if(menuItem == null) return;
-            menuItem.Visibility = SelectedElements.Count() > 1 ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private UIElement GetExchangeZIndexElement(T element, ZIndex zIndex)

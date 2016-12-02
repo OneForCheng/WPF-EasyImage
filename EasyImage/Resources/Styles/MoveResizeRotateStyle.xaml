@@ -71,7 +71,7 @@
                 <Setter TargetName="ThumbControl" Property="Visibility" Value="Visible"/>
             </Trigger>
             <Trigger Property="Selector.IsSelected" Value="False">
-                <Setter TargetName="ThumbControl" Property="Visibility" Value="Hidden"/>
+                <Setter TargetName="ThumbControl" Property="Visibility" Value="Collapsed"/>
             </Trigger>
         </ControlTemplate.Triggers>
     </ControlTemplate>
