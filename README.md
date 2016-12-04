@@ -1,0 +1,3 @@
+# EasyImage
+An image processing program, called EasyImage. Using WPF development, running on .NET Framework.
+The  image processing program is improving...
