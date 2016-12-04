@@ -59,11 +59,11 @@
     <!-- MoveResizeRotate Template -->
     <ControlTemplate x:Key="MoveResizeRotateTemplate" TargetType="Control">
         <Grid DataContext="{Binding RelativeSource={RelativeSource TemplatedParent}}">
-            <ContentPresenter  Content="{TemplateBinding ContentControl.Content}"/>
+            <ContentPresenter Content="{TemplateBinding ContentControl.Content}"/>
             <Control  x:Name="MoveScaleThumbControl" Template="{StaticResource MoveScaleTemplate}" Background="Transparent"/>
             <Grid x:Name="ThumbControl" >
                 <Control  x:Name="RotateThumbControl" Template="{StaticResource RotateTemplate}" Background="Transparent"/>
-                <Control  x:Name="ResizeControl" Template="{StaticResource ResizeTemplate}" Background="Transparent"/>
+                <Control  x:Name="ResizeThumbControl" Template="{StaticResource ResizeTemplate}" Background="Transparent"/>
             </Grid>
         </Grid>
         <ControlTemplate.Triggers>

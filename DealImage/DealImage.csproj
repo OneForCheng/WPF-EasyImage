@@ -46,6 +46,7 @@
   <ItemGroup>
     <Compile Include="Clip\ImageCopyHelper.cs" />
     <Compile Include="Copy\ImageCopyHelper.cs" />
+    <Compile Include="ImageHelper.cs" />
     <Compile Include="Save\ImageFileType.cs" />
     <Compile Include="Save\ImageSaveHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

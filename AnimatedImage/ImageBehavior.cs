@@ -224,7 +224,8 @@ namespace AnimatedImage
             }
             var bitmap = new RenderTargetBitmap(
                 fullImage.PixelWidth, fullImage.PixelHeight,
-                fullImage.DpiX, fullImage.DpiY,
+                //fullImage.DpiX, fullImage.DpiY,
+                96, 96,
                 PixelFormats.Pbgra32);
             bitmap.Render(visual);
 

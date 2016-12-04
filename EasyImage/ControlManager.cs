@@ -140,10 +140,10 @@ namespace EasyImage
                 rotateControl.Visibility = element.Width < 30 ? Visibility.Hidden : Visibility.Visible;
             }
         }
+
         private void Menu_ExchangeImageFromClip(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
-
         }
 
         private void Menu_ExchangeImageFromFile(object sender, RoutedEventArgs e)
@@ -154,8 +154,8 @@ namespace EasyImage
                 CheckPathExists = true,
                 Filter = "Image Files (*.jpg; *.jpeg; *.png; *.gif; *.bmp; *.ico)|*.jpg; *.jpeg; *.png; *.gif; *.bmp; *.ico"
             };
-            var showDialog = dialog.ShowDialog();
-            if (showDialog != null && !(bool)showDialog) return;
+            var showDialog = dialog.ShowDialog().GetValueOrDefault();
+            if (!showDialog) return;
             var element = SelectedElements.First();
             if (element == null) return;
             ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = new BitmapImage(new Uri(dialog.FileName)), Stretch = Stretch.Fill }));
@@ -176,9 +176,10 @@ namespace EasyImage
 
         private void Menu_SaveImage(object sender, RoutedEventArgs e)
         {
+            var selectCount = SelectedElements.Count();
+            if(selectCount == 0) return;
             var dialog = new SaveFileDialog
             {
-                //CheckFileExists = true,
                 CheckPathExists = true,
                 AddExtension = true,
                 FilterIndex = 3,
@@ -188,13 +189,32 @@ namespace EasyImage
                 RestoreDirectory = true,
                 ValidateNames = true,
             };
-            var showDialog = dialog.ShowDialog();
-            if (showDialog == null || !showDialog.Value) return;
+            var showDialog = dialog.ShowDialog().GetValueOrDefault();
+            if (!showDialog) return;
             var filePath = dialog.FileName;
 
-            var element = SelectedElements.First();
-            element.SaveControlToImage(filePath);
-            
+            if (selectCount == 1)
+            {
+                var element = SelectedElements.First();
+                Selector.SetIsSelected(element, false);
+                element.SaveChildControlToImage((Image) element.Content, filePath);
+                Selector.SetIsSelected(element, true);
+            }
+            else
+            {
+                var dict = new Dictionary<FrameworkElement, FrameworkElement>();
+                foreach (var element in SelectedElements.OrderBy(Panel.GetZIndex))
+                {
+                    dict.Add(element, (Image)element.Content);
+                    Selector.SetIsSelected(element, false);
+                }
+                dict.SaveChildControlsToImage(filePath);
+                foreach (var element in dict.Keys)
+                {
+                    Selector.SetIsSelected(element, true);
+                }
+            }
+
         }
 
         #endregion Properties and Events
