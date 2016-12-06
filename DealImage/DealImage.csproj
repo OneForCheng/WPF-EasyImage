@@ -34,6 +34,8 @@
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -47,6 +49,8 @@
     <Compile Include="Clip\ImageCopyHelper.cs" />
     <Compile Include="Copy\ImageCopyHelper.cs" />
     <Compile Include="ImageHelper.cs" />
+    <Compile Include="Paste\FileExtension.cs" />
+    <Compile Include="Paste\ImagePasteHelper.cs" />
     <Compile Include="Save\ImageFileType.cs" />
     <Compile Include="Save\ImageSaveHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

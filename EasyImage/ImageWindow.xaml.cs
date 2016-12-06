@@ -10,6 +10,7 @@ using EasyImage.Config;
 using EasyImage.Enum;
 using Microsoft.Win32;
 using System.Collections.Generic;
+using DealImage.Paste;
 
 namespace EasyImage
 {
@@ -68,6 +69,14 @@ namespace EasyImage
             {
                 _controlManager.SelectAll();
             }
+            else if ((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.C)
+            {
+                _controlManager.CopySelected();
+            }
+            else if ((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.V)
+            {
+                AddImagesFromClipboard(null, null);
+            }
             else if ((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.Y)
             {
                 _controlManager.ActionManager.ReExecute();
@@ -82,6 +91,7 @@ namespace EasyImage
         {
             _controlManager.MoveSpeed = 1.0;
         }
+
         #endregion
 
         #region 主菜单事件
@@ -90,7 +100,17 @@ namespace EasyImage
             _controlManager.SelectNone();
         }
 
-        private void AddSelectedImages(object sender, RoutedEventArgs e)
+        private void MainMenu_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            var element = sender as Image;
+            var menuItem = element?.ContextMenu.Items[1] as MenuItem;
+            if (menuItem != null)
+            {
+                menuItem.IsEnabled = ImagePasteHelper.CanPasteImageFromClipboard();
+            }
+        }
+
+        private void AddImagesFromFile(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog()
             {
@@ -105,7 +125,17 @@ namespace EasyImage
             }
             var controls = new List<ImageControl>(dialog.FileNames.Length);
             controls.AddRange(from file in dialog.FileNames select new BitmapImage(new Uri(file)) into bitmap select new AnimatedImage.AnimatedImage { Source = bitmap, Stretch = Stretch.Fill} into image select PackageImageToControl(image));
-            _controlManager.AddSelected(controls);
+            _controlManager.AddElements(controls);
+        }
+
+        private void AddImagesFromClipboard(object sender, RoutedEventArgs e)
+        {
+            if (!ImagePasteHelper.CanPasteImageFromClipboard()) return;
+            var imageSources = ImagePasteHelper.PasteImageFromClipboard();
+            var enumerable = imageSources as IList<ImageSource> ?? imageSources.ToList();
+            var controls = new List<ImageControl>(enumerable.Count);
+            controls.AddRange(from imageSource in enumerable  select new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill } into image select PackageImageToControl(image));
+            _controlManager.AddElements(controls);
         }
 
         #endregion
@@ -132,23 +162,27 @@ namespace EasyImage
 
             #region 添加上下文菜单
             var contextMenu = new ContextMenu();
-            var item = new MenuItem {Header = "添加图像"};
-            item.Click += AddSelectedImages;
+            var item = new MenuItem {Header = "添加"};
+            item.Click += AddImagesFromFile;
             contextMenu.Items.Add(item);
 
-            //item = new MenuItem {Header = "显示隐藏图像"};
-            //item.Click += ShowAllImages;
-            //contextMenu.Items.Add(item);
+            item = new MenuItem { Header = "粘贴" };
+            item.Click += AddImagesFromClipboard;
+            contextMenu.Items.Add(item);
 
-            //item = new MenuItem {Header = "清除所有图像"};
-            //item.Click += RemoveAllImages;
-            //contextMenu.Items.Add(item);
+            item = new MenuItem { Header = "退出" };
+            item.Click += (sender, args) =>
+            {
+                Owner.Close();
+            };
+            contextMenu.Items.Add(item);
 
             MainMenuIcon.ContextMenu = contextMenu;
             #endregion
 
             #region 添加事件
             MainMenuIcon.MouseDown += MainMenu_MouseDown;
+            MainMenuIcon.ContextMenuOpening += MainMenu_ContextMenuOpening;
 
             #endregion
         }
@@ -187,5 +221,6 @@ namespace EasyImage
 
         #endregion
 
+       
     }
 }

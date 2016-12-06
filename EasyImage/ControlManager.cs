@@ -8,6 +8,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using DealImage.Copy;
 using DealImage.Save;
 using EasyImage.Actioins;
 using EasyImage.Enum;
@@ -68,7 +69,6 @@ namespace EasyImage
             }
         }
 
-       
         private void Element_ZIndexTop(object sender, RoutedEventArgs e)
         {
             var elements = SelectedElements.OrderByDescending(Panel.GetZIndex);
@@ -169,9 +169,11 @@ namespace EasyImage
             var count = SelectedElements.Count();
             if (count <= 0) return;
             e.Handled = false;
-            var menuItem = element.ContextMenu.Items[0] as MenuItem;
-            if (menuItem == null) return;
-            menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+            var menuItem = element.ContextMenu.Items[2] as MenuItem;
+            if (menuItem != null)
+            {
+                menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void Menu_SaveImage(object sender, RoutedEventArgs e)
@@ -193,28 +195,21 @@ namespace EasyImage
             if (!showDialog) return;
             var filePath = dialog.FileName;
 
-            if (selectCount == 1)
-            {
-                var element = SelectedElements.First();
-                Selector.SetIsSelected(element, false);
-                element.SaveChildControlToImage((Image) element.Content, filePath);
-                Selector.SetIsSelected(element, true);
-            }
-            else
-            {
-                var dict = new Dictionary<FrameworkElement, FrameworkElement>();
-                foreach (var element in SelectedElements.OrderBy(Panel.GetZIndex))
-                {
-                    dict.Add(element, (Image)element.Content);
-                    Selector.SetIsSelected(element, false);
-                }
-                dict.SaveChildControlsToImage(filePath);
-                foreach (var element in dict.Keys)
-                {
-                    Selector.SetIsSelected(element, true);
-                }
-            }
+            var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<T, FrameworkElement, FrameworkElement>(element => element, element => (Image) element.Content);
+            SetIsSelected(dict.Keys, false);
+            dict.SaveChildElementsToImage(filePath);
+            SetIsSelected(dict.Keys, true);
 
+        }
+
+        private void Menu_CopyImage(object sender, RoutedEventArgs e)
+        {
+            CopySelected();
+        }
+
+        private void Menu_ClipImage(object sender, RoutedEventArgs e)
+        {
+            
         }
 
         #endregion Properties and Events
@@ -225,7 +220,7 @@ namespace EasyImage
         /// 添加选中元素
         /// </summary>
         /// <param name="elements"></param>
-        public void AddSelected(IEnumerable<T> elements)
+        public void AddElements(IEnumerable<T> elements)
         {
             var enumerable = elements as IList<T> ?? elements.ToList();
             if (!enumerable.Any()) return;
@@ -250,6 +245,18 @@ namespace EasyImage
                 transactions.Add(new AddItemAction<T>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m),  element));
             }
             ActionManager.Execute(transactions);
+        }
+
+        /// <summary>
+        /// 复制选中的元素
+        /// </summary>
+        public void CopySelected()
+        {
+            if (!SelectedElements.Any()) return;
+            var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<T, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
+            SetIsSelected(dict.Keys, false);
+            dict.CopyChildElementsToClipBoard();
+            SetIsSelected(dict.Keys, true);
         }
 
         /// <summary>
@@ -525,11 +532,24 @@ namespace EasyImage
 
             #region 添加上下文菜单
             var contextMenu = new ContextMenu();
-            
+
+            #region 剪贴
+            var item = new MenuItem { Header = "剪贴" };
+            item.Click += Menu_ClipImage;
+            contextMenu.Items.Add(item);
+
+            #endregion
+
+            #region 复制
+            item = new MenuItem { Header = "复制" };
+            item.Click += Menu_CopyImage;
+            contextMenu.Items.Add(item);
+
+            #endregion
 
             #region 更改图片
 
-            var item = new MenuItem { Header = "更改图片" };
+            item = new MenuItem { Header = "更改图片" };
             
             #region 二级菜单
 
@@ -582,7 +602,7 @@ namespace EasyImage
 
             contextMenu.Items.Add(item);
             #endregion
-
+                
             #region 另存为图片
             item = new MenuItem { Header = "另存为图片..." };
             item.Click += Menu_SaveImage;
@@ -654,6 +674,14 @@ namespace EasyImage
                     }
                 }
                 return targetElement;
+            }
+        }
+
+        private void SetIsSelected(IEnumerable<UIElement> elements,bool isSelected)
+        {
+            foreach (var item in elements)
+            {
+                Selector.SetIsSelected(item, isSelected);
             }
         }
 
