@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
@@ -24,6 +27,38 @@ namespace DealImage
 
         //    return new Rect(0, 0, width, height);
         //}
+
+        public static FileExtension GetFileExtension(string filePath)
+        {
+            if (!File.Exists(filePath)) return FileExtension.Unknow;
+
+            var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+            var fileExt = GetFileExtension(fs);
+            fs.Close();
+            return fileExt;
+        }
+
+        public static FileExtension GetFileExtension(Stream stream)
+        {
+            FileExtension extension;
+            try
+            {
+                stream.Position = 0;
+                var reader = new BinaryReader(stream);
+                var data = reader.ReadByte();
+                var fileType = string.Empty;
+                fileType += data.ToString();
+                data = reader.ReadByte();
+                fileType += data.ToString();
+                extension = (FileExtension)Enum.Parse(typeof(FileExtension), fileType);
+            }
+            catch(Exception ex)
+            {
+                Trace.WriteLine(ex.ToString());
+                extension = FileExtension.Unknow;
+            }
+            return extension;
+        }
 
         public static RenderTargetBitmap GetRenderTargetBitmap(this IDictionary<FrameworkElement, FrameworkElement> dictionary, SolidColorBrush backgrand = null)
         {

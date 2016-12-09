@@ -44,7 +44,18 @@
     <Reference Include="DealImage">
       <HintPath>..\DealImage\bin\Debug\DealImage.dll</HintPath>
     </Reference>
+    <Reference Include="IconMaker">
+      <HintPath>..\IconMaker\bin\Debug\IconMaker.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Expression.Interactions, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="NHotkey, Version=1.2.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\NHotkey.1.2.1\lib\net20\NHotkey.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NHotkey.Wpf, Version=1.2.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\NHotkey.Wpf.1.2.1\lib\net35\NHotkey.Wpf.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Data" />
@@ -80,6 +91,7 @@
     <Compile Include="Actioins\WheelScaleAction.cs" />
     <Compile Include="Actioins\DragMoveAction.cs" />
     <Compile Include="Behaviors\MouseDragElementBehavior.cs" />
+    <Compile Include="ClipboardMonitor.cs" />
     <Compile Include="Config\UserConfig.cs" />
     <Compile Include="Config\ImageSetting.cs" />
     <Compile Include="Enum\SystemMenuItems.cs" />
@@ -133,6 +145,7 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

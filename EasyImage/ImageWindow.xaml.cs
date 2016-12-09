@@ -10,7 +10,11 @@ using EasyImage.Config;
 using EasyImage.Enum;
 using Microsoft.Win32;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using DealImage.Paste;
+using NHotkey;
+using NHotkey.Wpf;
 
 namespace EasyImage
 {
@@ -22,6 +26,7 @@ namespace EasyImage
     {
         private UserConfig _userConfigution;
         private ControlManager<ImageControl> _controlManager;
+        private ClipboardMonitor _clipboardMonitor;
 
         public ImageWindow()
         {
@@ -36,17 +41,20 @@ namespace EasyImage
             ImageCanvas.Height = Height;
             _userConfigution = ((MainWindow)Owner).UserConfigution;
             _controlManager = new ControlManager<ImageControl>(ImageCanvas);
+            _clipboardMonitor = new ClipboardMonitor();
+            _clipboardMonitor.OnClipboardContentChanged += OnClipboardContentChanged;
             #endregion
 
             #region 加载其它配置
             this.RemoveSystemMenuItems(SystemMenuItems.All);//去除窗口指定的系统菜单
+            HotkeyManager.Current.AddOrReplace("GlobalPasteFromClipboard", Key.V, ModifierKeys.Control | ModifierKeys.Alt, GlobalPasteFromClipboard);//https://github.com/thomaslevesque/NHotkey
             InitMainMenu();
 
             #endregion
 
         }
 
-        private void HiddenWindow(object sender, RoutedEventArgs e)
+        private void HiddenWindow(object sender, ExecutedRoutedEventArgs e)
         {
             Visibility = Visibility.Hidden;
         }
@@ -61,25 +69,29 @@ namespace EasyImage
                     _controlManager.MoveSpeed += 0.5;
                 }
             }
-            else if((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.Z )
+            else if((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control )
             {
-                _controlManager.ActionManager.UnExecute();
-            }
-            else if ((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.A)
-            {
-                _controlManager.SelectAll();
-            }
-            else if ((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.C)
-            {
-                _controlManager.CopySelected();
-            }
-            else if ((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.V)
-            {
-                AddImagesFromClipboard(null, null);
-            }
-            else if ((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.Y)
-            {
-                _controlManager.ActionManager.ReExecute();
+                switch (e.Key)
+                {
+                    case Key.Z:
+                        _controlManager.ActionManager.UnExecute();
+                        break;
+                    case Key.A:
+                        _controlManager.SelectAll();
+                        break;
+                    case Key.C:
+                        _controlManager.CopySelected();
+                        break;
+                    case Key.V:
+                        PasteImagesFromClipboard(null, null);
+                        break;
+                    case Key.X:
+                        _controlManager.ClipSelected();
+                        break;
+                    case Key.Y:
+                        _controlManager.ActionManager.ReExecute();
+                        break;
+                }
             }
             else if (e.Key == Key.Delete)
             {
@@ -95,6 +107,7 @@ namespace EasyImage
         #endregion
 
         #region 主菜单事件
+
         private void MainMenu_MouseDown(object sender, MouseButtonEventArgs e)
         {
             _controlManager.SelectNone();
@@ -115,32 +128,64 @@ namespace EasyImage
             var dialog = new OpenFileDialog()
             {
                 Multiselect = true,
-                Filter = "Image Files (*.jpg; *.jpeg; *.png; *.gif; *.bmp; *.ico)|*.jpg; *.jpeg; *.png; *.gif; *.bmp; *.ico"
+                Filter = "所有图片 (*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle)|*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle"
+                + "|ICO 图标格式 (*.ico)|*.ico"
+                + "|GIF 可交换的图形格式 (*.gif)|*.gif"
+                + "|JPEG 文件交换格式 (*.jpg;*.jpeg;*.jfif;*.jpe)|*.jpg;*.jpeg;*.jfif;*.jpe"
+                + "|PNG 可移植网络图形格式 (*.png)|*.png"
+                + "|TIFF Tag 图像文件格式 (*.tif;*.tiff)|*.tif;*.tiff"
+                + "|设备无关位图 (*.bmp;*.dib;*.rle)|*.bmp;*.dib;*.rle"
             };
+
             var showDialog = dialog.ShowDialog();
             if (showDialog != null && !(bool) showDialog) return;
-            if(dialog.FileName.Any())
-            {
-                _controlManager.SelectNone();
-            }
+            _controlManager.SelectNone();
+            _controlManager.ContinuedPasteCount = 0;
             var controls = new List<ImageControl>(dialog.FileNames.Length);
-            controls.AddRange(from file in dialog.FileNames select new BitmapImage(new Uri(file)) into bitmap select new AnimatedImage.AnimatedImage { Source = bitmap, Stretch = Stretch.Fill} into image select PackageImageToControl(image));
+            foreach (var file in dialog.FileNames)
+            {
+                var stream = new MemoryStream();
+                using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read))
+                {
+                    fileStream.CopyTo(stream);
+                }
+                var imageSource = new BitmapImage();
+                imageSource.BeginInit();
+                imageSource.StreamSource = stream;
+                imageSource.EndInit();
+                controls.Add(PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }));
+            }
             _controlManager.AddElements(controls);
         }
 
-        private void AddImagesFromClipboard(object sender, RoutedEventArgs e)
+        private void PasteImagesFromClipboard(object sender, RoutedEventArgs e)
         {
+            if (ImagePasteHelper.CanInnerPasteFromClipboard())
+            {
+                var baseInfos = ImagePasteHelper.GetInnerPasteDataFromClipboard() as List<ImageControlBaseInfo>;
+                if (baseInfos != null)
+                {
+                    _controlManager.SelectNone();
+                    _controlManager.ContinuedPasteCount++;
+                    _controlManager.AddElements(baseInfos.Select(PackageBaseInfoToControl));
+                    return;
+                }
+            }
+
             if (!ImagePasteHelper.CanPasteImageFromClipboard()) return;
-            var imageSources = ImagePasteHelper.PasteImageFromClipboard();
+            _controlManager.SelectNone();
+            _controlManager.ContinuedPasteCount++;
+            var imageSources = ImagePasteHelper.GetPasteImagesFromClipboard();
             var enumerable = imageSources as IList<ImageSource> ?? imageSources.ToList();
             var controls = new List<ImageControl>(enumerable.Count);
-            controls.AddRange(from imageSource in enumerable  select new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill } into image select PackageImageToControl(image));
+            controls.AddRange(enumerable.Select(imageSource => PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill })));
             _controlManager.AddElements(controls);
         }
 
         #endregion
 
         #region 初始化操作
+
         private void InitMainMenu()
         {
             #region 初始化属性
@@ -167,7 +212,7 @@ namespace EasyImage
             contextMenu.Items.Add(item);
 
             item = new MenuItem { Header = "粘贴" };
-            item.Click += AddImagesFromClipboard;
+            item.Click += PasteImagesFromClipboard;
             contextMenu.Items.Add(item);
 
             item = new MenuItem { Header = "退出" };
@@ -213,14 +258,46 @@ namespace EasyImage
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new ScaleTransform(1, 1));
             transformGroup.Children.Add(new RotateTransform(0));
-            transformGroup.Children.Add(new TranslateTransform((SystemParameters.VirtualScreenWidth - imageControl.Width) / 2, (SystemParameters.VirtualScreenHeight - imageControl.Height) / 2));
+            transformGroup.Children.Add(new TranslateTransform((SystemParameters.VirtualScreenWidth - imageControl.Width) / 2 + _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedPasteCount, (SystemParameters.VirtualScreenHeight - imageControl.Height) / 2 + _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedPasteCount));
             imageControl.RenderTransform = transformGroup;
+
+            return imageControl;
+        }
+
+        public ImageControl PackageBaseInfoToControl(ImageControlBaseInfo baseInfo)
+        {
+            var animatedImage = new AnimatedImage.AnimatedImage { Source = baseInfo.ImageSource, Stretch = Stretch.Fill };
+            var imageControl = new ImageControl(_controlManager)
+            {
+                Width = baseInfo.Width,
+                Height = baseInfo.Height,
+                Content = animatedImage,
+                Template = (ControlTemplate) Resources["MoveResizeRotateTemplate"],
+                RenderTransform = baseInfo.RenderTransform,
+            };
+
+            var translateTransform = imageControl.GetTransform<TranslateTransform>();
+            translateTransform.X += _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedPasteCount;
+            translateTransform.Y += _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedPasteCount;
 
             return imageControl;
         }
 
         #endregion
 
-       
+        #region 全局事件
+
+        private void GlobalPasteFromClipboard(object sender, HotkeyEventArgs e)
+        {
+            PasteImagesFromClipboard(null, null);
+        }
+
+        private void OnClipboardContentChanged(object sender, EventArgs e)
+        {
+            _controlManager.ContinuedPasteCount = 0;
+        }
+
+        #endregion
+
     }
 }

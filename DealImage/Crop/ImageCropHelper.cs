@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DealImage.Clip
+namespace DealImage.Crop
 {
-    public static class ImageCopyHelper
+    public static class ImageCropHelper
     {
 
     }

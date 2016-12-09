@@ -8,10 +8,13 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using DealImage;
 using DealImage.Copy;
+using DealImage.Paste;
 using DealImage.Save;
 using EasyImage.Actioins;
 using EasyImage.Enum;
+using IconMaker;
 using Microsoft.Win32;
 using UndoFramework;
 using UndoFramework.Actions;
@@ -47,6 +50,11 @@ namespace EasyImage
         /// 移动速度
         /// </summary>
         public double MoveSpeed { get; set; }
+
+        /// <summary>
+        /// 连续复制次数
+        /// </summary>
+        public int ContinuedPasteCount { get; set; }
 
         /// <summary>
         /// 获取选中的元素
@@ -131,7 +139,7 @@ namespace EasyImage
 
         }
 
-        private static void Element_SizeChanged(object sender, SizeChangedEventArgs e)
+        private void Element_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             var element = sender as T;
             var rotateControl = element?.Template.FindName("RotateThumbControl", element) as Control;
@@ -144,6 +152,11 @@ namespace EasyImage
         private void Menu_ExchangeImageFromClip(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
+            var imageSource = ImagePasteHelper.GetExchangeImageFromClip();
+            if (imageSource != null)
+            {
+                ActionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }));
+            }
         }
 
         private void Menu_ExchangeImageFromFile(object sender, RoutedEventArgs e)
@@ -152,12 +165,17 @@ namespace EasyImage
             var dialog = new OpenFileDialog
             {
                 CheckPathExists = true,
-                Filter = "Image Files (*.jpg; *.jpeg; *.png; *.gif; *.bmp; *.ico)|*.jpg; *.jpeg; *.png; *.gif; *.bmp; *.ico"
+                Filter = "所有图片 (*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle)|*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle"
+                + "|ICO 图标格式 (*.ico)|*.ico"
+                + "|GIF 可交换的图形格式 (*.gif)|*.gif"
+                + "|JPEG 文件交换格式 (*.jpg;*.jpeg;*.jfif;*.jpe)|*.jpg;*.jpeg;*.jfif;*.jpe"
+                + "|PNG 可移植网络图形格式 (*.png)|*.png"
+                + "|TIFF Tag 图像文件格式 (*.tif;*.tiff)|*.tif;*.tiff"
+                + "|设备无关位图 (*.bmp;*.dib;*.rle)|*.bmp;*.dib;*.rle"
             };
             var showDialog = dialog.ShowDialog().GetValueOrDefault();
             if (!showDialog) return;
             var element = SelectedElements.First();
-            if (element == null) return;
             ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = new BitmapImage(new Uri(dialog.FileName)), Stretch = Stretch.Fill }));
         }
 
@@ -176,7 +194,17 @@ namespace EasyImage
             }
         }
 
-        private void Menu_SaveImage(object sender, RoutedEventArgs e)
+        private void ExchangeImageMenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
+        {
+            var menu = sender as MenuItem;
+            var menuItem = menu?.Items[1] as MenuItem;
+            if (menuItem != null)
+            {
+                menuItem.IsEnabled = ImagePasteHelper.CanExchangeImageFromClip();
+            }
+        }
+
+        private void Menu_SaveToImage(object sender, RoutedEventArgs e)
         {
             var selectCount = SelectedElements.Count();
             if(selectCount == 0) return;
@@ -187,19 +215,114 @@ namespace EasyImage
                 FilterIndex = 3,
                 FileName = "图形1",
                 DereferenceLinks = true,
-                Filter = "GIF 可交换的图形格式 (*.gif)|*.gif|JPEG 文件交换格式 (*.jpg)|*.jpg|PNG 可移植网络图形格式 (*.png)|*.png|TIFF Tag 图像文件格式 (*.tif)|*.tif|设备无关位图 (*.bmp)|*.bmp",
-                RestoreDirectory = true,
+                Filter =  "GIF 可交换的图形格式 (*.gif)|*.gif"
+                        + "|JPEG 文件交换格式 (*.jpg)|*.jpg"
+                        + "|PNG 可移植网络图形格式 (*.png)|*.png"
+                        + "|TIFF Tag 图像文件格式 (*.tif)|*.tif"
+                        + "|设备无关位图 (*.bmp)|*.bmp",
                 ValidateNames = true,
             };
+            if (selectCount == 1)
+            {
+                var element = SelectedElements.First();
+                var bitmapSource = (element.Content as AnimatedImage.AnimatedImage)?.Source as BitmapImage;
+                if (bitmapSource != null)
+                {
+                    var fileExt  = bitmapSource.StreamSource != null ? ImageHelper.GetFileExtension(bitmapSource.StreamSource) : ImageHelper.GetFileExtension(bitmapSource.UriSource.AbsolutePath);
+                    Trace.WriteLine(fileExt);
+                    switch (fileExt)
+                    {
+                        case FileExtension.Gif:
+                            dialog.FilterIndex = 1;
+                            break;
+                        case FileExtension.Jpg:
+                            dialog.FilterIndex = 2;
+                            break;
+                        case FileExtension.Png:
+                            dialog.FilterIndex = 3;
+                            break;
+                        case FileExtension.Tif:
+                            dialog.FilterIndex = 4;
+                            break;
+                        case FileExtension.Bmp:
+                            dialog.FilterIndex = 5;
+                            break;
+                        default:
+                            dialog.FilterIndex = 3;
+                            break;
+                    }
+                }
+            }
             var showDialog = dialog.ShowDialog().GetValueOrDefault();
             if (!showDialog) return;
             var filePath = dialog.FileName;
-
             var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<T, FrameworkElement, FrameworkElement>(element => element, element => (Image) element.Content);
             SetIsSelected(dict.Keys, false);
             dict.SaveChildElementsToImage(filePath);
             SetIsSelected(dict.Keys, true);
 
+        }
+
+        private void Menu_SaveToIcon(object sender, RoutedEventArgs e)
+        {
+            if (!SelectedElements.Any()) return;
+            var menuItem = sender as MenuItem;
+            var menu = menuItem?.Parent as MenuItem;
+            if (menu != null)
+            {
+                var dialog = new SaveFileDialog
+                {
+                    CheckPathExists = true,
+                    AddExtension = true,
+                    FileName = "图标1",
+                    DereferenceLinks = true,
+                    Filter = "ICO 图标格式 (*.ico)|*.ico",
+                    ValidateNames = true,
+                };
+                var showDialog = dialog.ShowDialog().GetValueOrDefault();
+                if (!showDialog) return;
+                var filePath = dialog.FileName;
+                var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<T, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
+                SetIsSelected(dict.Keys, false);
+                var imageSource = dict.GetRenderTargetBitmap();
+                SetIsSelected(dict.Keys, true);
+                var index = menu.Items.IndexOf(menuItem);
+                Trace.WriteLine(index);
+                switch (index)
+                {
+                    case 0:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp256);
+                        break;
+                    case 1:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp128);
+                        break;
+                    case 2:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp96);
+                        break;
+                    case 3:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp72);
+                        break;
+                    case 4:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp64);
+                        break;
+                    case 5:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp48);
+                        break;
+                    case 6:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp32);
+                        break;
+                    case 7:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp24);
+                        break;
+                    case 8:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp16);
+                        break;
+                    default:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp32);
+                        break;
+                }
+
+            }
         }
 
         private void Menu_CopyImage(object sender, RoutedEventArgs e)
@@ -209,7 +332,7 @@ namespace EasyImage
 
         private void Menu_ClipImage(object sender, RoutedEventArgs e)
         {
-            
+            ClipSelected();
         }
 
         #endregion Properties and Events
@@ -253,10 +376,27 @@ namespace EasyImage
         public void CopySelected()
         {
             if (!SelectedElements.Any()) return;
-            var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<T, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
+            var count = SelectedElements.Count();
+            var dict = new Dictionary<FrameworkElement, FrameworkElement>(count);
+            var baseInfos = new List<ImageControlBaseInfo>(count);
+            foreach (var element in SelectedElements.OrderBy(Panel.GetZIndex))
+            {
+                var image = (Image)element.Content;
+                dict.Add(element, image);
+                baseInfos.Add(new ImageControlBaseInfo(element));
+            }
             SetIsSelected(dict.Keys, false);
-            dict.CopyChildElementsToClipBoard();
+            dict.CopyChildElementsToClipBoard(baseInfos);
             SetIsSelected(dict.Keys, true);
+        }
+
+        /// <summary>
+        /// 剪切选中的元素
+        /// </summary>
+        public void ClipSelected()
+        {
+            CopySelected();
+            RemoveSelected();
         }
 
         /// <summary>
@@ -550,7 +690,7 @@ namespace EasyImage
             #region 更改图片
 
             item = new MenuItem { Header = "更改图片" };
-            
+            item.SubmenuOpened += ExchangeImageMenuItem_SubmenuOpened;
             #region 二级菜单
 
             var subItem = new MenuItem { Header = "来自文件..." };
@@ -605,8 +745,53 @@ namespace EasyImage
                 
             #region 另存为图片
             item = new MenuItem { Header = "另存为图片..." };
-            item.Click += Menu_SaveImage;
+            item.Click += Menu_SaveToImage;
             contextMenu.Items.Add(item);
+
+            #endregion
+
+            #region 另存为图标
+            item = new MenuItem { Header = "另存为图标" };
+            contextMenu.Items.Add(item);
+
+            #region 二级菜单
+            subItem = new MenuItem { Header = "ICO 256*256" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 128*128" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 96*96" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 72*72" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 64*64" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 48*48" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 32*32" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 24*24" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 16*16" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            #endregion
 
             #endregion
 
@@ -629,6 +814,7 @@ namespace EasyImage
 
             #endregion
         }
+
 
         private UIElement GetExchangeZIndexElement(T element, ZIndex zIndex)
         {
@@ -688,5 +874,4 @@ namespace EasyImage
         #endregion Private methods
 
     }
-
 }

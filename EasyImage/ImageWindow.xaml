@@ -20,7 +20,7 @@
         <KeyBinding Modifiers="Alt" Key="F4" Command="{StaticResource Hidden}"/>
     </Window.InputBindings>
     <Window.CommandBindings>
-        <CommandBinding Command="{StaticResource Hidden}" CanExecute="HiddenWindow" Executed="HiddenWindow"/>
+        <CommandBinding Command="{StaticResource Hidden}" Executed="HiddenWindow"/>
     </Window.CommandBindings>
     <Canvas x:Name="MainCanvas">
         <Canvas x:Name="ImageCanvas">

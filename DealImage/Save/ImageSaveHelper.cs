@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -61,48 +62,31 @@ namespace DealImage.Save
 
         public static void SaveChildElementsToImage(this IDictionary<FrameworkElement, FrameworkElement> dictionary, String outputPath)
         {
-            SaveChildElementsToImage(dictionary, GetImageFileType(outputPath.Split('.').Last()), outputPath);
+            SaveChildElementsToImage(dictionary, GetEncoderByFileExt(outputPath.Split('.').Last()), outputPath);
         }
 
-        public static void SaveChildElementsToImage(this IDictionary<FrameworkElement, FrameworkElement> dictionary, ImageFileType type, String outputPath)
+        public static void SaveChildElementsToImage(this IDictionary<FrameworkElement, FrameworkElement> dictionary, BitmapEncoder encoder, String outputPath)
         {
-            SaveBitmapToFile(dictionary.GetRenderTargetBitmap(), type, outputPath);
+            if (encoder is JpegBitmapEncoder || encoder is BmpBitmapEncoder)
+            {
+                SaveBitmapToFile(dictionary.GetRenderTargetBitmap(System.Windows.Media.Brushes.White), encoder, outputPath);
+            }
+            else
+            {
+                SaveBitmapToFile(dictionary.GetRenderTargetBitmap(), encoder, outputPath);
+            }
         }
 
-        private static void SaveBitmapToFile(BitmapSource bitmap, ImageFileType type, String outputPath)
+        private static void SaveBitmapToFile(BitmapSource bitmap, BitmapEncoder encoder, String outputPath)
         {
             try
             {
-                BitmapEncoder encoder;
-
-                //选取编码器
-                switch (type)
-                {
-                    case ImageFileType.Bmp:
-                        encoder = new BmpBitmapEncoder();
-                        break;
-                    case ImageFileType.Gif:
-                        encoder = new GifBitmapEncoder();
-                        break;
-                    case ImageFileType.Jpeg:
-                        encoder = new JpegBitmapEncoder();
-                        break;
-                    case ImageFileType.Png:
-                        encoder = new PngBitmapEncoder();
-                        break;
-                    case ImageFileType.Tiff:
-                        encoder = new TiffBitmapEncoder();
-                        break;
-                    default:
-                        throw new InvalidOperationException("不支持此图片类型.");
-                }
-
-                encoder.Frames.Add(BitmapFrame.Create(bitmap));
                 var folder = Path.GetDirectoryName(outputPath);
                 if (!Directory.Exists(folder))
                 {
                     if (folder != null) Directory.CreateDirectory(folder);
                 }
+                encoder.Frames.Add(BitmapFrame.Create(bitmap));
                 using (var file = File.Create(outputPath))
                 {
                     encoder.Save(file);
@@ -114,32 +98,41 @@ namespace DealImage.Save
             }
         }
 
-        private static ImageFileType GetImageFileType(string fileExt)
+        private static BitmapEncoder GetEncoderByFileExt(string fileExt)
         {
-            ImageFileType type;
+            BitmapEncoder encoder;
             switch (fileExt.ToUpper())
             {
                 case "GIF":
-                    type = ImageFileType.Gif;
+                    encoder = new GifBitmapEncoder();
                     break;
                 case "JPG":
-                    type = ImageFileType.Jpeg;
+                case "JPEG":
+                case "JPE":
+                case "JFIF":
+                    encoder = new JpegBitmapEncoder();
                     break;
                 case "PNG":
-                    type = ImageFileType.Png;
+                    encoder = new PngBitmapEncoder();
                     break;
                 case "TIF":
-                    type = ImageFileType.Tiff;
+                case "TIFF":
+                    encoder = new TiffBitmapEncoder();
                     break;
                 case "BMP":
-                    type = ImageFileType.Bmp;
+                case "DIB":
+                case "RLE":
+                    encoder = new BmpBitmapEncoder();
+                    break;
+                case "WDP":
+                    encoder = new WmpBitmapEncoder();
                     break;
                 default:
-                    throw new InvalidOperationException("不支持此图像格式.");
+                    encoder = new PngBitmapEncoder();
+                    break;
             }
-            return type;
+            return encoder;
         }
-
 
     }
 }

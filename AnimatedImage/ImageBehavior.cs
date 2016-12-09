@@ -13,6 +13,8 @@ namespace AnimatedImage
     {
         #region AnimatedSource
 
+       
+
         [AttachedPropertyBrowsableForType(typeof(Image))]
         public static ImageSource GetAnimatedSource(Image obj)
         {
