@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -16,8 +17,10 @@ using EasyImage.Actioins;
 using EasyImage.Enum;
 using IconMaker;
 using Microsoft.Win32;
+using DealImage.Capture;
 using UndoFramework;
 using UndoFramework.Actions;
+
 
 namespace EasyImage
 {
@@ -26,7 +29,7 @@ namespace EasyImage
         #region Data
         private int _maxImageZIndex;
         private readonly Panel _panelContainer;
-
+    
         #endregion Data
 
         #region Constructors
@@ -34,13 +37,16 @@ namespace EasyImage
         {
             _panelContainer = container;
             _maxImageZIndex = 0;
+   
             MoveSpeed = 1.0;
             ActionManager = new ActionManager {MaxBufferCount = 20};
+
         }
 
         #endregion Constructors
 
         #region Properties and Events
+
         /// <summary>
         /// 操作管理
         /// </summary>
@@ -149,16 +155,6 @@ namespace EasyImage
             }
         }
 
-        private void Menu_ExchangeImageFromClip(object sender, RoutedEventArgs e)
-        {
-            if (SelectedElements.Count() != 1) return;
-            var imageSource = ImagePasteHelper.GetExchangeImageFromClip();
-            if (imageSource != null)
-            {
-                ActionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }));
-            }
-        }
-
         private void Menu_ExchangeImageFromFile(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
@@ -179,6 +175,49 @@ namespace EasyImage
             ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = new BitmapImage(new Uri(dialog.FileName)), Stretch = Stretch.Fill }));
         }
 
+        private async void Element_ExchangeImageFromScreen(object sender, RoutedEventArgs e)
+        {
+            if (!SelectedElements.Any()) return;
+            var elements = SelectedElements.ToList();
+            elements.ForEach(m => m.Visibility = Visibility.Hidden);
+
+            await Task.Delay(300);
+
+            foreach (var element in elements)
+            {
+                var scaleTransform = element.GetTransform<ScaleTransform>();
+                var imageSource = CaptureHelper.ScreenCropper(new ViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
+                if (imageSource != null)
+                {
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(imageSource));
+                    var stream = new MemoryStream();
+                    encoder.Save(stream);
+                    var bitmapImage = new BitmapImage();
+                    bitmapImage.BeginInit();
+                    bitmapImage.StreamSource = stream;
+                    bitmapImage.EndInit();
+                    ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = bitmapImage, Stretch = Stretch.Fill }));
+                }
+                else
+                {
+                    Exception ex;
+                    throw new Exception("不合法的截图操作");
+                }
+            }
+            elements.ForEach(m => m.Visibility = Visibility.Visible);
+        }
+
+        private void Menu_ExchangeImageFromClip(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var imageSource = ImagePasteHelper.GetPasteImagesFromClipboard().First();
+            if (imageSource != null)
+            {
+                ActionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }));
+            }
+        }
+
         private void Element_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
             e.Handled = true;
@@ -187,14 +226,14 @@ namespace EasyImage
             var count = SelectedElements.Count();
             if (count <= 0) return;
             e.Handled = false;
-            var menuItem = element.ContextMenu.Items[2] as MenuItem;
+            var menuItem = element.ContextMenu.Items[3] as MenuItem;
             if (menuItem != null)
             {
                 menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
             }
         }
 
-        private void ExchangeImageMenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
+        private void MenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
         {
             var menu = sender as MenuItem;
             var menuItem = menu?.Items[1] as MenuItem;
@@ -229,7 +268,6 @@ namespace EasyImage
                 if (bitmapSource != null)
                 {
                     var fileExt  = bitmapSource.StreamSource != null ? ImageHelper.GetFileExtension(bitmapSource.StreamSource) : ImageHelper.GetFileExtension(bitmapSource.UriSource.AbsolutePath);
-                    Trace.WriteLine(fileExt);
                     switch (fileExt)
                     {
                         case FileExtension.Gif:
@@ -287,7 +325,6 @@ namespace EasyImage
                 var imageSource = dict.GetRenderTargetBitmap();
                 SetIsSelected(dict.Keys, true);
                 var index = menu.Items.IndexOf(menuItem);
-                Trace.WriteLine(index);
                 switch (index)
                 {
                     case 0:
@@ -309,7 +346,7 @@ namespace EasyImage
                         imageSource.SaveIcon(filePath, IconSize.Bmp48);
                         break;
                     case 6:
-                        imageSource.SaveIcon(filePath, IconSize.Bmp32);
+                        imageSource.SaveIcon(filePath);
                         break;
                     case 7:
                         imageSource.SaveIcon(filePath, IconSize.Bmp24);
@@ -318,7 +355,7 @@ namespace EasyImage
                         imageSource.SaveIcon(filePath, IconSize.Bmp16);
                         break;
                     default:
-                        imageSource.SaveIcon(filePath, IconSize.Bmp32);
+                        imageSource.SaveIcon(filePath);
                         break;
                 }
 
@@ -687,10 +724,17 @@ namespace EasyImage
 
             #endregion
 
+            #region 截屏
+            item = new MenuItem { Header = "截屏" };
+            item.Click += Element_ExchangeImageFromScreen;
+            contextMenu.Items.Add(item);
+
+            #endregion
+
             #region 更改图片
 
             item = new MenuItem { Header = "更改图片" };
-            item.SubmenuOpened += ExchangeImageMenuItem_SubmenuOpened;
+            item.SubmenuOpened += MenuItem_SubmenuOpened;
             #region 二级菜单
 
             var subItem = new MenuItem { Header = "来自文件..." };
@@ -804,7 +848,6 @@ namespace EasyImage
             #endregion
 
             element.ContextMenu = contextMenu;
-
             #endregion
 
             #region 添加事件
@@ -814,7 +857,6 @@ namespace EasyImage
 
             #endregion
         }
-
 
         private UIElement GetExchangeZIndexElement(T element, ZIndex zIndex)
         {

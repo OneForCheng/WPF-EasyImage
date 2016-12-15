@@ -18,11 +18,11 @@ using NHotkey.Wpf;
 
 namespace EasyImage
 {
-    
+
     /// <summary>
     /// ImageWinodw.xaml 的交互逻辑
     /// </summary>
-    public partial class ImageWindow 
+    public partial class ImageWindow
     {
         private UserConfig _userConfigution;
         private ControlManager<ImageControl> _controlManager;
@@ -34,20 +34,26 @@ namespace EasyImage
         }
 
         #region 主窗口事件
+
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {
             #region 成员变量初始化
+
             ImageCanvas.Width = Width;
             ImageCanvas.Height = Height;
-            _userConfigution = ((MainWindow)Owner).UserConfigution;
+            _userConfigution = ((MainWindow) Owner).UserConfigution;
             _controlManager = new ControlManager<ImageControl>(ImageCanvas);
             _clipboardMonitor = new ClipboardMonitor();
             _clipboardMonitor.OnClipboardContentChanged += OnClipboardContentChanged;
+
             #endregion
 
             #region 加载其它配置
-            this.RemoveSystemMenuItems(SystemMenuItems.All);//去除窗口指定的系统菜单
-            HotkeyManager.Current.AddOrReplace("GlobalPasteFromClipboard", Key.V, ModifierKeys.Control | ModifierKeys.Alt, GlobalPasteFromClipboard);//https://github.com/thomaslevesque/NHotkey
+
+            this.RemoveSystemMenuItems(SystemMenuItems.All); //去除窗口指定的系统菜单
+            HotkeyManager.Current.AddOrReplace("GlobalPasteFromClipboard", Key.V,
+                    ModifierKeys.Control | ModifierKeys.Alt, GlobalPasteFromClipboard);
+                //https://github.com/thomaslevesque/NHotkey
             InitMainMenu();
 
             #endregion
@@ -69,7 +75,7 @@ namespace EasyImage
                     _controlManager.MoveSpeed += 0.5;
                 }
             }
-            else if((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control )
+            else if ((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
             {
                 switch (e.Key)
                 {
@@ -128,13 +134,14 @@ namespace EasyImage
             var dialog = new OpenFileDialog()
             {
                 Multiselect = true,
-                Filter = "所有图片 (*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle)|*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle"
-                + "|ICO 图标格式 (*.ico)|*.ico"
-                + "|GIF 可交换的图形格式 (*.gif)|*.gif"
-                + "|JPEG 文件交换格式 (*.jpg;*.jpeg;*.jfif;*.jpe)|*.jpg;*.jpeg;*.jfif;*.jpe"
-                + "|PNG 可移植网络图形格式 (*.png)|*.png"
-                + "|TIFF Tag 图像文件格式 (*.tif;*.tiff)|*.tif;*.tiff"
-                + "|设备无关位图 (*.bmp;*.dib;*.rle)|*.bmp;*.dib;*.rle"
+                Filter =
+                    "所有图片 (*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle)|*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle"
+                    + "|ICO 图标格式 (*.ico)|*.ico"
+                    + "|GIF 可交换的图形格式 (*.gif)|*.gif"
+                    + "|JPEG 文件交换格式 (*.jpg;*.jpeg;*.jfif;*.jpe)|*.jpg;*.jpeg;*.jfif;*.jpe"
+                    + "|PNG 可移植网络图形格式 (*.png)|*.png"
+                    + "|TIFF Tag 图像文件格式 (*.tif;*.tiff)|*.tif;*.tiff"
+                    + "|设备无关位图 (*.bmp;*.dib;*.rle)|*.bmp;*.dib;*.rle"
             };
 
             var showDialog = dialog.ShowDialog();
@@ -149,20 +156,28 @@ namespace EasyImage
                 {
                     fileStream.CopyTo(stream);
                 }
-                var imageSource = new BitmapImage();
-                imageSource.BeginInit();
-                imageSource.StreamSource = stream;
-                imageSource.EndInit();
-                controls.Add(PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }));
+                try
+                {
+                    stream.Position = 0;
+                    var imageSource = new BitmapImage();
+                    imageSource.BeginInit();
+                    imageSource.StreamSource = stream;
+                    imageSource.EndInit();
+                    controls.Add(PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }));
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("不支持此图片格式");
+                }
             }
             _controlManager.AddElements(controls);
         }
 
         private void PasteImagesFromClipboard(object sender, RoutedEventArgs e)
         {
-            if (ImagePasteHelper.CanInnerPasteFromClipboard())
+            if (ImagePasteHelper.CanInternalPasteFromClipboard())
             {
-                var baseInfos = ImagePasteHelper.GetInnerPasteDataFromClipboard() as List<ImageControlBaseInfo>;
+                var baseInfos = ImagePasteHelper.GetInternalPasteDataFromClipboard() as List<ImageControlBaseInfo>;
                 if (baseInfos != null)
                 {
                     _controlManager.SelectNone();
@@ -173,13 +188,22 @@ namespace EasyImage
             }
 
             if (!ImagePasteHelper.CanPasteImageFromClipboard()) return;
-            _controlManager.SelectNone();
-            _controlManager.ContinuedPasteCount++;
-            var imageSources = ImagePasteHelper.GetPasteImagesFromClipboard();
-            var enumerable = imageSources as IList<ImageSource> ?? imageSources.ToList();
-            var controls = new List<ImageControl>(enumerable.Count);
-            controls.AddRange(enumerable.Select(imageSource => PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill })));
-            _controlManager.AddElements(controls);
+            try
+            {
+                var imageSources = ImagePasteHelper.GetPasteImagesFromClipboard();
+                _controlManager.SelectNone();
+                _controlManager.ContinuedPasteCount++;
+                var enumerable = imageSources as IList<ImageSource> ?? imageSources.ToList();
+                var controls = new List<ImageControl>(enumerable.Count);
+                controls.AddRange(enumerable.Select(imageSource => PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill })));
+                _controlManager.AddElements(controls);
+            }
+            catch (Exception ex)
+            {
+                //无效的粘贴
+                Trace.WriteLine(ex);
+            }
+            
         }
 
         #endregion
@@ -197,7 +221,7 @@ namespace EasyImage
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new ScaleTransform(1, 1));
             transformGroup.Children.Add(new RotateTransform(0));
-            transformGroup.Children.Add(new TranslateTransform((SystemParameters.VirtualScreenWidth - MainMenuIcon.Width) / 2, (SystemParameters.VirtualScreenHeight - MainMenuIcon.Height) / 2));
+            transformGroup.Children.Add(new TranslateTransform((SystemParameters.PrimaryScreenWidth - MainMenuIcon.Width) / 2, (SystemParameters.PrimaryScreenHeight - MainMenuIcon.Height) / 2));
             MainMenuIcon.RenderTransform = transformGroup;
 
             var dragBehavior = new MouseDragElementBehavior<Image>();
@@ -238,7 +262,7 @@ namespace EasyImage
 
             var width = imageControl.Width = image.Source.Width;
             var height = imageControl.Height = image.Source.Height;
-
+            
             imageControl.Content = image;
             imageControl.Template = (ControlTemplate)Resources["MoveResizeRotateTemplate"];
 
@@ -258,9 +282,9 @@ namespace EasyImage
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new ScaleTransform(1, 1));
             transformGroup.Children.Add(new RotateTransform(0));
-            transformGroup.Children.Add(new TranslateTransform((SystemParameters.VirtualScreenWidth - imageControl.Width) / 2 + _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedPasteCount, (SystemParameters.VirtualScreenHeight - imageControl.Height) / 2 + _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedPasteCount));
+            transformGroup.Children.Add(new TranslateTransform((SystemParameters.PrimaryScreenWidth - imageControl.Width) / 2 + _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedPasteCount, (SystemParameters.PrimaryScreenHeight - imageControl.Height) / 2 + _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedPasteCount));
             imageControl.RenderTransform = transformGroup;
-
+            
             return imageControl;
         }
 

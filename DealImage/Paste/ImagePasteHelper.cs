@@ -1,136 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
 using System.Windows;
-using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Xml;
-using System.Xml.Serialization;
 
 namespace DealImage.Paste
 {
     public static class ImagePasteHelper
     {
-        public static bool CanInnerPasteFromClipboard()
+        public static bool CanInternalPasteFromClipboard()
         {
-            return Clipboard.ContainsData("[EASYIMAGE]");
+            var dataObject = Clipboard.GetDataObject();
+            return dataObject != null && dataObject.GetFormats().Contains(ImageDataFormats.Internal);
         }
 
-        public static bool CanPasteImageFromClipboard()
+        public static object GetInternalPasteDataFromClipboard()
         {
-            if (Clipboard.ContainsData("PNG"))
-            {
-                return true;
-            }
-            if (System.Windows.Forms.Clipboard.ContainsImage())
-            {
-                return true;
-            }
-            if (Clipboard.ContainsFileDropList())
-            {
-                return
-                    Clipboard.GetFileDropList()
-                        .Cast<string>()
-                        .Any(item => IsValidFileExtension(ImageHelper.GetFileExtension(item)));
-            }
-            return false;
-        }
-
-        public static bool CanExchangeImageFromClip()
-        {
-            if (Clipboard.ContainsData("PNG"))
-            {
-                return true;
-            }
-            if (System.Windows.Forms.Clipboard.ContainsImage())
-            {
-                return true;
-            }
-            if (Clipboard.ContainsFileDropList())
-            {
-                var filePaths = Clipboard.GetFileDropList();
-                if (filePaths.Count != 1) return false;
-                if (IsValidFileExtension(ImageHelper.GetFileExtension(filePaths[0])))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public static ImageSource GetExchangeImageFromClip()
-        {
-            if (Clipboard.ContainsData("PNG"))
-            {
-                var stream = Clipboard.GetData("PNG") as MemoryStream;
-                if (stream != null)
-                {
-                    try
-                    {
-                        var imageSource = new BitmapImage();
-                        imageSource.BeginInit();
-                        imageSource.StreamSource = stream;
-                        imageSource.EndInit();
-                        return imageSource;
-                    }
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine(ex.ToString());
-                    }
-
-                }
-            }
-            if (System.Windows.Forms.Clipboard.ContainsImage())
-            {
-                var image = System.Windows.Forms.Clipboard.GetImage();
-                if (image != null)
-                {
-                    try
-                    {
-                        var stream = new MemoryStream();
-                        image.Save(stream, ImageFormat.Bmp);
-                        var imageSource = new BitmapImage();
-                        imageSource.BeginInit();
-                        imageSource.StreamSource = stream;
-                        imageSource.EndInit();
-                        return imageSource;
-                    }
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine(ex.ToString());
-                    }
-
-                }
-            }
-            if (Clipboard.ContainsFileDropList())
-            {
-                var filePaths = Clipboard.GetFileDropList();
-                if (filePaths.Count != 1) return null;
-                if (IsValidFileExtension(ImageHelper.GetFileExtension(filePaths[0])))
-                {
-                    try
-                    {
-                        return new BitmapImage(new Uri(filePaths[0]));
-                    }
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine(ex.ToString());
-                    }
-
-                }
-            }
-            return null;
-        }
-
-        public static object GetInnerPasteDataFromClipboard()
-        {
-            var bytes = Clipboard.GetData("[EASYIMAGE]") as byte[];
+            var bytes = Clipboard.GetData(ImageDataFormats.Internal) as byte[];
             if (bytes == null) return null;
             object result = null;
             try
@@ -147,22 +39,103 @@ namespace DealImage.Paste
 
         }
 
+        public static bool CanPasteImageFromClipboard()
+        {
+            var dataObject = Clipboard.GetDataObject();
+            if (dataObject == null) return false;
+            var dataFormats = dataObject.GetFormats();
+            if (ImageDataFormats.GetFormats().Any(item => dataFormats.Contains(item)))
+            {
+                return true;
+            }
+            if (Clipboard.ContainsFileDropList())
+            {
+                return
+                    Clipboard.GetFileDropList()
+                        .Cast<string>()
+                        .Any(item => IsValidFileExtension(ImageHelper.GetFileExtension(item)));
+            }
+            return false;
+        }
+
+        public static bool CanExchangeImageFromClip()
+        {
+            var dataObject = Clipboard.GetDataObject();
+            if (dataObject == null) return false;
+            var dataFormats = dataObject.GetFormats();
+            if (ImageDataFormats.GetFormats().Any(item => dataFormats.Contains(item)))
+            {
+                return true;
+            }
+
+            if (Clipboard.ContainsFileDropList())
+            {
+                var filePaths = Clipboard.GetFileDropList();
+                if (filePaths.Count != 1) return false;
+                if (IsValidFileExtension(ImageHelper.GetFileExtension(filePaths[0])))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public static IEnumerable<ImageSource> GetPasteImagesFromClipboard()
         {
-            var imageSourceList = new List<ImageSource>();
-            if (Clipboard.ContainsData("PNG"))
+            var imageSources = new List<ImageSource>();
+            var dataObject = Clipboard.GetDataObject();
+            if (dataObject == null) return imageSources;
+
+            var dataFormats = dataObject.GetFormats();
+            foreach (var item in ImageDataFormats.GetFormats())
             {
-                var stream = Clipboard.GetData("PNG") as MemoryStream;
+                if (!dataFormats.Contains(item)) continue;
+                var data = dataObject.GetData(item);
+                var imageSource = new BitmapImage();
+                var stream = data as MemoryStream;
                 if (stream != null)
                 {
                     try
                     {
-                        var imageSource = new BitmapImage();
+                        stream.Position = 0;
                         imageSource.BeginInit();
                         imageSource.StreamSource = stream;
                         imageSource.EndInit();
-                        imageSourceList.Add(imageSource);
-                        return imageSourceList;
+                        imageSources.Add(imageSource);
+                        return imageSources;
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine(ex.ToString());
+                    }
+                }
+
+                var bitmapSource = data as BitmapSource;
+                if (bitmapSource != null)
+                {
+                    var ms = new MemoryStream();
+                    var encoder = new PngBitmapEncoder();
+                    encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
+                    encoder.Save(ms);
+                    imageSource.BeginInit();
+                    imageSource.StreamSource = ms;
+                    imageSource.EndInit();
+                    imageSources.Add(imageSource);
+                    return imageSources;
+                }
+
+                var bitmap = data as Bitmap;
+                if (bitmap != null)
+                {
+                    try
+                    {
+                        var ms = new MemoryStream();
+                        bitmap.Save(ms, ImageFormat.Png);
+                        imageSource.BeginInit();
+                        imageSource.StreamSource = ms;
+                        imageSource.EndInit();
+                        imageSources.Add(imageSource);
+                        return imageSources;
                     }
                     catch (Exception ex)
                     {
@@ -170,6 +143,34 @@ namespace DealImage.Paste
                     }
                 }
             }
+            
+            if (Clipboard.ContainsFileDropList())
+            {
+                foreach (var filePath in Clipboard.GetFileDropList())
+                {
+                    if (!IsValidFileExtension(ImageHelper.GetFileExtension(filePath))) continue;
+                    try
+                    {
+                        var stream = new MemoryStream();
+                        using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                        {
+                            fileStream.CopyTo(stream);
+                        }
+                        stream.Position = 0;
+                        var imageSource = new BitmapImage();
+                        imageSource.BeginInit();
+                        imageSource.StreamSource = stream;
+                        imageSource.EndInit();
+                        imageSources.Add(imageSource);
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine(ex.ToString());
+                    }
+                }
+            }
+
+            //兼容
             if (System.Windows.Forms.Clipboard.ContainsImage())
             {
                 var image = System.Windows.Forms.Clipboard.GetImage();
@@ -177,49 +178,23 @@ namespace DealImage.Paste
                 {
                     try
                     {
-                        var stream = new MemoryStream();
-                        image.Save(stream, ImageFormat.Bmp);
                         var imageSource = new BitmapImage();
+                        var ms = new MemoryStream();
+                        image.Save(ms, ImageFormat.Png);
                         imageSource.BeginInit();
-                        imageSource.StreamSource = stream;
+                        imageSource.StreamSource = ms;
                         imageSource.EndInit();
-                        imageSourceList.Add(imageSource);
-                        return imageSourceList;
+                        imageSources.Add(imageSource);
+                        return imageSources;
                     }
                     catch (Exception ex)
                     {
                         Trace.WriteLine(ex.ToString());
                     }
-
-                }
-
-            }
-            if (Clipboard.ContainsFileDropList())
-            {
-                foreach (var filePath in Clipboard.GetFileDropList())
-                {
-                    try
-                    {
-                        if (!IsValidFileExtension(ImageHelper.GetFileExtension(filePath))) continue;
-                        var stream = new MemoryStream();
-                        using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-                        {
-                            fileStream.CopyTo(stream);
-                        }
-                        var imageSource = new BitmapImage();
-                        imageSource.BeginInit();
-                        imageSource.StreamSource = stream;
-                        imageSource.EndInit();
-                        imageSourceList.Add(imageSource);
-                    }
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine(ex.ToString());
-                    }
-
                 }
             }
-            return imageSourceList;
+
+            return imageSources;
         }
 
         public static bool IsValidFileExtension(FileExtension extension)

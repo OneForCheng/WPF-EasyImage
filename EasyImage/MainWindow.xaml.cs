@@ -11,7 +11,7 @@ namespace EasyImage
     {
         private System.Windows.Forms.NotifyIcon _trayIcon;
         private ImageWindow _imgWin;
-
+   
         public UserConfig UserConfigution { get; set; }
 
         public MainWindow()

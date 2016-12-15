@@ -13,8 +13,6 @@ namespace AnimatedImage
     {
         #region AnimatedSource
 
-       
-
         [AttachedPropertyBrowsableForType(typeof(Image))]
         public static ImageSource GetAnimatedSource(Image obj)
         {
@@ -56,6 +54,8 @@ namespace AnimatedImage
             var decoder = GetDecoder(source) as GifBitmapDecoder;
             if (decoder != null && decoder.Frames.Count > 1)
             {
+                var fullSize = GetFullSize(decoder);
+
                 var animation = new ObjectAnimationUsingKeyFrames();
                 var totalDuration = TimeSpan.Zero;
                 BitmapSource prevFrame = null;
@@ -64,7 +64,7 @@ namespace AnimatedImage
                     var info = GetFrameInfo(rawFrame);
 
                     var frame = MakeFrame(
-                        source,
+                        fullSize,
                         rawFrame, info,
                         prevFrame);
 
@@ -78,7 +78,7 @@ namespace AnimatedImage
                     }
                     else if (info.DisposalMethod == FrameDisposalMethod.RestoreBackground)
                     {
-                        prevFrame = IsFullFrame(info, source) ? null : ClearArea(frame, info);
+                        prevFrame = IsFullFrame(info, fullSize) ? null : ClearArea(frame, info);
                     }
                 }
 
@@ -97,12 +97,12 @@ namespace AnimatedImage
             imageControl.Source = source;
         }
 
-        private static bool IsFullFrame(FrameInfo info, BitmapSource source)
+        private static bool IsFullFrame(FrameInfo info, Int32Size fullSize)
         {
             return info.Left.Equals(0)
                    && info.Top.Equals(0)
-                   && info.Width.Equals(source.Width)
-                   && info.Height.Equals(source.Height);
+                   && info.Width.Equals(fullSize.Width)
+                   && info.Height.Equals(fullSize.Height);
         }
 
         private static BitmapSource ClearArea(BitmapSource frame, FrameInfo info)
@@ -206,9 +206,9 @@ namespace AnimatedImage
             return null;
         }
 
-        private static BitmapSource MakeFrame(BitmapSource fullImage,BitmapSource rawFrame, FrameInfo frameInfo, BitmapSource previousFrame)
+        private static BitmapSource MakeFrame(Int32Size fullSize,BitmapSource rawFrame, FrameInfo frameInfo, BitmapSource previousFrame)
         {
-            if (previousFrame == null && IsFullFrame(frameInfo, fullImage))
+            if (previousFrame == null && IsFullFrame(frameInfo, fullSize))
             {
                 return rawFrame;
             }
@@ -218,15 +218,14 @@ namespace AnimatedImage
             {
                 if (previousFrame != null)
                 {
-                    var fullRect = new Rect(0, 0, fullImage.PixelWidth, fullImage.PixelHeight);
+                    var fullRect = new Rect(0, 0, fullSize.Width, fullSize.Height);
                     context.DrawImage(previousFrame, fullRect);
                 }
 
                 context.DrawImage(rawFrame, frameInfo.Rect);
             }
             var bitmap = new RenderTargetBitmap(
-                fullImage.PixelWidth, fullImage.PixelHeight,
-                //fullImage.DpiX, fullImage.DpiY,
+                fullSize.Width, fullSize.Height,
                 96, 96,
                 PixelFormats.Pbgra32);
             bitmap.Render(visual);
@@ -237,14 +236,33 @@ namespace AnimatedImage
             return bitmap;
         }
 
+        private static Int32Size GetFullSize(BitmapDecoder decoder)
+        {
+            var width = decoder.Metadata.GetQueryOrDefault("/logscrdesc/Width", 0);
+            var height = decoder.Metadata.GetQueryOrDefault("/logscrdesc/Height", 0);
+            return new Int32Size(width, height);
+        }
+
+        private struct Int32Size
+        {
+            public Int32Size(int width, int height) : this()
+            {
+                Width = width;
+                Height = height;
+            }
+
+            public int Width { get; private set; }
+            public int Height { get; private set; }
+        }
+
         private class FrameInfo
         {
             public TimeSpan Delay { get; set; }
             public FrameDisposalMethod DisposalMethod { get; set; }
-            public double Width { get; set; }
-            public double Height { get; set; }
-            public double Left { get; set; }
-            public double Top { get; set; }
+            public int Width { get; set; }
+            public int Height { get; set; }
+            public int Left { get; set; }
+            public int Top { get; set; }
 
             public Rect Rect => new Rect(Left, Top, Width, Height);
         }

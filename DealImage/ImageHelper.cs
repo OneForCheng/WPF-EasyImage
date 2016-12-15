@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
-using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
@@ -62,14 +61,13 @@ namespace DealImage
 
         public static RenderTargetBitmap GetRenderTargetBitmap(this IDictionary<FrameworkElement, FrameworkElement> dictionary, SolidColorBrush backgrand = null)
         {
-            var rect = dictionary.Values.GetMinContainerBounds();
+            var rect = dictionary.Values.GetMinContainRect();
             var relationPoint = new Point(rect.X, rect.Y);
             rect.X = rect.Y = 0;
 
             var drawingVisual = new DrawingVisual();
             using (var context = drawingVisual.RenderOpen())
             {
-                context.DrawRectangle(null, null, rect);
                 foreach (var item in dictionary)
                 {
                     var viewbox = item.Key.GetChildViewbox(item.Value);
@@ -78,7 +76,7 @@ namespace DealImage
                         ViewboxUnits = BrushMappingMode.RelativeToBoundingBox,
                         Viewbox = viewbox,
                     };
-                    context.DrawRectangle(brush, null, item.Value.GetRelationBounds(relationPoint));
+                    context.DrawRectangle(brush, null, item.Value.GetRelationRect(relationPoint));
                 }
             }
 
@@ -91,32 +89,48 @@ namespace DealImage
             };
             rectangle.Measure(rect.Size);
             rectangle.Arrange(new Rect(rect.Size));
-           
-            renderBitmap.Render(rectangle);
 
+            renderBitmap.Render(rectangle);
             renderBitmap.Render(drawingVisual);
+
             return renderBitmap;
         }
 
-        public static Rect GetMinContainerBounds(this IEnumerable<FrameworkElement> elements)
+        public static Rect GetMinContainRect(this IEnumerable<FrameworkElement> elements)
         {
             double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
             foreach (var element in elements)
             {
                 var rect = VisualTreeHelper.GetDescendantBounds(element);
-                var topLeftPoint = element.TranslatePoint(new Point(0, 0), null);
-                var topRightPoint = element.TranslatePoint(new Point(rect.Width, 0), null);
-                var bottomRightPoint = element.TranslatePoint(new Point(rect.Width, rect.Height), null);
-                var bottomLeftPoint = element.TranslatePoint(new Point(0, rect.Height), null);
-                minX = Math.Min(minX, Math.Min(Math.Min(topLeftPoint.X, topRightPoint.X), Math.Min(bottomLeftPoint.X, bottomRightPoint.X)));
-                maxX = Math.Max(maxX, Math.Max(Math.Max(topLeftPoint.X, topRightPoint.X), Math.Max(bottomLeftPoint.X, bottomRightPoint.X)));
-                minY = Math.Min(minY, Math.Min(Math.Min(topLeftPoint.Y, topRightPoint.Y), Math.Min(bottomLeftPoint.Y, bottomRightPoint.Y)));
-                maxY = Math.Max(maxY, Math.Max(Math.Max(topLeftPoint.Y, topRightPoint.Y), Math.Max(bottomLeftPoint.Y, bottomRightPoint.Y)));
+                var topLeft = element.TranslatePoint(new Point(0, 0), null);
+                var topRight = element.TranslatePoint(new Point(rect.Width, 0), null);
+                var bottomRight = element.TranslatePoint(new Point(rect.Width, rect.Height), null);
+                var bottomLeft = element.TranslatePoint(new Point(0, rect.Height), null);
+                minX = Math.Min(minX, Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomLeft.X, bottomRight.X)));
+                maxX = Math.Max(maxX, Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X)));
+                minY = Math.Min(minY, Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y)));
+                maxY = Math.Max(maxY, Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y)));
             }
             return new Rect(minX, minY, maxX - minX, maxY - minY);
         }
 
-        public static Rect GetRelationBounds(this FrameworkElement element, Point relationPoint)
+        public static Rect GetMinContainRect(this FrameworkElement element)
+        {
+            double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+            var rect = VisualTreeHelper.GetDescendantBounds(element);
+            var topLeft = element.TranslatePoint(new Point(0, 0), null);
+            var topRight = element.TranslatePoint(new Point(rect.Width, 0), null);
+            var bottomRight = element.TranslatePoint(new Point(rect.Width, rect.Height), null);
+            var bottomLeft = element.TranslatePoint(new Point(0, rect.Height), null);
+            minX = Math.Min(minX, Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomLeft.X, bottomRight.X)));
+            maxX = Math.Max(maxX, Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X)));
+            minY = Math.Min(minY, Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y)));
+            maxY = Math.Max(maxY, Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y)));
+
+            return new Rect(minX, minY, maxX - minX, maxY - minY);
+        }
+
+        public static Rect GetRelationRect(this FrameworkElement element, Point relationPoint)
         {
             double minX = double.MaxValue, minY = double.MaxValue;
             var rect = VisualTreeHelper.GetDescendantBounds(element);
@@ -161,9 +175,15 @@ namespace DealImage
             var childWidth = Math.Max(Math.Abs(topLeftPoint2.X - bottomRightPoint2.X), Math.Abs(topRightPoint2.X - bottomLeftPoint2.X));
             var childHeight = Math.Max(Math.Abs(topLeftPoint2.Y - bottomRightPoint2.Y), Math.Abs(topRightPoint2.Y - bottomLeftPoint2.Y));
 
-            //Trace.WriteLine($"{x} | {y} | {width} | {height} | {childWidth} | {childHeight}");
             return new Rect(x / width, y / height, childWidth / width, childHeight / height);
         }
 
+        public static Point RotateTransform(this Point point, Point centerPoint, double angle)
+        {
+            var radian = angle * Math.PI / 180;
+            var rotatedX = (point.X - centerPoint.X) * Math.Cos(radian) + (point.Y - centerPoint.Y) * Math.Sin(radian) + centerPoint.X;
+            var rotatedY = -(point.X - centerPoint.X) * Math.Sin(radian) + (point.Y - centerPoint.Y) * Math.Cos(radian) + centerPoint.Y;
+            return new Point(rotatedX, rotatedY);
+        }
     }
 }
