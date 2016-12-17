@@ -113,15 +113,23 @@ namespace DealImage.Paste
                 var bitmapSource = data as BitmapSource;
                 if (bitmapSource != null)
                 {
-                    var ms = new MemoryStream();
-                    var encoder = new PngBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
-                    encoder.Save(ms);
-                    imageSource.BeginInit();
-                    imageSource.StreamSource = ms;
-                    imageSource.EndInit();
-                    imageSources.Add(imageSource);
-                    return imageSources;
+                    try
+                    {
+                        var ms = new MemoryStream();
+                        var encoder = new PngBitmapEncoder();
+                        encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
+                        encoder.Save(ms);
+                        imageSource.BeginInit();
+                        imageSource.StreamSource = ms;
+                        imageSource.EndInit();
+                        imageSources.Add(imageSource);
+                        return imageSources;
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine(ex.ToString());
+                    }
+                   
                 }
 
                 var bitmap = data as Bitmap;

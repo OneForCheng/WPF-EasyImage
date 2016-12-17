@@ -25,7 +25,7 @@ namespace EasyImage
     public partial class ImageWindow
     {
         private UserConfig _userConfigution;
-        private ControlManager<ImageControl> _controlManager;
+        private ControlManager _controlManager;
         private ClipboardMonitor _clipboardMonitor;
 
         public ImageWindow()
@@ -42,7 +42,7 @@ namespace EasyImage
             ImageCanvas.Width = Width;
             ImageCanvas.Height = Height;
             _userConfigution = ((MainWindow) Owner).UserConfigution;
-            _controlManager = new ControlManager<ImageControl>(ImageCanvas);
+            _controlManager = new ControlManager(ImageCanvas);
             _clipboardMonitor = new ClipboardMonitor();
             _clipboardMonitor.OnClipboardContentChanged += OnClipboardContentChanged;
 
@@ -51,9 +51,13 @@ namespace EasyImage
             #region 加载其它配置
 
             this.RemoveSystemMenuItems(SystemMenuItems.All); //去除窗口指定的系统菜单
+            
+            //https://github.com/thomaslevesque/NHotkey
             HotkeyManager.Current.AddOrReplace("GlobalPasteFromClipboard", Key.V,
                     ModifierKeys.Control | ModifierKeys.Alt, GlobalPasteFromClipboard);
-                //https://github.com/thomaslevesque/NHotkey
+            HotkeyManager.Current.AddOrReplace("GlobalAddCanvas", Key.N,
+                    ModifierKeys.Control | ModifierKeys.Alt, GlobalAddCanvas);
+
             InitMainMenu();
 
             #endregion
@@ -122,7 +126,7 @@ namespace EasyImage
         private void MainMenu_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
             var element = sender as Image;
-            var menuItem = element?.ContextMenu.Items[1] as MenuItem;
+            var menuItem = element?.ContextMenu.Items[2] as MenuItem;
             if (menuItem != null)
             {
                 menuItem.IsEnabled = ImagePasteHelper.CanPasteImageFromClipboard();
@@ -206,6 +210,36 @@ namespace EasyImage
             
         }
 
+        private void AddImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            var size = _userConfigution.ImageSetting.InitMaxImgSize / 2;
+            if (size < 1 || size > SystemParameters.PrimaryScreenHeight)
+            {
+                size = SystemParameters.PrimaryScreenHeight/2;
+            }
+            var rect = new Rect(0, 0, size, size);
+            var drawingVisual = new DrawingVisual();
+            using (var context = drawingVisual.RenderOpen())
+            {
+                context.DrawRectangle(Brushes.White, null, rect);
+            }
+            drawingVisual.Opacity = 0.1;
+            var renderBitmap = new RenderTargetBitmap((int)rect.Width, (int)rect.Height, 96, 96, PixelFormats.Pbgra32);
+            renderBitmap.Render(drawingVisual);
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(renderBitmap));
+            var stream = new MemoryStream();
+            encoder.Save(stream);
+            var bitmapImage = new BitmapImage();
+            bitmapImage.BeginInit();
+            bitmapImage.StreamSource = stream;
+            bitmapImage.EndInit();
+
+            _controlManager.SelectNone();
+            _controlManager.AddElement(PackageImageSourceToControl(bitmapImage));
+        }
+
         #endregion
 
         #region 初始化操作
@@ -231,7 +265,11 @@ namespace EasyImage
 
             #region 添加上下文菜单
             var contextMenu = new ContextMenu();
-            var item = new MenuItem {Header = "添加"};
+            var item = new MenuItem {Header = "新建"};
+            item.Click += AddImageFromInternal;
+            contextMenu.Items.Add(item);
+
+            item = new MenuItem { Header = "添加" };
             item.Click += AddImagesFromFile;
             contextMenu.Items.Add(item);
 
@@ -288,6 +326,26 @@ namespace EasyImage
             return imageControl;
         }
 
+        private ImageControl PackageImageSourceToControl(ImageSource imageSource)
+        {
+            var animatedImage = new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill };
+            var imageControl = new ImageControl(_controlManager)
+            {
+                Width = imageSource.Width,
+                Height = imageSource.Height,
+                Content = animatedImage,
+                Template = (ControlTemplate)Resources["MoveResizeRotateTemplate"],
+            };
+
+            var transformGroup = new TransformGroup();
+            transformGroup.Children.Add(new ScaleTransform(1, 1));
+            transformGroup.Children.Add(new RotateTransform(0));
+            transformGroup.Children.Add(new TranslateTransform((SystemParameters.PrimaryScreenWidth - imageControl.Width) / 2, (SystemParameters.PrimaryScreenHeight - imageControl.Height) / 2));
+            imageControl.RenderTransform = transformGroup;
+
+            return imageControl;
+        }
+
         public ImageControl PackageBaseInfoToControl(ImageControlBaseInfo baseInfo)
         {
             var animatedImage = new AnimatedImage.AnimatedImage { Source = baseInfo.ImageSource, Stretch = Stretch.Fill };
@@ -314,6 +372,11 @@ namespace EasyImage
         private void GlobalPasteFromClipboard(object sender, HotkeyEventArgs e)
         {
             PasteImagesFromClipboard(null, null);
+        }
+
+        private void GlobalAddCanvas(object sender, HotkeyEventArgs e)
+        {
+            AddImageFromInternal(null,null);
         }
 
         private void OnClipboardContentChanged(object sender, EventArgs e)

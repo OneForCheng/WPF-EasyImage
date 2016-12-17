@@ -17,19 +17,19 @@ using EasyImage.Actioins;
 using EasyImage.Enum;
 using IconMaker;
 using Microsoft.Win32;
-using DealImage.Capture;
+using Screenshot;
 using UndoFramework;
 using UndoFramework.Actions;
 
 
 namespace EasyImage
 {
-    public class ControlManager<T>  where T : UserControl
+    public class ControlManager
     {
         #region Data
         private int _maxImageZIndex;
         private readonly Panel _panelContainer;
-    
+
         #endregion Data
 
         #region Constructors
@@ -37,7 +37,6 @@ namespace EasyImage
         {
             _panelContainer = container;
             _maxImageZIndex = 0;
-   
             MoveSpeed = 1.0;
             ActionManager = new ActionManager {MaxBufferCount = 20};
 
@@ -65,7 +64,7 @@ namespace EasyImage
         /// <summary>
         /// 获取选中的元素
         /// </summary>
-        public IEnumerable<T> SelectedElements => _panelContainer.Children.Cast<object>().OfType<T>().Where(Selector.GetIsSelected);
+        public IEnumerable<ImageControl> SelectedElements => _panelContainer.Children.Cast<object>().OfType<ImageControl>().Where(Selector.GetIsSelected);
 
         /// <summary>
         /// 获取初始化选中的元素的动作事务
@@ -130,7 +129,7 @@ namespace EasyImage
 
         private void Element_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
-            var element = sender as T;
+            var element = sender as ImageControl;
             if (element == null) return;
             if ((Keyboard.Modifiers & ModifierKeys.Control) > 0)
             {
@@ -147,7 +146,7 @@ namespace EasyImage
 
         private void Element_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            var element = sender as T;
+            var element = sender as ImageControl;
             var rotateControl = element?.Template.FindName("RotateThumbControl", element) as Control;
             if (rotateControl != null)
             {
@@ -186,7 +185,7 @@ namespace EasyImage
             foreach (var element in elements)
             {
                 var scaleTransform = element.GetTransform<ScaleTransform>();
-                var imageSource = CaptureHelper.ScreenCropper(new ViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
+                var imageSource = ScreenCropper.CropScreen(new ViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY, -7, -7));
                 if (imageSource != null)
                 {
                     var encoder = new PngBitmapEncoder();
@@ -221,7 +220,7 @@ namespace EasyImage
         private void Element_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
             e.Handled = true;
-            var element = sender as T;
+            var element = sender as ImageControl;
             if (element == null) return;
             var count = SelectedElements.Count();
             if (count <= 0) return;
@@ -294,7 +293,7 @@ namespace EasyImage
             var showDialog = dialog.ShowDialog().GetValueOrDefault();
             if (!showDialog) return;
             var filePath = dialog.FileName;
-            var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<T, FrameworkElement, FrameworkElement>(element => element, element => (Image) element.Content);
+            var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image) element.Content);
             SetIsSelected(dict.Keys, false);
             dict.SaveChildElementsToImage(filePath);
             SetIsSelected(dict.Keys, true);
@@ -320,7 +319,7 @@ namespace EasyImage
                 var showDialog = dialog.ShowDialog().GetValueOrDefault();
                 if (!showDialog) return;
                 var filePath = dialog.FileName;
-                var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<T, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
+                var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
                 SetIsSelected(dict.Keys, false);
                 var imageSource = dict.GetRenderTargetBitmap();
                 SetIsSelected(dict.Keys, true);
@@ -380,17 +379,25 @@ namespace EasyImage
         /// 添加选中元素
         /// </summary>
         /// <param name="elements"></param>
-        public void AddElements(IEnumerable<T> elements)
+        public void AddElements(IEnumerable<ImageControl> elements)
         {
-            var enumerable = elements as IList<T> ?? elements.ToList();
+            var enumerable = elements as IList<ImageControl> ?? elements.ToList();
             if (!enumerable.Any()) return;
             var transactions = new TransactionAction();
             foreach (var element in enumerable)
             {
                 AttachProperty(element);
-                transactions.Add(new AddItemAction<T>(m => _panelContainer.Children.Add(m), _panelContainer.Children.Remove, element));
+                transactions.Add(new AddItemAction<ImageControl>(m => _panelContainer.Children.Add(m), _panelContainer.Children.Remove, element));
             }
             ActionManager.Execute(transactions);
+        }
+
+        public void AddElement(ImageControl element)
+        {
+            AttachProperty(element);
+            var addItemAction = new AddItemAction<ImageControl>(m => _panelContainer.Children.Add(m),
+                _panelContainer.Children.Remove, element);
+            ActionManager.Execute(addItemAction);
         }
 
         /// <summary>
@@ -402,7 +409,7 @@ namespace EasyImage
             var transactions = new TransactionAction();
             foreach (var element in SelectedElements)
             {
-                transactions.Add(new AddItemAction<T>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m),  element));
+                transactions.Add(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m),  element));
             }
             ActionManager.Execute(transactions);
         }
@@ -441,7 +448,7 @@ namespace EasyImage
         /// </summary>
         public void SelectNone()
         {
-            foreach (T item in _panelContainer.Children)
+            foreach (ImageControl item in _panelContainer.Children)
             {
                 Selector.SetIsSelected(item, false);
             }
@@ -452,7 +459,7 @@ namespace EasyImage
         /// </summary>
         public void SelectAll()
         {
-            foreach (T item in _panelContainer.Children)
+            foreach (ImageControl item in _panelContainer.Children)
             {
                 Selector.SetIsSelected(item, true);
             }
@@ -676,7 +683,7 @@ namespace EasyImage
         /// <param name="element">缩放元素</param>
         /// <param name="delta">缩放值</param>
         /// <param name="scalePoint">放缩点(相对于元素)</param>
-        public void WheelFixedScaleElement(T element, double delta, Point scalePoint)
+        public void WheelFixedScaleElement(ImageControl element, double delta, Point scalePoint)
         {
             ActionManager.Execute(new WheelScaleAction(element, delta, scalePoint));
         }
@@ -698,7 +705,7 @@ namespace EasyImage
         #endregion Public methods
 
         #region Private methods
-        private void AttachProperty(T element)
+        private void AttachProperty(ImageControl element)
         {
             #region 设置属性
             Selector.SetIsSelected(element, true);
@@ -858,7 +865,7 @@ namespace EasyImage
             #endregion
         }
 
-        private UIElement GetExchangeZIndexElement(T element, ZIndex zIndex)
+        private UIElement GetExchangeZIndexElement(ImageControl element, ZIndex zIndex)
         {
             var targetElement = element;
             var targetZIndex = Panel.GetZIndex(element);
@@ -870,7 +877,7 @@ namespace EasyImage
             }
             if (zIndex == ZIndex.Bottommost || zIndex == ZIndex.Topmost)
             {
-                foreach (T item in _panelContainer.Children)
+                foreach (ImageControl item in _panelContainer.Children)
                 {
                     tmp = Panel.GetZIndex(item);
                     if ((targetZIndex - tmp)*flag >= 0) continue;
@@ -885,7 +892,7 @@ namespace EasyImage
             else
             {
                 var nearZIndex = targetZIndex;
-                foreach (T item in _panelContainer.Children)
+                foreach (ImageControl item in _panelContainer.Children)
                 {
                     tmp = Panel.GetZIndex(item);
                     if (nearZIndex == targetZIndex)

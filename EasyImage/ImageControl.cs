@@ -4,19 +4,22 @@ using System.Windows.Controls;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using UndoFramework;
 
 namespace EasyImage
 {
     [Serializable]
     public class ImageControlBaseInfo
     {
+        private readonly string _id;
         private readonly double _width;
         private readonly double _height;
         private readonly string _imageSource;
         private readonly string _renderTransform;
 
-        public ImageControlBaseInfo(UserControl imageControl)
+        public ImageControlBaseInfo(ImageControl imageControl)
         {
+            _id = imageControl.Id;
             _width = imageControl.Width;
             _height = imageControl.Height;
             var stream = ((imageControl.Content as AnimatedImage.AnimatedImage)?.Source as BitmapImage)?.StreamSource as MemoryStream;
@@ -28,6 +31,8 @@ namespace EasyImage
             _renderTransform = XamlWriter.Save(imageControl.RenderTransform);
            
         }
+
+        public string Id => _id;
 
         public double Width => _width;
 
@@ -52,11 +57,19 @@ namespace EasyImage
 
     public class ImageControl : UserControl
     {
-        public ControlManager<ImageControl> ControlManager { get;}
+        public string Id { get; }
 
-        public ImageControl(ControlManager<ImageControl> controlManager)
+        public ControlManager ControlManager { get;}
+
+        public ActionManager ActionManager { get; }
+
+        public ImageControl(ControlManager controlManager)
         {
             ControlManager = controlManager;
+            Id =  Guid.NewGuid().ToString("N");
         }
+
+
     }
+
 }

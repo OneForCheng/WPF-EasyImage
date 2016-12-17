@@ -5,23 +5,24 @@ using System.Windows;
 using System.Windows.Media;
 using Point = System.Windows.Point;
 
-namespace DealImage.Capture
+namespace Screenshot
 {
     public class ViewBox
     {
-        public bool IsRotated { get; }
+        public bool IsTransform { get; }
 
         public Transform RenderTransform { get; }
 
-        public Rect ScreenshotBox { get; }
+        public Rect CropScreenbox { get; }
 
-        public Rect RotateShowbox { get;}//旋转呈现框
+        public Rect TransformViewbox { get; }//旋转呈现框
 
         public Rect CropViewbox { get; }//视图裁剪框
 
-        public ViewBox(UIElement element, double angle = 0,double scaleX = 1, double scaleY = 1)
+        public ViewBox(UIElement element, double angle = 0, double scaleX = 1, double scaleY = 1, double correctionX = 0, double correctionY = 0)
         {
-            IsRotated = !angle.Equals(0);
+            IsTransform = !(angle.Equals(0) && scaleX.Equals(1) && scaleY.Equals(1));
+
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new RotateTransform(-angle, 0.5, 0.5));
             transformGroup.Children.Add(new ScaleTransform(scaleX, scaleY, 0.5, 0.5));
@@ -39,13 +40,14 @@ namespace DealImage.Capture
             var minY = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y));
             var maxY = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y));
 
-            ScreenshotBox = new Rect(minX, minY, maxX - minX, maxY - minY);
-            
-            var bevelSideLength = Math.Sqrt((maxX-minX)*(maxX - minX) + (maxY - minY)*(maxY - minY));
-            RotateShowbox = new Rect(0,0, bevelSideLength, bevelSideLength);
-            CropViewbox = new Rect((bevelSideLength - rect.Width) /2,(bevelSideLength - rect.Height)/2, rect.Width, rect.Height);
+            CropScreenbox = new Rect(minX + correctionX, minY + correctionY, maxX - minX, maxY - minY);
+
+            var bevelSideLength = Math.Sqrt((maxX - minX) * (maxX - minX) + (maxY - minY) * (maxY - minY));
+            TransformViewbox = new Rect(0, 0, bevelSideLength, bevelSideLength);
+            CropViewbox = new Rect((bevelSideLength - rect.Width) / 2, (bevelSideLength - rect.Height) / 2, rect.Width, rect.Height);
 
         }
 
     }
+
 }

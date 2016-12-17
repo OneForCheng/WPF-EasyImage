@@ -46,8 +46,6 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Capture\CaptureHelper.cs" />
-    <Compile Include="Capture\ViewBox.cs" />
     <Compile Include="Crop\ImageCropHelper.cs" />
     <Compile Include="Copy\ImageCopyHelper.cs" />
     <Compile Include="ImageHelper.cs" />
