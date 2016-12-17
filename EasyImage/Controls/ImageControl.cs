@@ -1,12 +1,12 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Windows.Controls;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using UndoFramework;
 
-namespace EasyImage
+namespace EasyImage.Controls
 {
     [Serializable]
     public class ImageControlBaseInfo
@@ -29,7 +29,7 @@ namespace EasyImage
                 _imageSource = Convert.ToBase64String(stream.ToArray());
             }
             _renderTransform = XamlWriter.Save(imageControl.RenderTransform);
-           
+
         }
 
         public string Id => _id;
@@ -55,21 +55,35 @@ namespace EasyImage
         }
     }
 
-    public class ImageControl : UserControl
+    public class ImageControl : UserControl, ICloneable
     {
         public string Id { get; }
 
-        public ControlManager ControlManager { get;}
-
-        public ActionManager ActionManager { get; }
+        public ControlManager ControlManager { get; }
 
         public ImageControl(ControlManager controlManager)
         {
             ControlManager = controlManager;
-            Id =  Guid.NewGuid().ToString("N");
+            Id = Guid.NewGuid().ToString("N");
         }
 
-
+        public object Clone()
+        {
+            var animatedImage = new AnimatedImage.AnimatedImage
+            {
+                Source = (Content as AnimatedImage.AnimatedImage)?.Source,
+                Stretch = Stretch.Fill
+            };
+            var imageControl = new ImageControl(ControlManager)
+            {
+                Width = Width,
+                Height = Height,
+                Content = animatedImage,
+                Template = Template,
+                RenderTransform = RenderTransform.Clone(),
+            };
+            return imageControl;
+        }
     }
 
 }

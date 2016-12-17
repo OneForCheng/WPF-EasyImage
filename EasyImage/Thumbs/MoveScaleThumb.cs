@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using EasyImage.Controls;
 
 namespace EasyImage.Thumbs
 {
@@ -30,6 +31,13 @@ namespace EasyImage.Thumbs
         private void MoveThumb_DragDelta(object sender, DragDeltaEventArgs e)
         {
             if (_imageControl == null) return;
+            if (!_isMove)
+            {
+                if ((Keyboard.Modifiers & ModifierKeys.Control) > 0)
+                {
+                    _imageControl.ControlManager.CloneSelected();
+                }
+            }
             _isMove = true;
             var curPosition = Mouse.GetPosition(null);
             var moveX = curPosition.X - _mousePosition.X;

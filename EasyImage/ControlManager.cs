@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,6 +15,7 @@ using DealImage.Copy;
 using DealImage.Paste;
 using DealImage.Save;
 using EasyImage.Actioins;
+using EasyImage.Controls;
 using EasyImage.Enum;
 using IconMaker;
 using Microsoft.Win32;
@@ -29,6 +31,7 @@ namespace EasyImage
         #region Data
         private int _maxImageZIndex;
         private readonly Panel _panelContainer;
+        private ImageControl[] _cacheSelectElements;
 
         #endregion Data
 
@@ -133,7 +136,16 @@ namespace EasyImage
             if (element == null) return;
             if ((Keyboard.Modifiers & ModifierKeys.Control) > 0)
             {
-                Selector.SetIsSelected(element, !Selector.GetIsSelected(element));
+                var selected = Selector.GetIsSelected(element);
+                if (selected)
+                {
+                    _cacheSelectElements = SelectedElements.ToArray();
+                }
+                Selector.SetIsSelected(element, !selected);
+                if (!selected)
+                {
+                    _cacheSelectElements = SelectedElements.ToArray();
+                }
             }
             else
             {
@@ -432,6 +444,20 @@ namespace EasyImage
             SetIsSelected(dict.Keys, false);
             dict.CopyChildElementsToClipBoard(baseInfos);
             SetIsSelected(dict.Keys, true);
+        }
+
+        /// <summary>
+        /// 克隆选中的元素
+        /// </summary>
+        public void CloneSelected()
+        {
+            SelectNone();
+            if (_cacheSelectElements != null)
+            {
+                AddElements(_cacheSelectElements.Select(m => m.Clone()).Cast<ImageControl>());
+                _cacheSelectElements = null;
+            }
+            
         }
 
         /// <summary>
@@ -923,4 +949,5 @@ namespace EasyImage
         #endregion Private methods
 
     }
+
 }

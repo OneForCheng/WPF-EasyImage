@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using DealImage.Paste;
+using EasyImage.Controls;
 using NHotkey;
 using NHotkey.Wpf;
 
@@ -27,6 +28,8 @@ namespace EasyImage
         private UserConfig _userConfigution;
         private ControlManager _controlManager;
         private ClipboardMonitor _clipboardMonitor;
+        private BitmapImage _cacheInternalBitmapSource;
+        private int _addInternalImgCount;
 
         public ImageWindow()
         {
@@ -45,14 +48,13 @@ namespace EasyImage
             _controlManager = new ControlManager(ImageCanvas);
             _clipboardMonitor = new ClipboardMonitor();
             _clipboardMonitor.OnClipboardContentChanged += OnClipboardContentChanged;
+            _addInternalImgCount = 0;
 
             #endregion
 
             #region 加载其它配置
 
             this.RemoveSystemMenuItems(SystemMenuItems.All); //去除窗口指定的系统菜单
-            
-            //https://github.com/thomaslevesque/NHotkey
             HotkeyManager.Current.AddOrReplace("GlobalPasteFromClipboard", Key.V,
                     ModifierKeys.Control | ModifierKeys.Alt, GlobalPasteFromClipboard);
             HotkeyManager.Current.AddOrReplace("GlobalAddCanvas", Key.N,
@@ -212,37 +214,47 @@ namespace EasyImage
 
         private void AddImageFromInternal(object sender, RoutedEventArgs e)
         {
-            var size = _userConfigution.ImageSetting.InitMaxImgSize / 2;
+            var size = (int)_userConfigution.ImageSetting.InitMaxImgSize / 2;
             if (size < 1 || size > SystemParameters.PrimaryScreenHeight)
             {
-                size = SystemParameters.PrimaryScreenHeight/2;
+                size = (int)SystemParameters.PrimaryScreenHeight / 2;
             }
-            var rect = new Rect(0, 0, size, size);
-            var drawingVisual = new DrawingVisual();
-            using (var context = drawingVisual.RenderOpen())
+            if (_cacheInternalBitmapSource == null || size != (int)_cacheInternalBitmapSource.Width)
             {
-                context.DrawRectangle(Brushes.White, null, rect);
+                var drawingVisual = new DrawingVisual();
+                using (var context = drawingVisual.RenderOpen())
+                {
+                    context.DrawRectangle(Brushes.White, null, new Rect(0, 0, size, size));
+                }
+                drawingVisual.Opacity = 0.1;
+                var renderBitmap = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
+                renderBitmap.Render(drawingVisual);
+
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(renderBitmap));
+                var stream = new MemoryStream();
+                encoder.Save(stream);
+                if (_cacheInternalBitmapSource == null)
+                {
+                    _cacheInternalBitmapSource = new BitmapImage();
+                    _cacheInternalBitmapSource.BeginInit();
+                    _cacheInternalBitmapSource.StreamSource = stream;
+                    _cacheInternalBitmapSource.EndInit();
+                }
+                else
+                {
+                    _cacheInternalBitmapSource.StreamSource = stream;
+                }
+                
             }
-            drawingVisual.Opacity = 0.1;
-            var renderBitmap = new RenderTargetBitmap((int)rect.Width, (int)rect.Height, 96, 96, PixelFormats.Pbgra32);
-            renderBitmap.Render(drawingVisual);
-
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(renderBitmap));
-            var stream = new MemoryStream();
-            encoder.Save(stream);
-            var bitmapImage = new BitmapImage();
-            bitmapImage.BeginInit();
-            bitmapImage.StreamSource = stream;
-            bitmapImage.EndInit();
-
             _controlManager.SelectNone();
-            _controlManager.AddElement(PackageImageSourceToControl(bitmapImage));
+            _addInternalImgCount++;
+            _controlManager.AddElement(PackageImageSourceToControl(_cacheInternalBitmapSource));
         }
 
         #endregion
 
-        #region 初始化操作
+        #region Methods
 
         private void InitMainMenu()
         {
@@ -340,7 +352,30 @@ namespace EasyImage
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new ScaleTransform(1, 1));
             transformGroup.Children.Add(new RotateTransform(0));
-            transformGroup.Children.Add(new TranslateTransform((SystemParameters.PrimaryScreenWidth - imageControl.Width) / 2, (SystemParameters.PrimaryScreenHeight - imageControl.Height) / 2));
+            double moveX = 0, moveY = 0;
+            switch (_addInternalImgCount)
+            {
+                case 1:
+                    break;
+                case 2:
+                    moveX = -imageSource.Width / 2;
+                    moveY = -imageSource.Height / 2;
+                    break;
+                case 3:
+                    moveX = imageSource.Width / 2;
+                    moveY = -imageSource.Height / 2;
+                    break;
+                case 4:
+                    moveX = imageSource.Width / 2;
+                    moveY = imageSource.Height / 2;
+                    break;
+                case 5:
+                    moveX = -imageSource.Width / 2;
+                    moveY = imageSource.Height / 2;
+                    _addInternalImgCount = 0;
+                    break;
+            }
+            transformGroup.Children.Add(new TranslateTransform((SystemParameters.PrimaryScreenWidth - imageControl.Width) / 2 + moveX, (SystemParameters.PrimaryScreenHeight - imageControl.Height) / 2 + moveY));
             imageControl.RenderTransform = transformGroup;
 
             return imageControl;
@@ -348,7 +383,10 @@ namespace EasyImage
 
         public ImageControl PackageBaseInfoToControl(ImageControlBaseInfo baseInfo)
         {
-            var animatedImage = new AnimatedImage.AnimatedImage { Source = baseInfo.ImageSource, Stretch = Stretch.Fill };
+            //内存优化
+            var existedImageControl = ImageCanvas.Children.Cast<ImageControl>().FirstOrDefault(m => m.Id == baseInfo.Id);
+            var animatedImage = existedImageControl != null ? new AnimatedImage.AnimatedImage { Source = (existedImageControl.Content as AnimatedImage.AnimatedImage)?.Source, Stretch = Stretch.Fill } : new AnimatedImage.AnimatedImage { Source = baseInfo.ImageSource, Stretch = Stretch.Fill };
+
             var imageControl = new ImageControl(_controlManager)
             {
                 Width = baseInfo.Width,

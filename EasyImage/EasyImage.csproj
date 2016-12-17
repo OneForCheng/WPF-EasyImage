@@ -96,7 +96,7 @@
     <Compile Include="Config\ImageSetting.cs" />
     <Compile Include="Enum\SystemMenuItems.cs" />
     <Compile Include="Enum\ThumbFlag.cs" />
-    <Compile Include="ImageControl.cs" />
+    <Compile Include="Controls\ImageControl.cs" />
     <Compile Include="Thumbs\MoveScaleThumb.cs" />
     <Compile Include="Thumbs\ResizeThumb.cs" />
     <Compile Include="Thumbs\RotateThumb.cs" />
@@ -1126,6 +1126,7 @@
       <Name>Screenshot</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
