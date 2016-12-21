@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Security.RightsManagement;
 using System.Windows.Controls;
 using System.Windows.Markup;
 using System.Windows.Media;
@@ -65,6 +66,12 @@ namespace EasyImage.Controls
         {
             ControlManager = controlManager;
             Id = Guid.NewGuid().ToString("N");
+        }
+
+        public ImageControl(ControlManager controlManager, Guid guid)
+        {
+            ControlManager = controlManager;
+            Id = guid.ToString("N");
         }
 
         public object Clone()

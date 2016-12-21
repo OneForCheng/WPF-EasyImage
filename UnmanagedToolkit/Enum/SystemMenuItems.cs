@@ -1,4 +1,4 @@
-﻿namespace EasyImage.Enum
+﻿namespace UnmanagedToolkit.Enum
 {
     /// <summary>
     /// 系统菜单选项

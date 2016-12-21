@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -13,7 +14,7 @@ namespace Screenshot
     {
         public static BitmapSource CopyScreen()
         {
-            return CropScreen(0, 0, (int)SystemParameters.PrimaryScreenWidth, (int)SystemParameters.PrimaryScreenHeight);
+            return CropScreen(0, 0, (int)SystemParameters.VirtualScreenWidth, (int)SystemParameters.VirtualScreenHeight);
         }
 
         public static BitmapSource CropScreen(int left, int top, int width, int height)
@@ -85,6 +86,71 @@ namespace Screenshot
                     var renderBitmap = new RenderTargetBitmap((int)viewBox.TransformViewbox.Width, (int)viewBox.TransformViewbox.Height, 96, 96, PixelFormats.Pbgra32);
                     renderBitmap.Render(drawingVisual);
                     return new CroppedBitmap(renderBitmap, new Int32Rect((int)Math.Round(viewBox.CropViewbox.X, 0), (int)Math.Round(viewBox.CropViewbox.Y, 0), (int)Math.Round(viewBox.CropViewbox.Width, 0), (int)Math.Round(viewBox.CropViewbox.Height, 0)));
+                    
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public static BitmapSource CropScreen(BitmapViewBox viewBox, CropStyle cropStyle)
+        {
+            try
+            {
+                var imageSource = CropScreen(viewBox.CropScreenbox.Left, viewBox.CropScreenbox.Top, viewBox.CropScreenbox.Width, viewBox.CropScreenbox.Height);
+                if (!viewBox.IsTransform)
+                {
+                    var bitmap = imageSource.GetBitmap();
+                    switch (cropStyle)
+                    {
+                        case CropStyle.Normal:
+                            break;
+                        case CropStyle.Shadow:
+                            bitmap = bitmap.ShadowCropBitmap(viewBox.Bitmap);
+                            break;
+                        case CropStyle.Transparent:
+                            bitmap = bitmap.TransparentCropBitmap(viewBox.Bitmap);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException(nameof(cropStyle), cropStyle, null);
+                    }
+                    return bitmap.GetBitmapSource();
+                }
+                else
+                {
+                    //Ðý×ª¡¢·­×ª±ä»»
+                    var drawingVisual = new DrawingVisual();
+                    using (var context = drawingVisual.RenderOpen())
+                    {
+                        var brush = new ImageBrush(imageSource)
+                        {
+                            Stretch = Stretch.None,
+                            RelativeTransform = viewBox.RenderTransform,
+
+                        };
+                        context.DrawRectangle(brush, null, new Rect(0, 0, viewBox.TransformViewbox.Width, viewBox.TransformViewbox.Height));
+                    }
+                    var renderBitmap = new RenderTargetBitmap((int)viewBox.TransformViewbox.Width, (int)viewBox.TransformViewbox.Height, 96, 96, PixelFormats.Pbgra32);
+                    renderBitmap.Render(drawingVisual);
+
+                    var cropped = new CroppedBitmap(renderBitmap, new Int32Rect((int)Math.Round(viewBox.CropViewbox.X, 0), (int)Math.Round(viewBox.CropViewbox.Y, 0), (int)Math.Round(viewBox.CropViewbox.Width, 0), (int)Math.Round(viewBox.CropViewbox.Height, 0)));
+                    var bitmap = cropped.GetBitmap();
+                    switch (cropStyle)
+                    {
+                        case CropStyle.Normal:
+                            break;
+                        case CropStyle.Shadow:
+                            bitmap = bitmap.ShadowCropBitmap(viewBox.Bitmap);
+                            break;
+                        case CropStyle.Transparent:
+                            bitmap = bitmap.TransparentCropBitmap(viewBox.Bitmap);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException(nameof(cropStyle), cropStyle, null);
+                    }
+                    return bitmap.GetBitmapSource();
                 }
             }
             catch

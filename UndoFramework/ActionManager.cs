@@ -48,6 +48,11 @@ namespace UndoFramework
         }
 
         /// <summary>
+        /// 当前操作管理器的状态码
+        /// </summary>
+        public long StatusCode { get; private set; }
+
+        /// <summary>
         /// 能否执行撤销操作
         /// </summary>
         public bool CanUnExecute => (_nextUndo > -1);
@@ -67,6 +72,7 @@ namespace UndoFramework
         public void RecordAction(IAction action)
         {
             action.Execute();
+            StatusCode++;
             if (CanReExecute)
             {
                 for(var i = _actionList.Count - 1; i > _nextUndo; i--)
@@ -96,11 +102,12 @@ namespace UndoFramework
         /// <summary>
         /// 撤销操作
         /// </summary>
-        public void UnExecute()
+        public  void UnExecute()
         {
             if (!CanUnExecute) return;
             _actionList.ElementAt(_nextUndo).UnExecute();
             _nextUndo--;
+            StatusCode--;
         }
 
         /// <summary>
@@ -111,6 +118,7 @@ namespace UndoFramework
             if (!CanReExecute) return;
             _actionList.ElementAt(_nextUndo + 1).Execute();
             _nextUndo++;
+            StatusCode++;
         }
 
         /// <summary>
@@ -120,6 +128,7 @@ namespace UndoFramework
         {
             _actionList.Clear();
             _nextUndo = -1;
+            StatusCode = 0;
         }
 
         /// <summary>

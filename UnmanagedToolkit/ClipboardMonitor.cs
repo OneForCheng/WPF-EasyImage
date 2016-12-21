@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
 
-namespace EasyImage
+namespace UnmanagedToolkit
 {
     public sealed class ClipboardMonitor : IDisposable
     {
@@ -25,15 +25,15 @@ namespace EasyImage
             /// <summary>
             /// Sent when the contents of the clipboard have changed.
             /// </summary>
-            public const int WM_CLIPBOARDUPDATE = 0x031D;
+            public const int WmClipboardupdate = 0x031D;
 
             /// <summary>
             /// To find message-only windows, specify HWND_MESSAGE in the hwndParent parameter of the FindWindowEx function.
             /// </summary>
-            public static readonly IntPtr HWND_MESSAGE = new IntPtr(-3);
+            public static readonly IntPtr HwndMessage = new IntPtr(-3);
         }
 
-        private readonly HwndSource _hwndSource = new HwndSource(0, 0, 0, 0, 0, 0, 0, null, NativeMethods.HWND_MESSAGE);
+        private readonly HwndSource _hwndSource = new HwndSource(0, 0, 0, 0, 0, 0, 0, null, NativeMethods.HwndMessage);
 
         public ClipboardMonitor()
         {
@@ -50,7 +50,7 @@ namespace EasyImage
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            if (msg == NativeMethods.WM_CLIPBOARDUPDATE)
+            if (msg == NativeMethods.WmClipboardupdate)
             {
                 OnClipboardContentChanged?.Invoke(this, EventArgs.Empty);
             }

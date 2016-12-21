@@ -14,8 +14,10 @@ namespace EasyImage.Config
         public UserConfig()
         {
             _imageSetting = new ImageSetting();
+            _windowState = new WindowState();
         }
 
+        private WindowState _windowState;
         private ImageSetting _imageSetting;
 
         public ImageSetting ImageSetting
@@ -30,6 +32,12 @@ namespace EasyImage.Config
             }
         }
 
+        public WindowState WindowState
+        {
+            get { return _windowState; }
+            set { _windowState = value; }
+        }
+
         public void LoadConfigFromXml(string path = "Config/UserConfig.xml")
         {
             if (!File.Exists(path)) return;
@@ -40,6 +48,7 @@ namespace EasyImage.Config
                     var xmldes = new XmlSerializer(typeof(UserConfig));
                     var userConfg = (UserConfig)xmldes.Deserialize(fs);
                     _imageSetting = userConfg._imageSetting;
+                    _windowState = userConfg._windowState;
                 }
             }
             catch (Exception ex)
@@ -53,24 +62,14 @@ namespace EasyImage.Config
             var xmlsz = new XmlSerializer(typeof(UserConfig));
 
             var file = new FileInfo(path);
-
+            
             if (file.Directory != null && !file.Directory.Exists)
             {
                 file.Directory.Create();
             }
-            if (!file.Exists)
+            using (var sw = new StreamWriter(file.FullName))
             {
-                using (var fs = file.Create())
-                {
-                    xmlsz.Serialize(fs, this);
-                }
-            }
-            else
-            {
-                using (var fs = file.Open(FileMode.Open))
-                {
-                    xmlsz.Serialize(fs, this);
-                }
+                xmlsz.Serialize(sw, this);
             }
         }
     }

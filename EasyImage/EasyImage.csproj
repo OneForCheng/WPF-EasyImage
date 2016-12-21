@@ -74,9 +74,15 @@
     <Reference Include="UndoFramework">
       <HintPath>..\UndoFramework\bin\Debug\UndoFramework.dll</HintPath>
     </Reference>
+    <Reference Include="UnmanagedToolkit">
+      <HintPath>..\UnmanagedToolkit\bin\Debug\UnmanagedToolkit.dll</HintPath>
+    </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
+    <Reference Include="WindowTemplate">
+      <HintPath>..\WindowTemplate\bin\Debug\WindowTemplate.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -91,10 +97,9 @@
     <Compile Include="Actioins\WheelScaleAction.cs" />
     <Compile Include="Actioins\DragMoveAction.cs" />
     <Compile Include="Behaviors\MouseDragElementBehavior.cs" />
-    <Compile Include="ClipboardMonitor.cs" />
     <Compile Include="Config\UserConfig.cs" />
     <Compile Include="Config\ImageSetting.cs" />
-    <Compile Include="Enum\SystemMenuItems.cs" />
+    <Compile Include="Config\WindowState.cs" />
     <Compile Include="Enum\ThumbFlag.cs" />
     <Compile Include="Controls\ImageControl.cs" />
     <Compile Include="Thumbs\MoveScaleThumb.cs" />
@@ -113,7 +118,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Enum\ZIndex.cs" />
-    <Compile Include="Helper.cs" />
+    <Compile Include="Extentions.cs" />
     <Compile Include="ImageWindow.xaml.cs">
       <DependentUpon>ImageWindow.xaml</DependentUpon>
     </Compile>

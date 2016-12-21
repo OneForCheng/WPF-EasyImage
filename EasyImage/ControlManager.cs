@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using DealImage;
 using DealImage.Copy;
@@ -22,6 +23,7 @@ using Microsoft.Win32;
 using Screenshot;
 using UndoFramework;
 using UndoFramework.Actions;
+using WindowTemplate;
 
 
 namespace EasyImage
@@ -32,6 +34,7 @@ namespace EasyImage
         private int _maxImageZIndex;
         private readonly Panel _panelContainer;
         private ImageControl[] _cacheSelectElements;
+        private long _statusCode;
 
         #endregion Data
 
@@ -41,8 +44,8 @@ namespace EasyImage
             _panelContainer = container;
             _maxImageZIndex = 0;
             MoveSpeed = 1.0;
-            ActionManager = new ActionManager {MaxBufferCount = 20};
-
+            ActionManager = new ActionManager { MaxBufferCount = 20 };
+            _statusCode = ActionManager.StatusCode;
         }
 
         #endregion Constructors
@@ -53,6 +56,11 @@ namespace EasyImage
         /// 操作管理
         /// </summary>
         public ActionManager ActionManager { get; }
+
+        /// <summary>
+        /// 状态码是否发生改变
+        /// </summary>
+        public bool StatusCodeChanged => _statusCode != ActionManager.StatusCode;
 
         /// <summary>
         /// 移动速度
@@ -83,51 +91,6 @@ namespace EasyImage
                 }
                 return transactions;
             }
-        }
-
-        private void Element_ZIndexTop(object sender, RoutedEventArgs e)
-        {
-            var elements = SelectedElements.OrderByDescending(Panel.GetZIndex);
-            var transactions = new TransactionAction();
-            foreach (var item in elements)
-            {
-                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Top)));
-            }
-            ActionManager.Execute(transactions);
-        }
-
-        private void Element_ZIndexTopmost(object sender, RoutedEventArgs e)
-        {
-            var elements = SelectedElements.OrderBy(Panel.GetZIndex);
-            var transactions = new TransactionAction();
-            foreach (var item in elements)
-            {
-                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Topmost)));
-                _maxImageZIndex++;
-            }
-            ActionManager.Execute(transactions);
-        }
-
-        private void Element_ZIndexBottom(object sender, RoutedEventArgs e)
-        {
-            var elements = SelectedElements.OrderBy(Panel.GetZIndex);
-            var transactions = new TransactionAction();
-            foreach (var item in elements)
-            {
-                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Bottom)));
-            }
-            ActionManager.Execute(transactions);
-        }
-
-        private void Element_ZIndexBottommost(object sender, RoutedEventArgs e)
-        {
-            var elements = SelectedElements.OrderByDescending(Panel.GetZIndex);
-            var transactions = new TransactionAction();
-            foreach (var item in elements)
-            {
-                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Bottommost)));
-            }
-            ActionManager.Execute(transactions);
         }
 
         private void Element_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -166,6 +129,81 @@ namespace EasyImage
             }
         }
 
+        private void Menu_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            e.Handled = true;
+            var element = sender as ImageControl;
+            if (element == null) return;
+            var count = SelectedElements.Count();
+            if (count <= 0) return;
+            e.Handled = false;
+            var menuItem = element.ContextMenu.Items[3] as MenuItem;
+            if (menuItem != null)
+            {
+                menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+            }
+            menuItem = element.ContextMenu.Items[4] as MenuItem;
+            if (menuItem != null)
+            {
+                menuItem.Visibility = count > 1 ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        private void MenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
+        {
+            var menu = sender as MenuItem;
+            var menuItem = menu?.Items[1] as MenuItem;
+            if (menuItem != null)
+            {
+                menuItem.IsEnabled = ImagePasteHelper.CanExchangeImageFromClip();
+            }
+        }
+
+        private void Menu_ZIndexTop(object sender, RoutedEventArgs e)
+        {
+            var elements = SelectedElements.OrderByDescending(Panel.GetZIndex);
+            var transactions = new TransactionAction();
+            foreach (var item in elements)
+            {
+                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Top)));
+            }
+            ActionManager.Execute(transactions);
+        }
+
+        private void Menu_ZIndexTopmost(object sender, RoutedEventArgs e)
+        {
+            var elements = SelectedElements.OrderBy(Panel.GetZIndex);
+            var transactions = new TransactionAction();
+            foreach (var item in elements)
+            {
+                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Topmost)));
+                _maxImageZIndex++;
+            }
+            ActionManager.Execute(transactions);
+        }
+
+        private void Menu_ZIndexBottom(object sender, RoutedEventArgs e)
+        {
+            var elements = SelectedElements.OrderBy(Panel.GetZIndex);
+            var transactions = new TransactionAction();
+            foreach (var item in elements)
+            {
+                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Bottom)));
+            }
+            ActionManager.Execute(transactions);
+        }
+
+        private void Menu_ZIndexBottommost(object sender, RoutedEventArgs e)
+        {
+            var elements = SelectedElements.OrderByDescending(Panel.GetZIndex);
+            var transactions = new TransactionAction();
+            foreach (var item in elements)
+            {
+                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Bottommost)));
+            }
+            ActionManager.Execute(transactions);
+        }
+
         private void Menu_ExchangeImageFromFile(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
@@ -183,43 +221,34 @@ namespace EasyImage
             var showDialog = dialog.ShowDialog().GetValueOrDefault();
             if (!showDialog) return;
             var element = SelectedElements.First();
-            ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = new BitmapImage(new Uri(dialog.FileName)), Stretch = Stretch.Fill }));
-        }
-
-        private async void Element_ExchangeImageFromScreen(object sender, RoutedEventArgs e)
-        {
-            if (!SelectedElements.Any()) return;
-            var elements = SelectedElements.ToList();
-            elements.ForEach(m => m.Visibility = Visibility.Hidden);
-
-            await Task.Delay(300);
-
-            foreach (var element in elements)
+            try
             {
-                var scaleTransform = element.GetTransform<ScaleTransform>();
-                var imageSource = ScreenCropper.CropScreen(new ViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY, -7, -7));
-                if (imageSource != null)
-                {
-                    var encoder = new PngBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(imageSource));
-                    var stream = new MemoryStream();
-                    encoder.Save(stream);
-                    var bitmapImage = new BitmapImage();
-                    bitmapImage.BeginInit();
-                    bitmapImage.StreamSource = stream;
-                    bitmapImage.EndInit();
-                    ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = bitmapImage, Stretch = Stretch.Fill }));
-                }
-                else
-                {
-                    Exception ex;
-                    throw new Exception("不合法的截图操作");
-                }
+                ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = Extentions.GetBitmapImage(dialog.FileName), Stretch = Stretch.Fill }));
             }
-            elements.ForEach(m => m.Visibility = Visibility.Visible);
+            catch 
+            {
+                Extentions.ShowMessageBox("不支持此格式的图片!");
+               
+            }
+          
         }
 
-        private void Menu_ExchangeImageFromClip(object sender, RoutedEventArgs e)
+        private void MenuItem_ExchangeImageFromScreen(object sender, RoutedEventArgs e)
+        {
+            ExchangeImageFromScreen(CropStyle.Normal);
+        }
+
+        private void MenuItem_ExchangeShadowImageFromScreen(object sender, RoutedEventArgs e)
+        {
+            ExchangeImageFromScreen(CropStyle.Shadow);
+        }
+
+        private void MenuItem_ExchangeTransparentImageFromScreen(object sender, RoutedEventArgs e)
+        {
+            ExchangeImageFromScreen(CropStyle.Transparent);
+        }
+
+        private void Menu_ExchangeImageFromClipboard(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
             var imageSource = ImagePasteHelper.GetPasteImagesFromClipboard().First();
@@ -229,43 +258,56 @@ namespace EasyImage
             }
         }
 
-        private void Element_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        private void Menu_CombineImage(object sender, RoutedEventArgs e)
         {
-            e.Handled = true;
-            var element = sender as ImageControl;
-            if (element == null) return;
             var count = SelectedElements.Count();
-            if (count <= 0) return;
-            e.Handled = false;
-            var menuItem = element.ContextMenu.Items[3] as MenuItem;
-            if (menuItem != null)
-            {
-                menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
-            }
-        }
+            if (count < 2) return;
+            var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image) element.Content);
+            var template = SelectedElements.First().Template;
+            SetIsSelected(dict.Keys, false);
 
-        private void MenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
-        {
-            var menu = sender as MenuItem;
-            var menuItem = menu?.Items[1] as MenuItem;
-            if (menuItem != null)
+            var rect = dict.Values.GetMinContainRect();
+            var bitmapSource = dict.GetRenderTargetBitmap();
+            SetIsSelected(dict.Keys, true);
+
+            var bitmapImage = bitmapSource.GetBitmapImage();
+            var animatedImage = new AnimatedImage.AnimatedImage {Source = bitmapImage, Stretch = Stretch.Fill};
+
+            var transformGroup = new TransformGroup();
+            transformGroup.Children.Add(new ScaleTransform(1, 1));
+            transformGroup.Children.Add(new RotateTransform(0));
+            transformGroup.Children.Add(new TranslateTransform(rect.X, rect.Y));
+
+            var imageControl = new ImageControl(this)
             {
-                menuItem.IsEnabled = ImagePasteHelper.CanExchangeImageFromClip();
+                Width = bitmapImage.Width,
+                Height = bitmapImage.Height,
+                Content = animatedImage,
+                Template = template,
+                RenderTransform = transformGroup,
+            };
+            AttachProperty(imageControl);
+
+            var transactions = new TransactionAction();
+            foreach (var element in dict.Keys.Cast<ImageControl>())
+            {
+                transactions.Add(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m), element));
             }
+            transactions.Add(new AddItemAction<ImageControl>(m => _panelContainer.Children.Add(m), _panelContainer.Children.Remove, imageControl));
+            ActionManager.Execute(transactions);
         }
 
         private void Menu_SaveToImage(object sender, RoutedEventArgs e)
         {
             var selectCount = SelectedElements.Count();
-            if(selectCount == 0) return;
+            if (selectCount == 0) return;
             var dialog = new SaveFileDialog
             {
                 CheckPathExists = true,
                 AddExtension = true,
                 FilterIndex = 3,
                 FileName = "图形1",
-                DereferenceLinks = true,
-                Filter =  "GIF 可交换的图形格式 (*.gif)|*.gif"
+                Filter = "GIF 可交换的图形格式 (*.gif)|*.gif"
                         + "|JPEG 文件交换格式 (*.jpg)|*.jpg"
                         + "|PNG 可移植网络图形格式 (*.png)|*.png"
                         + "|TIFF Tag 图像文件格式 (*.tif)|*.tif"
@@ -278,7 +320,7 @@ namespace EasyImage
                 var bitmapSource = (element.Content as AnimatedImage.AnimatedImage)?.Source as BitmapImage;
                 if (bitmapSource != null)
                 {
-                    var fileExt  = bitmapSource.StreamSource != null ? ImageHelper.GetFileExtension(bitmapSource.StreamSource) : ImageHelper.GetFileExtension(bitmapSource.UriSource.AbsolutePath);
+                    var fileExt = bitmapSource.StreamSource != null ? ImageHelper.GetFileExtension(bitmapSource.StreamSource) : ImageHelper.GetFileExtension(bitmapSource.UriSource.AbsolutePath);
                     switch (fileExt)
                     {
                         case FileExtension.Gif:
@@ -305,7 +347,7 @@ namespace EasyImage
             var showDialog = dialog.ShowDialog().GetValueOrDefault();
             if (!showDialog) return;
             var filePath = dialog.FileName;
-            var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image) element.Content);
+            var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
             SetIsSelected(dict.Keys, false);
             dict.SaveChildElementsToImage(filePath);
             SetIsSelected(dict.Keys, true);
@@ -324,7 +366,6 @@ namespace EasyImage
                     CheckPathExists = true,
                     AddExtension = true,
                     FileName = "图标1",
-                    DereferenceLinks = true,
                     Filter = "ICO 图标格式 (*.ico)|*.ico",
                     ValidateNames = true,
                 };
@@ -388,7 +429,44 @@ namespace EasyImage
         #region Public methods
 
         /// <summary>
-        /// 添加选中元素
+        /// 重置所有状态
+        /// </summary>
+        public void Reset()
+        {
+            _maxImageZIndex = 0;
+            _cacheSelectElements = null;
+            ContinuedPasteCount = 0;
+            MoveSpeed = 1;
+            ActionManager.Clear();
+            _statusCode = ActionManager.StatusCode;
+            _panelContainer.Children.Clear();
+        }
+
+        /// <summary>
+        /// 更新状态码
+        /// </summary>
+        public void UpdateStatusCode()
+        {
+            _statusCode = ActionManager.StatusCode;
+        }
+
+        /// <summary>
+        /// 初始化
+        /// </summary>
+        /// <param name="elements"></param>
+        public void Initialize(IEnumerable<ImageControl> elements)
+        {
+            var enumerable = elements as IList<ImageControl> ?? elements.ToList();
+            if (!enumerable.Any()) return;
+            foreach (var element in enumerable)
+            {
+                AttachProperty(element);
+                _panelContainer.Children.Add(element);
+            }
+        }
+
+        /// <summary>
+        /// 添加选中元素集合
         /// </summary>
         /// <param name="elements"></param>
         public void AddElements(IEnumerable<ImageControl> elements)
@@ -404,6 +482,10 @@ namespace EasyImage
             ActionManager.Execute(transactions);
         }
 
+        /// <summary>
+        /// 添加选中元素
+        /// </summary>
+        /// <param name="element"></param>
         public void AddElement(ImageControl element)
         {
             AttachProperty(element);
@@ -417,11 +499,11 @@ namespace EasyImage
         /// </summary>
         public void RemoveSelected()
         {
-            if (!SelectedElements.Any())return;
+            if (!SelectedElements.Any()) return;
             var transactions = new TransactionAction();
             foreach (var element in SelectedElements)
             {
-                transactions.Add(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m),  element));
+                transactions.Add(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m), element));
             }
             ActionManager.Execute(transactions);
         }
@@ -457,7 +539,7 @@ namespace EasyImage
                 AddElements(_cacheSelectElements.Select(m => m.Clone()).Cast<ImageControl>());
                 _cacheSelectElements = null;
             }
-            
+
         }
 
         /// <summary>
@@ -497,7 +579,7 @@ namespace EasyImage
         /// <param name="arrowKey">方向键</param>
         public void KeyMoveSelected(Key arrowKey)
         {
-            if(!SelectedElements.Any())return;
+            if (!SelectedElements.Any()) return;
             double moveX = 0, moveY = 0;
             switch (arrowKey)
             {
@@ -621,7 +703,7 @@ namespace EasyImage
                             translateTransform.X -= 2 * element.Width * Math.Cos(radian) * scaleTransform.ScaleX;
                         }
                     }
-           
+
                     var deltaVertical = element.Height * (1 - scaleVertical);
                     var deltaHorizontal = element.Width * (1 - scaleHorizontal);
 
@@ -641,7 +723,7 @@ namespace EasyImage
 
                     element.Width = element.Width * scaleHorizontal;
 
-                    transactions.Add(new DragResizeAction(element, 1/scaleHorizontal, 1/scaleVertical, turnHorizontal, turnVerticale, thumbFlag));
+                    transactions.Add(new DragResizeAction(element, 1 / scaleHorizontal, 1 / scaleVertical, turnHorizontal, turnVerticale, thumbFlag));
                 }
 
                 ActionManager.Execute(transactions);
@@ -694,13 +776,13 @@ namespace EasyImage
                                 translateTransform.Y -= 2 * element.Width * Math.Sin(radian) * scaleTransform.ScaleX;
                                 translateTransform.X -= 2 * element.Width * Math.Cos(radian) * scaleTransform.ScaleX;
                             }
-                            
+
                         }
-                        
+
                     }
                 }
             }
-           
+
         }
 
         /// <summary>
@@ -759,7 +841,23 @@ namespace EasyImage
 
             #region 截屏
             item = new MenuItem { Header = "截屏" };
-            item.Click += Element_ExchangeImageFromScreen;
+
+            #region 二级菜单
+
+            var subItem = new MenuItem { Header = "普通截屏" };
+            subItem.Click += MenuItem_ExchangeImageFromScreen;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "影子截屏" };
+            subItem.Click += MenuItem_ExchangeShadowImageFromScreen;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "透明截屏" };
+            subItem.Click += MenuItem_ExchangeTransparentImageFromScreen;
+            item.Items.Add(subItem);
+
+            #endregion
+
             contextMenu.Items.Add(item);
 
             #endregion
@@ -770,30 +868,37 @@ namespace EasyImage
             item.SubmenuOpened += MenuItem_SubmenuOpened;
             #region 二级菜单
 
-            var subItem = new MenuItem { Header = "来自文件..." };
+            subItem = new MenuItem { Header = "来自文件..." };
             subItem.Click += Menu_ExchangeImageFromFile;
             item.Items.Add(subItem);
 
             subItem = new MenuItem { Header = "自剪贴板..." };
-            subItem.Click += Menu_ExchangeImageFromClip;
+            subItem.Click += Menu_ExchangeImageFromClipboard;
             item.Items.Add(subItem);
             #endregion
 
             contextMenu.Items.Add(item);
             #endregion
 
+            #region 组合图片
+            item = new MenuItem { Header = "组合" };
+            item.Click += Menu_CombineImage;
+            contextMenu.Items.Add(item);
+
+            #endregion
+
             #region 置于顶层
 
-            item = new MenuItem {Header = "置于顶层"};
+            item = new MenuItem { Header = "置于顶层" };
 
             #region 二级菜单
 
-            subItem = new MenuItem {Header = "置于顶层"};
-            subItem.Click += Element_ZIndexTopmost;
+            subItem = new MenuItem { Header = "置于顶层" };
+            subItem.Click += Menu_ZIndexTopmost;
             item.Items.Add(subItem);
 
-            subItem = new MenuItem {Header = "上移一层"};
-            subItem.Click += Element_ZIndexTop;
+            subItem = new MenuItem { Header = "上移一层" };
+            subItem.Click += Menu_ZIndexTop;
             item.Items.Add(subItem);
 
             #endregion
@@ -803,23 +908,23 @@ namespace EasyImage
 
             #region 置于底层
 
-            item = new MenuItem {Header = "置于底层"};
+            item = new MenuItem { Header = "置于底层" };
 
             #region 二级菜单
 
-            subItem = new MenuItem {Header = "置于底层"};
-            subItem.Click += Element_ZIndexBottommost;
+            subItem = new MenuItem { Header = "置于底层" };
+            subItem.Click += Menu_ZIndexBottommost;
             item.Items.Add(subItem);
 
-            subItem = new MenuItem {Header = "下移一层"};
-            subItem.Click += Element_ZIndexBottom;
+            subItem = new MenuItem { Header = "下移一层" };
+            subItem.Click += Menu_ZIndexBottom;
             item.Items.Add(subItem);
 
             #endregion
 
             contextMenu.Items.Add(item);
             #endregion
-                
+
             #region 另存为图片
             item = new MenuItem { Header = "另存为图片..." };
             item.Click += Menu_SaveToImage;
@@ -876,7 +981,7 @@ namespace EasyImage
             var separatorMenuItem = new Separator();//分割线
             contextMenu.Items.Add(separatorMenuItem);
 
-            item = new MenuItem {Header = "设置"};
+            item = new MenuItem { Header = "设置" };
             contextMenu.Items.Add(item);
             #endregion
 
@@ -885,7 +990,7 @@ namespace EasyImage
 
             #region 添加事件
             element.PreviewMouseDown += Element_PreviewMouseDown;
-            element.ContextMenuOpening += Element_ContextMenuOpening;
+            element.ContextMenuOpening += Menu_ContextMenuOpening;
             element.SizeChanged += Element_SizeChanged;
 
             #endregion
@@ -906,7 +1011,7 @@ namespace EasyImage
                 foreach (ImageControl item in _panelContainer.Children)
                 {
                     tmp = Panel.GetZIndex(item);
-                    if ((targetZIndex - tmp)*flag >= 0) continue;
+                    if ((targetZIndex - tmp) * flag >= 0) continue;
                     targetZIndex = tmp;
                     targetElement = item;
                 }
@@ -923,13 +1028,13 @@ namespace EasyImage
                     tmp = Panel.GetZIndex(item);
                     if (nearZIndex == targetZIndex)
                     {
-                        if ((targetZIndex - tmp)*flag >= 0) continue;
+                        if ((targetZIndex - tmp) * flag >= 0) continue;
                         nearZIndex = tmp;
                         targetElement = item;
                     }
                     else
                     {
-                        if ((tmp - nearZIndex)*flag >= 0 || (tmp - targetZIndex)*flag <= 0) continue;
+                        if ((tmp - nearZIndex) * flag >= 0 || (tmp - targetZIndex) * flag <= 0) continue;
                         nearZIndex = tmp;
                         targetElement = item;
                     }
@@ -938,12 +1043,38 @@ namespace EasyImage
             }
         }
 
-        private void SetIsSelected(IEnumerable<UIElement> elements,bool isSelected)
+        private void SetIsSelected(IEnumerable<UIElement> elements, bool isSelected)
         {
             foreach (var item in elements)
             {
                 Selector.SetIsSelected(item, isSelected);
             }
+        }
+
+        private async void ExchangeImageFromScreen(CropStyle cropStyle)
+        {
+            if (!SelectedElements.Any()) return;
+            var elements = SelectedElements.ToList();
+            elements.ForEach(m => m.Visibility = Visibility.Hidden);
+
+            await Task.Delay(300);
+
+            foreach (var element in elements)
+            {
+                var scaleTransform = element.GetTransform<ScaleTransform>();
+                var imageSource = cropStyle == CropStyle.Normal
+                                            ? ScreenCropper.CropScreen(new ViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY, -7, -7))
+                                            : ScreenCropper.CropScreen(new BitmapViewBox((Image)element.Content, (element.Content as AnimatedImage.AnimatedImage)?.Source, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY, -7, -7), cropStyle);
+                if (imageSource != null)
+                {
+                    ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
+                }
+                else
+                {
+                    Extentions.ShowMessageBox("不合法的截图操作!");
+                }
+            }
+            elements.ForEach(m => m.Visibility = Visibility.Visible);
         }
 
         #endregion Private methods

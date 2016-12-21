@@ -2,12 +2,11 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
-using System.Windows.Media;
-using EasyImage.Enum;
+using UnmanagedToolkit.Enum;
 
-namespace EasyImage
+namespace UnmanagedToolkit
 {
-    public static class Helper
+    public static class Extentions
     {
         /// <summary>
         /// 去除窗体的指定的系统菜单
@@ -28,7 +27,7 @@ namespace EasyImage
             // notes that, delete from bigger index to smaller
             var flag = (int)menuItems;
             var bit = 128;
-            for (uint i = 6;; i--)
+            for (uint i = 6; ; i--)
             {
                 bit = bit / 2;
                 if ((flag & bit) != 0)
@@ -41,55 +40,6 @@ namespace EasyImage
                 }
             }
             DrawMenuBar(sysMenu);
-        }
-
-        /// <summary>
-        /// 从指定UI元素中获取指定位置转换信息
-        /// </summary>
-        /// <typeparam name="T">位置转换信息</typeparam>
-        /// <param name="element">UI元素</param>
-        /// <returns></returns>
-        public static T GetTransform<T>(this UIElement element) where T : Transform, new()
-        {
-            var transform = element.RenderTransform;
-            var targetTransform = transform as T;
-            if (targetTransform != null)
-            {
-                return targetTransform;
-            }
-            else
-            {
-                var group = transform as TransformGroup;
-                if (group != null)
-                {
-                    var count = group.Children.Count;
-                    for (var i = count - 1; i >= 0; i--)
-                    {
-                        targetTransform = group.Children[i] as T;
-                        if (targetTransform != null)
-                        {
-                            break;
-                        }
-                    }
-                    if (targetTransform != null) return targetTransform;
-                    targetTransform = new T();
-                    group.Children.Add(targetTransform);
-                    return targetTransform;
-                }
-                else
-                {
-                    group = new TransformGroup();
-                    if (transform != null)
-                    {
-                        group.Children.Add(transform);
-                    }
-                    targetTransform = new T();
-                    group.Children.Add(targetTransform);
-                    element.RenderTransform = group;
-
-                    return targetTransform;
-                }
-            }
         }
 
         #region 系统API函数
@@ -121,6 +71,5 @@ namespace EasyImage
         internal static extern int DrawMenuBar(IntPtr hWnd);
 
         #endregion
-
     }
 }

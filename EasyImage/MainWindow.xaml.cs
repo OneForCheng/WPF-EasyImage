@@ -17,6 +17,8 @@ namespace EasyImage
         public MainWindow()
         {
             InitializeComponent();
+            UserConfigution = new UserConfig();
+            UserConfigution.LoadConfigFromXml(ConfigurationManager.AppSettings["UserConfigPath"]);
         }
 
         #region 主窗口事件
@@ -27,11 +29,9 @@ namespace EasyImage
         /// <param name="e"></param>
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {
-            _trayIcon = InitTrayIcon();//初始化系统托盘
-            UserConfigution = new UserConfig();
-            UserConfigution.LoadConfigFromXml(ConfigurationManager.AppSettings["UserConfigPath"]);
             _imgWin = new ImageWindow() { Owner = this };
             _imgWin.Show();
+            _trayIcon = InitTrayIcon();//初始化系统托盘
         }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace EasyImage
             var item2 = new System.Windows.Forms.ToolStripMenuItem("退出");
             item2.Click += (sender, e) =>
                            {
-                               Close();
+                                _imgWin.Close();
                            };
             conntextMenu.Items.Add(item2);
 
@@ -96,8 +96,6 @@ namespace EasyImage
                 _imgWin.Visibility = Visibility.Visible;
             }
         }
-
-
 
         #endregion
 

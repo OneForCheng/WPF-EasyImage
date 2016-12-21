@@ -15,6 +15,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Screenshot", "Screenshot\Sc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IconMaker", "IconMaker\IconMaker.csproj", "{C4EAEDF8-B43E-4C7D-BF1E-1912E31C2EE5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowTemplate", "WindowTemplate\WindowTemplate.csproj", "{1E612735-97E8-4732-8BEF-CD805EADA88E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnmanagedToolkit", "UnmanagedToolkit\UnmanagedToolkit.csproj", "{6CA5560E-AFE1-436E-9239-314D645054FF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +49,14 @@ Global
 		{C4EAEDF8-B43E-4C7D-BF1E-1912E31C2EE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C4EAEDF8-B43E-4C7D-BF1E-1912E31C2EE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C4EAEDF8-B43E-4C7D-BF1E-1912E31C2EE5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E612735-97E8-4732-8BEF-CD805EADA88E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E612735-97E8-4732-8BEF-CD805EADA88E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E612735-97E8-4732-8BEF-CD805EADA88E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E612735-97E8-4732-8BEF-CD805EADA88E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6CA5560E-AFE1-436E-9239-314D645054FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CA5560E-AFE1-436E-9239-314D645054FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CA5560E-AFE1-436E-9239-314D645054FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6CA5560E-AFE1-436E-9239-314D645054FF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
