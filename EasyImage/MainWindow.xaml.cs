@@ -1,4 +1,6 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
+using System.IO;
 using System.Windows;
 using EasyImage.Config;
 
@@ -11,14 +13,14 @@ namespace EasyImage
     {
         private System.Windows.Forms.NotifyIcon _trayIcon;
         private ImageWindow _imgWin;
-   
+        
         public UserConfig UserConfigution { get; set; }
 
         public MainWindow()
         {
             InitializeComponent();
             UserConfigution = new UserConfig();
-            UserConfigution.LoadConfigFromXml(ConfigurationManager.AppSettings["UserConfigPath"]);
+            UserConfigution.LoadConfigFromXml(Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, ConfigurationManager.AppSettings["UserConfigPath"]));
         }
 
         #region 主窗口事件
@@ -41,7 +43,7 @@ namespace EasyImage
         /// <param name="e"></param>
         private void WindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            UserConfigution.SaveConfigToXml();
+            UserConfigution.SaveConfigToXml(Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, ConfigurationManager.AppSettings["UserConfigPath"]));
             if (_trayIcon != null)
             {
                 _trayIcon.Visible = false;

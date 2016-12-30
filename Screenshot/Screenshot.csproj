@@ -48,8 +48,7 @@
   <ItemGroup>
     <Compile Include="CropStyle.cs" />
     <Compile Include="ImageCropper.cs" />
-    <Compile Include="BitmapViewBox.cs" />
-    <Compile Include="ViewBox.cs" />
+    <Compile Include="CropViewBox.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ScreenCropper.cs" />
   </ItemGroup>

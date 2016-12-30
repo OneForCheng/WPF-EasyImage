@@ -17,8 +17,10 @@ namespace EasyImage.Thumbs
         private bool _turnVerticale, _turnHorizontal;
         private ThumbFlag _thumbFlag;
         private bool _isResize;
+        private bool _isLockAspect;
         private double _oldWitdh, _oldHeight;
         private double _oldScaleX, _oldScaleY;
+        
 
         public ResizeThumb()
         {
@@ -32,6 +34,7 @@ namespace EasyImage.Thumbs
             _imageControl = DataContext as ImageControl;
             if (_imageControl == null) return;
             _isResize = false;
+            _isLockAspect = _imageControl.IsLockAspect;
             _oldWitdh = _imageControl.Width;
             _oldHeight = _imageControl.Height;
             _scaleTransform = _imageControl.GetTransform<ScaleTransform>();
@@ -99,12 +102,27 @@ namespace EasyImage.Thumbs
                     }
                     else
                     {
-                        var min = Math.Min(e.VerticalChange, e.HorizontalChange);
-                        var max = Math.Max(width, height);
-                        if (max - min > Tolerance)
+                        if (_isLockAspect)
                         {
-                            _scaleHorizontal = _scaleVertical = (max - min) / max;
+                            var min = Math.Min(e.VerticalChange, e.HorizontalChange);
+                            var max = Math.Max(width, height);
+                            if (max - min > Tolerance)
+                            {
+                                _scaleHorizontal = _scaleVertical = (max - min) / max;
+                            }
+                            
                         }
+                        else
+                        {
+                            var newWidth = width - e.HorizontalChange;
+                            var newHeight = height - e.VerticalChange;
+                            if (newWidth > Tolerance && newHeight > Tolerance)
+                            {
+                                _scaleHorizontal = newWidth / width;
+                                _scaleVertical = newHeight / height;
+                            }
+                        }
+                       
                     }
                     break;
                 case ThumbFlag.TopCenter:
@@ -130,12 +148,27 @@ namespace EasyImage.Thumbs
                     }
                     else if (relativePos.X > 0 && relativePos.Y < height)
                     {
-                        var min = Math.Min(e.VerticalChange, -e.HorizontalChange);
-                        var max = Math.Max(width, height);
-                        if (max - min > Tolerance)
+                        if (_isLockAspect)
                         {
-                            _scaleHorizontal = _scaleVertical = (max - min) / max;
+                            var min = Math.Min(e.VerticalChange, -e.HorizontalChange);
+                            var max = Math.Max(width, height);
+                            if (max - min > Tolerance)
+                            {
+                                _scaleHorizontal = _scaleVertical = (max - min) / max;
+                            }
                         }
+                        else
+                        {
+                            
+                            var newWidth = width + e.HorizontalChange;
+                            var newHeight = height - e.VerticalChange;
+                            if (newWidth > Tolerance && newHeight > Tolerance)
+                            {
+                                _scaleHorizontal = newWidth / width;
+                                _scaleVertical = newHeight / height;
+                            }
+                        }
+                       
                     }
                     else
                     {
@@ -156,12 +189,28 @@ namespace EasyImage.Thumbs
                 case ThumbFlag.BottomRight:
                     if (relativePos.X > 0 && relativePos.Y > 0)
                     {
-                        var min = Math.Min(-e.VerticalChange, -e.HorizontalChange);
-                        var max = Math.Max(width, height);
-                        if (max - min > Tolerance)
+                        if (_isLockAspect)
                         {
-                            _scaleHorizontal = _scaleVertical = (max - min) / max;
+                            var min = Math.Min(-e.VerticalChange, -e.HorizontalChange);
+                            var max = Math.Max(width, height);
+                            if (max - min > Tolerance)
+                            {
+                                _scaleHorizontal = _scaleVertical = (max - min) / max;
+
+                            }
                         }
+                        else
+                        {
+                            
+                            var newWidth = width + e.HorizontalChange;
+                            var newHeight = height + e.VerticalChange;
+                            if (newWidth > Tolerance && newHeight > Tolerance)
+                            {
+                                _scaleHorizontal = newWidth / width;
+                                _scaleVertical = newHeight / height;
+                            }
+                        }
+                        
                     }
                     else if (relativePos.X < 0 && relativePos.Y > 0)
                     {
@@ -195,11 +244,25 @@ namespace EasyImage.Thumbs
                     }
                     else if (relativePos.X < width && relativePos.Y > 0)
                     {
-                        var min = Math.Min(-e.VerticalChange, e.HorizontalChange);
-                        var max = Math.Max(width, height);
-                        if (max - min > Tolerance)
+                        if (_isLockAspect)
                         {
-                            _scaleHorizontal = _scaleVertical = (max - min) / max;
+                            var min = Math.Min(-e.VerticalChange, e.HorizontalChange);
+                            var max = Math.Max(width, height);
+                            if (max - min > Tolerance)
+                            {
+                                _scaleHorizontal = _scaleVertical = (max - min) / max;
+                            }
+                        }
+                        else
+                        {
+                            var newWidth = width - e.HorizontalChange;
+                            var newHeight = height + e.VerticalChange;
+                            if (newWidth > Tolerance && newHeight > Tolerance)
+                            {
+                                _scaleHorizontal = newWidth / width;
+                                _scaleVertical = newHeight / height;
+                            }
+                            
                         }
                     }
                     else if (relativePos.X > width && relativePos.Y < 0)

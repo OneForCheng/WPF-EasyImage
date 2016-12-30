@@ -5,7 +5,8 @@ using Point = System.Windows.Point;
 
 namespace Screenshot
 {
-    public class ViewBox
+
+    public class CropViewBox
     {
         public bool IsTransform { get; }
 
@@ -17,7 +18,7 @@ namespace Screenshot
 
         public Rect CropViewbox { get; }//视图裁剪框
 
-        public ViewBox(UIElement element, double angle = 0, double scaleX = 1, double scaleY = 1, double correctionX = 0, double correctionY = 0)
+        public CropViewBox(UIElement element, double angle = 0, double scaleX = 1, double scaleY = 1, double correctionX = 0, double correctionY = 0)
         {
             IsTransform = !(angle.Equals(0) && scaleX.Equals(1) && scaleY.Equals(1));
 

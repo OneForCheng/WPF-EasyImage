@@ -4,14 +4,18 @@
     {
         public static readonly string Internal = "EasyImage Internal Theme";
         public static readonly string Png = "PNG";
-        public static readonly string Jfif = "JFIF";
-        public static readonly string Jif = "JIF";
-        public static readonly string Bitmap = "Bitmap";
         public static readonly string Dib = "DeviceIndependentBitmap";
-        
-        public static string[] GetFormats()
+        public static readonly string Bitmap = "Bitmap";
+        public static readonly string Html = "HTML Format";
+        public static readonly string QqUnicodeRichEditFormat = "QQ_Unicode_RichEdit_Format";
+        public static readonly string QqRichEditFormat = "QQ_RichEdit_Format";
+        public static readonly string FileDrop = "FileDrop";
+        public static readonly string FileNameW = "FileNameW";
+        public static readonly string FileName = "FileName";
+
+        public static string[] GetPasteFormats()
         {
-            return new[] { Png, Jif, Jfif, Bitmap, Dib};
+            return new[] {Png, Bitmap, Dib};
         }
 
     }

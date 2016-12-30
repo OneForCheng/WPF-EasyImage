@@ -13,6 +13,7 @@ namespace EasyImage.Controls
     public class ImageControlBaseInfo
     {
         private readonly string _id;
+        private readonly bool _freeResize;
         private readonly double _width;
         private readonly double _height;
         private readonly string _imageSource;
@@ -21,6 +22,7 @@ namespace EasyImage.Controls
         public ImageControlBaseInfo(ImageControl imageControl)
         {
             _id = imageControl.Id;
+            _freeResize = imageControl.IsLockAspect;
             _width = imageControl.Width;
             _height = imageControl.Height;
             var stream = ((imageControl.Content as AnimatedImage.AnimatedImage)?.Source as BitmapImage)?.StreamSource as MemoryStream;
@@ -34,6 +36,8 @@ namespace EasyImage.Controls
         }
 
         public string Id => _id;
+
+        public bool FreeResize => _freeResize;
 
         public double Width => _width;
 
@@ -60,18 +64,22 @@ namespace EasyImage.Controls
     {
         public string Id { get; }
 
+        public bool IsLockAspect { get; set; }
+
         public ControlManager ControlManager { get; }
 
         public ImageControl(ControlManager controlManager)
         {
             ControlManager = controlManager;
             Id = Guid.NewGuid().ToString("N");
+            IsLockAspect = true;
         }
 
         public ImageControl(ControlManager controlManager, Guid guid)
         {
             ControlManager = controlManager;
             Id = guid.ToString("N");
+            IsLockAspect = true;
         }
 
         public object Clone()
@@ -83,6 +91,7 @@ namespace EasyImage.Controls
             };
             var imageControl = new ImageControl(ControlManager)
             {
+                IsLockAspect = IsLockAspect,
                 Width = Width,
                 Height = Height,
                 Content = animatedImage,
@@ -90,6 +99,14 @@ namespace EasyImage.Controls
                 RenderTransform = RenderTransform.Clone(),
             };
             return imageControl;
+        }
+    }
+
+    public class CropImageControl : ImageControl
+    {
+        public CropImageControl(ControlManager controlManager) : base(controlManager)
+        {
+
         }
     }
 

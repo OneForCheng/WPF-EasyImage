@@ -2,7 +2,7 @@
 {
     public enum CropStyle
     {
-        Normal,
+        Default,
         Shadow,
         Transparent,
     }

@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -9,10 +7,10 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using DealImage;
 using DealImage.Copy;
+using DealImage.Crop;
 using DealImage.Paste;
 using DealImage.Save;
 using EasyImage.Actioins;
@@ -23,7 +21,6 @@ using Microsoft.Win32;
 using Screenshot;
 using UndoFramework;
 using UndoFramework.Actions;
-using WindowTemplate;
 
 
 namespace EasyImage
@@ -137,12 +134,16 @@ namespace EasyImage
             var count = SelectedElements.Count();
             if (count <= 0) return;
             e.Handled = false;
-            var menuItem = element.ContextMenu.Items[3] as MenuItem;
-            if (menuItem != null)
+            MenuItem menuItem;
+            for (var i = 3; i < 6; i++)
             {
-                menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+                 menuItem = element.ContextMenu?.Items[i] as MenuItem;
+                if (menuItem != null)
+                {
+                    menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+                }
             }
-            menuItem = element.ContextMenu.Items[4] as MenuItem;
+            menuItem = element.ContextMenu?.Items[6] as MenuItem;
             if (menuItem != null)
             {
                 menuItem.Visibility = count > 1 ? Visibility.Visible : Visibility.Collapsed;
@@ -233,19 +234,50 @@ namespace EasyImage
           
         }
 
-        private void MenuItem_ExchangeImageFromScreen(object sender, RoutedEventArgs e)
+        private void MenuItem_CaptureImageFromScreen(object sender, RoutedEventArgs e)
         {
-            ExchangeImageFromScreen(CropStyle.Normal);
+            ExchangeImageFromScreen(CropStyle.Default);
         }
 
-        private void MenuItem_ExchangeShadowImageFromScreen(object sender, RoutedEventArgs e)
+        
+        private void MenuItem_ShadowCaptureImageFromScreen(object sender, RoutedEventArgs e)
         {
             ExchangeImageFromScreen(CropStyle.Shadow);
         }
 
-        private void MenuItem_ExchangeTransparentImageFromScreen(object sender, RoutedEventArgs e)
+        private void MenuItem_TransparentCaptureImageFromScreen(object sender, RoutedEventArgs e)
         {
             ExchangeImageFromScreen(CropStyle.Transparent);
+        }
+
+        private void MenuItem_CaptureImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            CropImageFromInternal(CropStyle.Default);
+        }
+
+        private void MenuItem_ShadowCaptureImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            CropImageFromInternal(CropStyle.Shadow);
+        }
+
+        private void MenuItem_TransparentCaptureImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            CropImageFromInternal(CropStyle.Transparent);
+        }
+
+        private void MenuItem_CutImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            CutImageFromInternal(CropStyle.Default);
+        }
+
+        private void MenuItem_ShadowCutImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            CutImageFromInternal(CropStyle.Shadow);
+        }
+
+        private void MenuItem_TransparentCutImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            CutImageFromInternal(CropStyle.Transparent);
         }
 
         private void Menu_ExchangeImageFromClipboard(object sender, RoutedEventArgs e)
@@ -258,6 +290,24 @@ namespace EasyImage
             }
         }
 
+        private void Menu_ExchangeImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            var width = (int)Math.Round(element.Width, 0);
+            var height = (int)Math.Round(element.Height, 0);
+            var drawingVisual = new DrawingVisual();
+            using (var context = drawingVisual.RenderOpen())
+            {
+                context.DrawRectangle(Brushes.White, null, new Rect(0, 0, width, height));
+            }
+            drawingVisual.Opacity = 0.1;
+            var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            renderBitmap.Render(drawingVisual);
+            ActionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedImage.AnimatedImage { Source = renderBitmap.GetBitmapImage(), Stretch = Stretch.Fill }));
+
+        }
+
         private void Menu_CombineImage(object sender, RoutedEventArgs e)
         {
             var count = SelectedElements.Count();
@@ -267,10 +317,10 @@ namespace EasyImage
             SetIsSelected(dict.Keys, false);
 
             var rect = dict.Values.GetMinContainRect();
-            var bitmapSource = dict.GetRenderTargetBitmap();
+            var imageSource = dict.GetMinContainBitmap();
             SetIsSelected(dict.Keys, true);
 
-            var bitmapImage = bitmapSource.GetBitmapImage();
+            var bitmapImage = imageSource.GetBitmapImage();
             var animatedImage = new AnimatedImage.AnimatedImage {Source = bitmapImage, Stretch = Stretch.Fill};
 
             var transformGroup = new TransformGroup();
@@ -374,7 +424,7 @@ namespace EasyImage
                 var filePath = dialog.FileName;
                 var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
                 SetIsSelected(dict.Keys, false);
-                var imageSource = dict.GetRenderTargetBitmap();
+                var imageSource = dict.GetMinContainBitmap();
                 SetIsSelected(dict.Keys, true);
                 var index = menu.Items.IndexOf(menuItem);
                 switch (index)
@@ -440,6 +490,7 @@ namespace EasyImage
             ActionManager.Clear();
             _statusCode = ActionManager.StatusCode;
             _panelContainer.Children.Clear();
+            GC.Collect();
         }
 
         /// <summary>
@@ -461,6 +512,7 @@ namespace EasyImage
             foreach (var element in enumerable)
             {
                 AttachProperty(element);
+                Selector.SetIsSelected(element,false);
                 _panelContainer.Children.Add(element);
             }
         }
@@ -825,8 +877,8 @@ namespace EasyImage
             #region 添加上下文菜单
             var contextMenu = new ContextMenu();
 
-            #region 剪贴
-            var item = new MenuItem { Header = "剪贴" };
+            #region 剪切
+            var item = new MenuItem { Header = "剪切" };
             item.Click += Menu_ClipImage;
             contextMenu.Items.Add(item);
 
@@ -845,15 +897,61 @@ namespace EasyImage
             #region 二级菜单
 
             var subItem = new MenuItem { Header = "普通截屏" };
-            subItem.Click += MenuItem_ExchangeImageFromScreen;
+            subItem.Click += MenuItem_CaptureImageFromScreen;
             item.Items.Add(subItem);
 
             subItem = new MenuItem { Header = "影子截屏" };
-            subItem.Click += MenuItem_ExchangeShadowImageFromScreen;
+            subItem.Click += MenuItem_ShadowCaptureImageFromScreen;
             item.Items.Add(subItem);
 
             subItem = new MenuItem { Header = "透明截屏" };
-            subItem.Click += MenuItem_ExchangeTransparentImageFromScreen;
+            subItem.Click += MenuItem_TransparentCaptureImageFromScreen;
+            item.Items.Add(subItem);
+
+            #endregion
+
+            contextMenu.Items.Add(item);
+
+            #endregion
+
+            #region 截图
+            item = new MenuItem { Header = "截图" };
+
+            #region 二级菜单
+
+            subItem = new MenuItem {Header = "普通截图" };
+            subItem.Click += MenuItem_CaptureImageFromInternal;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "影子截图" };
+            subItem.Click += MenuItem_ShadowCaptureImageFromInternal;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "透明截图" };
+            subItem.Click += MenuItem_TransparentCaptureImageFromInternal;
+            item.Items.Add(subItem);
+
+            #endregion
+
+            contextMenu.Items.Add(item);
+
+            #endregion
+
+            #region 抠图
+            item = new MenuItem { Header = "抠图" };
+
+            #region 二级菜单
+
+            subItem = new MenuItem { Header = "普通抠图" };
+            subItem.Click += MenuItem_CutImageFromInternal;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "影子抠图" };
+            subItem.Click += MenuItem_ShadowCutImageFromInternal;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "透明抠图" };
+            subItem.Click += MenuItem_TransparentCutImageFromInternal;
             item.Items.Add(subItem);
 
             #endregion
@@ -874,6 +972,10 @@ namespace EasyImage
 
             subItem = new MenuItem { Header = "自剪贴板..." };
             subItem.Click += Menu_ExchangeImageFromClipboard;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "默认图片..." };
+            subItem.Click += Menu_ExchangeImageFromInternal;
             item.Items.Add(subItem);
             #endregion
 
@@ -1062,21 +1164,110 @@ namespace EasyImage
             foreach (var element in elements)
             {
                 var scaleTransform = element.GetTransform<ScaleTransform>();
-                var imageSource = cropStyle == CropStyle.Normal
-                                            ? ScreenCropper.CropScreen(new ViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY, -7, -7))
-                                            : ScreenCropper.CropScreen(new BitmapViewBox((Image)element.Content, (element.Content as AnimatedImage.AnimatedImage)?.Source, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY, -7, -7), cropStyle);
+                var imageSource = ScreenCropper.CropScreen(new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY, -7, -7));
+                if(imageSource != null && cropStyle != CropStyle.Default)
+                {
+                    imageSource = ImageCropper.CropBitmapSource(imageSource, ((AnimatedImage.AnimatedImage)element.Content).Source.ConvertToBitmapSource((int)Math.Round(element.Width), (int)Math.Round(element.Height)), cropStyle);
+                }
+
                 if (imageSource != null)
                 {
                     ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
                 }
                 else
                 {
-                    Extentions.ShowMessageBox("不合法的截图操作!");
+                    Extentions.ShowMessageBox("不合法的截屏操作!");
                 }
             }
             elements.ForEach(m => m.Visibility = Visibility.Visible);
         }
 
+        private async void CropImageFromInternal(CropStyle cropStyle)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            element.Visibility = Visibility.Hidden;
+
+            await Task.Delay(300);
+
+            var renderBitmap = new RenderTargetBitmap((int)SystemParameters.VirtualScreenWidth, (int)SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
+            renderBitmap.Render(_panelContainer);
+            var scaleTransform = element.GetTransform<ScaleTransform>();
+            var imageSource = ScreenCropper.CropScreen(renderBitmap, new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
+            if (imageSource != null && cropStyle != CropStyle.Default)
+            {
+                imageSource = ImageCropper.CropBitmapSource(imageSource, ((AnimatedImage.AnimatedImage)element.Content).Source.ConvertToBitmapSource((int)Math.Round(element.Width), (int)Math.Round(element.Height)), cropStyle);
+            }
+            if (imageSource != null)
+            {
+                ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
+            }
+            else
+            {
+                Extentions.ShowMessageBox("不合法的截图操作!");
+            }
+            element.Visibility = Visibility.Visible;
+        }
+
+        private async void CutImageFromInternal(CropStyle cropStyle)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            element.Visibility = Visibility.Hidden;
+
+            await Task.Delay(300);
+
+            var renderBitmap = new RenderTargetBitmap((int)SystemParameters.VirtualScreenWidth, (int)SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
+            renderBitmap.Render(_panelContainer);
+            var scaleTransform = element.GetTransform<ScaleTransform>();
+            var imageSource = ScreenCropper.CropScreen(renderBitmap, new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
+            if (imageSource != null && cropStyle != CropStyle.Default)
+            {
+                imageSource = ImageCropper.CropBitmapSource(imageSource, ((AnimatedImage.AnimatedImage)element.Content).Source.ConvertToBitmapSource((int)Math.Round(element.Width), (int)Math.Round(element.Height)), cropStyle);
+            }
+            element.Visibility = Visibility.Visible;
+            if (imageSource == null)
+            {
+                Extentions.ShowMessageBox("不合法的抠图操作!");
+                return;
+            }
+            var originalImage = (Image)element.Content;
+            var unSelectedElements = _panelContainer.Children.Cast<object>().OfType<ImageControl>().Where(m => !Selector.GetIsSelected(m)).ToList();
+            Selector.SetIsSelected(element, false);
+
+            var intersectElements = unSelectedElements.Where(m => originalImage.IsOverlapped((Image)m.Content)).ToArray();
+            var cropViewBoxs = new List<CropViewBox>(intersectElements.Length);
+            foreach (var item in intersectElements)
+            {
+                scaleTransform = item.GetTransform<ScaleTransform>();
+                cropViewBoxs.Add(new CropViewBox((Image)item.Content, item.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
+            }
+            
+
+            Clipboard.Clear();
+            Clipboard.SetImage(element.GetFullScreenBitmap());
+            
+            Selector.SetIsSelected(element, true);
+        }
+
+
+        private BitmapSource GetCropStyleBitmap(BitmapSource bitmapSource, CropStyle cropStyle)
+        {
+            switch (cropStyle)
+            {
+                case CropStyle.Default:
+
+                    break;
+                case CropStyle.Shadow:
+                    return bitmapSource;
+                case CropStyle.Transparent:
+
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(cropStyle), cropStyle, null);
+            }
+            return null;
+        }
         #endregion Private methods
 
     }

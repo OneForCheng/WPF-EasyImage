@@ -71,6 +71,20 @@ namespace EasyImage
             msgWin.ShowDialog();
         }
 
+        public static BitmapSource ConvertToBitmapSource(this ImageSource imageSource, int width, int height)
+        {
+            var drawingVisual = new DrawingVisual();
+            using (var context = drawingVisual.RenderOpen())
+            {
+                var brush = new ImageBrush(imageSource);
+                context.DrawRectangle(brush, null, new Rect(0, 0, width, height));
+            }
+
+            var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            renderBitmap.Render(drawingVisual);
+            return renderBitmap;
+        }
+
         public static BitmapImage GetBitmapImage(this BitmapSource bitmapSource)
         {
             var encoder = new PngBitmapEncoder();
@@ -99,6 +113,7 @@ namespace EasyImage
             bitmapImage.EndInit();
             return bitmapImage;
         }
+
 
     }
 }

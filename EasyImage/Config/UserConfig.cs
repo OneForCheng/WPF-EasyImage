@@ -38,7 +38,7 @@ namespace EasyImage.Config
             set { _windowState = value; }
         }
 
-        public void LoadConfigFromXml(string path = "Config/UserConfig.xml")
+        public void LoadConfigFromXml(string path)
         {
             if (!File.Exists(path)) return;
             try
@@ -57,8 +57,13 @@ namespace EasyImage.Config
             }
         }
 
-        public void SaveConfigToXml(string path = "Config/UserConfig.xml")
+        public void SaveConfigToXml(string path)
         {
+            if (!File.Exists(path))
+            {
+                path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, "Config/UserConfig.xml");
+            }
+
             var xmlsz = new XmlSerializer(typeof(UserConfig));
 
             var file = new FileInfo(path);

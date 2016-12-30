@@ -69,11 +69,11 @@ namespace DealImage.Save
         {
             if (encoder is JpegBitmapEncoder || encoder is BmpBitmapEncoder)
             {
-                SaveBitmapToFile(dictionary.GetRenderTargetBitmap(System.Windows.Media.Brushes.White), encoder, outputPath);
+                SaveBitmapToFile(dictionary.GetMinContainBitmap(System.Windows.Media.Brushes.White), encoder, outputPath);
             }
             else
             {
-                SaveBitmapToFile(dictionary.GetRenderTargetBitmap(), encoder, outputPath);
+                SaveBitmapToFile(dictionary.GetMinContainBitmap(), encoder, outputPath);
             }
         }
 

@@ -12,21 +12,6 @@ namespace DealImage
     public static class ImageHelper
     {
 
-        //public static Rect GetMinContainerBounds(this FrameworkElement element)
-        //{
-        //    // Get the size of the Visual and its descendants.
-        //    var rect = VisualTreeHelper.GetDescendantBounds(element);
-
-        //    var topLeftPoint = element.TranslatePoint(new Point(0, 0), null);
-        //    var topRightPoint = element.TranslatePoint(new Point(rect.Width, 0), null);
-        //    var bottomRightPoint = element.TranslatePoint(new Point(rect.Width, rect.Height), null);
-        //    var bottomLeftPoint = element.TranslatePoint(new Point(0, rect.Height), null);
-        //    var width = Math.Max(Math.Abs(topLeftPoint.X - bottomRightPoint.X), Math.Abs(topRightPoint.X - bottomLeftPoint.X));
-        //    var height = Math.Max(Math.Abs(topLeftPoint.Y - bottomRightPoint.Y), Math.Abs(topRightPoint.Y - bottomLeftPoint.Y));
-
-        //    return new Rect(0, 0, width, height);
-        //}
-
         public static FileExtension GetFileExtension(string filePath)
         {
             if (!File.Exists(filePath)) return FileExtension.Unknow;
@@ -59,12 +44,12 @@ namespace DealImage
             return extension;
         }
 
-        public static RenderTargetBitmap GetRenderTargetBitmap(this IDictionary<FrameworkElement, FrameworkElement> dictionary, SolidColorBrush backgrand = null)
+        public static RenderTargetBitmap GetMinContainBitmap(this IDictionary<FrameworkElement, FrameworkElement> dictionary, SolidColorBrush backgrand = null)
         {
             var rect = dictionary.Values.GetMinContainRect();
             var relationPoint = new Point(rect.X, rect.Y);
             rect.X = rect.Y = 0;
-
+            
             var drawingVisual = new DrawingVisual();
             using (var context = drawingVisual.RenderOpen())
             {
@@ -96,16 +81,37 @@ namespace DealImage
             return renderBitmap;
         }
 
+        public static RenderTargetBitmap GetFullScreenBitmap(this FrameworkElement element)
+        {
+            var rect = element.GetMinContainRect();
+            var width = (int)SystemParameters.VirtualScreenWidth;
+            var height = (int) SystemParameters.VirtualScreenHeight;
+
+            var drawingVisual = new DrawingVisual();
+            using (var context = drawingVisual.RenderOpen())
+            {
+                var brush = new VisualBrush(element)
+                {
+                    Stretch = Stretch.None,
+                };
+                context.DrawRectangle(brush, null, new Rect(rect.X - (width - rect.Width)/ 2.0, rect.Y - (height - rect.Height)/ 2.0, width, height));
+            }
+
+            var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            renderBitmap.Render(drawingVisual);
+            return renderBitmap;
+        }
+
         public static Rect GetMinContainRect(this IEnumerable<FrameworkElement> elements)
         {
             double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
             foreach (var element in elements)
             {
                 var rect = VisualTreeHelper.GetDescendantBounds(element);
-                var topLeft = element.TranslatePoint(new Point(0, 0), null);
-                var topRight = element.TranslatePoint(new Point(rect.Width, 0), null);
-                var bottomRight = element.TranslatePoint(new Point(rect.Width, rect.Height), null);
-                var bottomLeft = element.TranslatePoint(new Point(0, rect.Height), null);
+                var topLeft = element.PointToScreen(new Point(0, 0));
+                var topRight = element.PointToScreen(new Point(rect.Width, 0));
+                var bottomRight = element.PointToScreen(new Point(rect.Width, rect.Height));
+                var bottomLeft = element.PointToScreen(new Point(0, rect.Height));
                 minX = Math.Min(minX, Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomLeft.X, bottomRight.X)));
                 maxX = Math.Max(maxX, Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X)));
                 minY = Math.Min(minY, Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y)));
@@ -118,10 +124,10 @@ namespace DealImage
         {
             double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
             var rect = VisualTreeHelper.GetDescendantBounds(element);
-            var topLeft = element.TranslatePoint(new Point(0, 0), null);
-            var topRight = element.TranslatePoint(new Point(rect.Width, 0), null);
-            var bottomRight = element.TranslatePoint(new Point(rect.Width, rect.Height), null);
-            var bottomLeft = element.TranslatePoint(new Point(0, rect.Height), null);
+            var topLeft = element.PointToScreen(new Point(0, 0));
+            var topRight = element.PointToScreen(new Point(rect.Width, 0));
+            var bottomRight = element.PointToScreen(new Point(rect.Width, rect.Height));
+            var bottomLeft = element.PointToScreen(new Point(0, rect.Height));
             minX = Math.Min(minX, Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomLeft.X, bottomRight.X)));
             maxX = Math.Max(maxX, Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X)));
             minY = Math.Min(minY, Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y)));
@@ -135,10 +141,10 @@ namespace DealImage
             double minX = double.MaxValue, minY = double.MaxValue;
             var rect = VisualTreeHelper.GetDescendantBounds(element);
 
-            var topLeftPoint = element.TranslatePoint(new Point(0, 0), null);
-            var topRightPoint = element.TranslatePoint(new Point(rect.Width, 0), null);
-            var bottomRightPoint = element.TranslatePoint(new Point(rect.Width, rect.Height), null);
-            var bottomLeftPoint = element.TranslatePoint(new Point(0, rect.Height), null);
+            var topLeftPoint = element.PointToScreen(new Point(0, 0));
+            var topRightPoint = element.PointToScreen(new Point(rect.Width, 0));
+            var bottomRightPoint = element.PointToScreen(new Point(rect.Width, rect.Height));
+            var bottomLeftPoint = element.PointToScreen(new Point(0, rect.Height));
             var width = Math.Max(Math.Abs(topLeftPoint.X - bottomRightPoint.X), Math.Abs(topRightPoint.X - bottomLeftPoint.X));
             var height = Math.Max(Math.Abs(topLeftPoint.Y - bottomRightPoint.Y), Math.Abs(topRightPoint.Y - bottomLeftPoint.Y));
             minX = Math.Min(minX, Math.Min(Math.Min(topLeftPoint.X, topRightPoint.X), Math.Min(bottomLeftPoint.X, bottomRightPoint.X)));
@@ -152,18 +158,18 @@ namespace DealImage
             var rect = VisualTreeHelper.GetDescendantBounds(element);
             var childRect = VisualTreeHelper.GetDescendantBounds(childElement);
 
-            var topLeftPoint1 = element.TranslatePoint(rect.TopLeft, null);
-            var topRightPoint1 = element.TranslatePoint(rect.TopRight, null);
-            var bottomRightPoint1 = element.TranslatePoint(rect.BottomRight, null);
-            var bottomLeftPoint1 = element.TranslatePoint(rect.BottomLeft, null);
+            var topLeftPoint1 = element.PointToScreen(rect.TopLeft);
+            var topRightPoint1 = element.PointToScreen(rect.TopRight);
+            var bottomRightPoint1 = element.PointToScreen(rect.BottomRight);
+            var bottomLeftPoint1 = element.PointToScreen(rect.BottomLeft);
 
             var minX1 = Math.Min(Math.Min(topLeftPoint1.X, topRightPoint1.X), Math.Min(bottomLeftPoint1.X, bottomRightPoint1.X));
             var minY1 = Math.Min(Math.Min(topLeftPoint1.Y, topRightPoint1.Y), Math.Min(bottomLeftPoint1.Y, bottomRightPoint1.Y));
 
-            var topLeftPoint2 = childElement.TranslatePoint(childRect.TopLeft, null);
-            var topRightPoint2 = childElement.TranslatePoint(childRect.TopRight, null);
-            var bottomRightPoint2 = childElement.TranslatePoint(childRect.BottomRight, null);
-            var bottomLeftPoint2 = childElement.TranslatePoint(childRect.BottomLeft, null);
+            var topLeftPoint2 = childElement.PointToScreen(childRect.TopLeft);
+            var topRightPoint2 = childElement.PointToScreen(childRect.TopRight);
+            var bottomRightPoint2 = childElement.PointToScreen(childRect.BottomRight);
+            var bottomLeftPoint2 = childElement.PointToScreen(childRect.BottomLeft);
 
             var minX2 = Math.Min(Math.Min(topLeftPoint2.X, topRightPoint2.X), Math.Min(bottomLeftPoint2.X, bottomRightPoint2.X));
             var minY2 = Math.Min(Math.Min(topLeftPoint2.Y, topRightPoint2.Y), Math.Min(bottomLeftPoint2.Y, bottomRightPoint2.Y));

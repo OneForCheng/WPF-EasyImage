@@ -24,12 +24,6 @@
     </Window.CommandBindings>
     <Canvas x:Name="MainCanvas">
         <Canvas x:Name="ImageCanvas">
-            <!--<Label x:Name="testLbl" FontSize="30" Foreground="Red" Margin="100" Width="2000" Content=""></Label>
-            <Rectangle x:Name="TestRec" Width="0" Height="0" Stroke="#FFFD0000"></Rectangle>
-            <Rectangle x:Name="TestRec1" Width="0" Height="0" Stroke="#FF16F100"></Rectangle>-->
-            <!--<ContentControl Selector.IsSelected="True" Template="{StaticResource MoveResizeRotateTemplate}">
-                <Image  Source="Resources/Images/icon/default_normal.png"/>
-            </ContentControl>-->
         </Canvas>
         <Image x:Name="MainMenuIcon" Source="Resources/Images/icon/default_normal.png"/>
     </Canvas>

@@ -35,7 +35,6 @@ namespace EasyImage
         private BitmapImage _cacheInternalBitmapSource;
         private int _addInternalImgCount;
         
-
         public ImageWindow()
         {
             InitializeComponent();
@@ -66,7 +65,6 @@ namespace EasyImage
                     ModifierKeys.Control | ModifierKeys.Alt, GlobalPasteFromClipboard);
                 HotkeyManager.Current.AddOrReplace("GlobalAddCanvas", Key.N,
                     ModifierKeys.Control | ModifierKeys.Alt, GlobalAddCanvas);
-
             }
             catch
             {
@@ -305,7 +303,7 @@ namespace EasyImage
                 drawingVisual.Opacity = 0.1;
                 var renderBitmap = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
                 renderBitmap.Render(drawingVisual);
-                
+
                 var encoder = new PngBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(renderBitmap));
                 var stream = new MemoryStream();
@@ -550,6 +548,7 @@ namespace EasyImage
             var animatedImage = new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill };
             var imageControl = new ImageControl(_controlManager)
             {
+                IsLockAspect = false,
                 Width = imageSource.Width,
                 Height = imageSource.Height,
                 Content = animatedImage,
@@ -611,6 +610,7 @@ namespace EasyImage
             
             var imageControl = new ImageControl(_controlManager, guid)
             {
+                IsLockAspect = baseInfo.FreeResize,
                 Width = baseInfo.Width,
                 Height = baseInfo.Height,
                 Content = animatedImage,

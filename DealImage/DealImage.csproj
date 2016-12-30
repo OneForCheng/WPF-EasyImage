@@ -20,6 +20,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -48,14 +49,13 @@
   <ItemGroup>
     <Compile Include="Crop\ImageCropHelper.cs" />
     <Compile Include="Copy\ImageCopyHelper.cs" />
-    <Compile Include="ImageHelper.cs" />
     <Compile Include="FileExtension.cs" />
     <Compile Include="ImageDataFormats.cs" />
+    <Compile Include="ImageHelper.cs" />
     <Compile Include="Paste\ImagePasteHelper.cs" />
     <Compile Include="Save\ImageSaveHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

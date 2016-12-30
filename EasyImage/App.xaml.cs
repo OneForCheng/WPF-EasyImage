@@ -31,7 +31,7 @@ namespace EasyImage
             }
             else
             {
-                MessageBox.Show("已经启动了该程序!");
+                Extentions.ShowMessageBox("程序已运行!");
                 Current.Shutdown(0);
             }
         }

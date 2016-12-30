@@ -9,6 +9,19 @@ namespace Screenshot
 {
     public static class ImageCropper
     {
+        public static BitmapSource CropBitmapSource(BitmapSource source, BitmapSource cropBitmap, CropStyle cropStyle)
+        {
+            switch (cropStyle)
+            {
+                case CropStyle.Shadow:
+                    return source.GetBitmap().ShadowCropBitmap(cropBitmap.GetBitmap()).GetBitmapSource();
+                case CropStyle.Transparent:
+                    return source.GetBitmap().TransparentCropBitmap(cropBitmap.GetBitmap()).GetBitmapSource();
+                default:
+                    return source;
+            }
+        }
+
         public static Bitmap ShadowCropBitmap(this Bitmap bitmap, Bitmap transparentBitmap)
         {
             var width = bitmap.Width;
@@ -200,5 +213,6 @@ namespace Screenshot
                 BitmapSizeOptions.FromEmptyOptions()
             );
         }
+
     }
 }
