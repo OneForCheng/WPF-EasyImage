@@ -22,6 +22,29 @@ namespace Gray
         {
             InitializeComponent();
             _cacheBitmap = bitmap;
+
+            var screenHeight = SystemParameters.VirtualScreenHeight;
+            var screenWidth = SystemParameters.VirtualScreenWidth;
+            var height = bitmap.Height + 125.0;
+            var width = bitmap.Width + 20.0;
+            if (height < 300)
+            {
+                height = 300;
+            }
+            else if (height > screenHeight)
+            {
+                height = screenHeight;
+            }
+            if (width < 300)
+            {
+                width = 300;
+            }
+            else if(width > screenWidth)
+            {
+                width = screenWidth;
+            }
+            Height = height;
+            Width = width;
         }
 
         private void BinaryWin_Loaded(object sender, RoutedEventArgs e)

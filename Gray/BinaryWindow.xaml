@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             Height="400" Width="400" ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True" WindowStartupLocation="CenterScreen" ShowInTaskbar="False" Topmost="True" Loaded="BinaryWin_Loaded" >
+             Height="300" Width="300" ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True" WindowStartupLocation="CenterScreen" ShowInTaskbar="False" Topmost="True" Loaded="BinaryWin_Loaded" >
     <Window.Resources>
         <ResourceDictionary>
             <!-- 引用资源字典 -->
@@ -19,8 +19,8 @@
         <Button x:Name="CloseBtn" Content="×" Style="{StaticResource CloseBtnStyle}" VerticalAlignment="Top" HorizontalAlignment="Right" Width="18" Height="18" BorderThickness="0" Margin="0,4,4,0"  Click="CloseBtn_Click"/>
         <Grid x:Name="ChooseGrid" Margin="10,25,10,10" Background="White">
             <Grid.RowDefinitions>
-                <RowDefinition Height="293*"/>
-                <RowDefinition Height="72*"/>
+                <RowDefinition Height="295*"/>
+                <RowDefinition Height="70"/>
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
                 <Image x:Name="TargetImage" Margin="10" Stretch="Uniform"/>
