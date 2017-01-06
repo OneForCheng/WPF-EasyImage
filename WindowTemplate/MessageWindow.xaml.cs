@@ -2,8 +2,6 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
-using UnmanagedToolkit;
-using UnmanagedToolkit.Enum;
 
 namespace WindowTemplate
 {
@@ -123,7 +121,7 @@ namespace WindowTemplate
         #region Method and Event
         private void MessageWin_Loaded(object sender, RoutedEventArgs e)
         {
-            this.RemoveSystemMenuItems(SystemMenuItems.All); //去除窗口指定的系统菜单
+            this.RemoveSystemMenuItems(Win32.SystemMenuItems.All); //去除窗口指定的系统菜单
         }
 
         private void TitleLbl_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

@@ -6,7 +6,7 @@
         x:Name="ImageWin" 
         x:Class="EasyImage.ImageWindow"
     mc:Ignorable="d"
-        Title="EasyImage"  Height="350" Width="525" Background="Transparent" WindowStyle="None" AllowsTransparency="True" Topmost="True" WindowState="Maximized" ShowInTaskbar="False"  Loaded="WindowLoaded" KeyDown="WindowKeyDown" KeyUp="WindowKeyUp" Closing="WindowClosing">
+        Title="WingStudio.ForCheng.EasyImage"  Height="350" Width="525" Background="Transparent" WindowStyle="None" AllowsTransparency="True" Topmost="True" WindowState="Maximized" ShowInTaskbar="False"  Loaded="WindowLoaded" KeyDown="WindowKeyDown" KeyUp="WindowKeyUp" Closing="WindowClosing">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

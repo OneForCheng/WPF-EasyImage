@@ -7,7 +7,7 @@ using System.Windows.Threading;
 
 namespace IconMaker
 {
-    public class IconBitmapEncoder : DispatcherObject
+    internal class IconBitmapEncoder : DispatcherObject
     {
         #region Constructor
 
@@ -223,15 +223,15 @@ namespace IconMaker
             var backup = source.Clone();
             try
             {
-                var scaled = new TransformedBitmap();
-                scaled.BeginInit();
-                scaled.Source = source;
-                var scX = size / (double)source.PixelWidth;
-                var scy = size / (double)source.PixelHeight;
-                var tr = new ScaleTransform(scX, scy, source.Width / 2, source.Height / 2);
-                scaled.Transform = tr;
-                scaled.EndInit();
-                source = scaled;
+                var transformedBitmap = new TransformedBitmap();
+                transformedBitmap.BeginInit();
+                transformedBitmap.Source = source;
+                var scaleX = size / (double)source.PixelWidth;
+                var scaleY = size / (double)source.PixelHeight;
+                var scaleTransform = new ScaleTransform(scaleX, scaleY, source.Width / 2, source.Height / 2);
+                transformedBitmap.Transform = scaleTransform;
+                transformedBitmap.EndInit();
+                source = transformedBitmap;
             }
             catch
             {

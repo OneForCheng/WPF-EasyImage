@@ -1,30 +1,88 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+using Brushes = System.Windows.Media.Brushes;
+using Point = System.Windows.Point;
+using Rectangle = System.Windows.Shapes.Rectangle;
 
 namespace DealImage
 {
     public static class ImageHelper
     {
-
-        public static FileExtension GetFileExtension(string filePath)
+        public  static BitmapSource GetResizeBitmap(this BitmapSource bitmapSource, int width, int height)
         {
-            if (!File.Exists(filePath)) return FileExtension.Unknow;
+            var transformedBitmap = new TransformedBitmap();
+            transformedBitmap.BeginInit();
+            transformedBitmap.Source = bitmapSource;
+            var scaleX = width / (double)bitmapSource.PixelWidth;
+            var scaleY = height / (double)bitmapSource.PixelHeight;
+            var scaleTransform = new ScaleTransform(scaleX, scaleY, bitmapSource.Width / 2, bitmapSource.Height / 2);
+            transformedBitmap.Transform = scaleTransform;
+            transformedBitmap.EndInit();
+            return transformedBitmap;
+        }
+
+
+        public static Bitmap GetBitmap(this BitmapSource source)
+        {
+            var bmp = new Bitmap
+            (
+              source.PixelWidth,
+              source.PixelHeight,
+              System.Drawing.Imaging.PixelFormat.Format32bppPArgb
+            );
+
+            var data = bmp.LockBits
+             (
+                 new System.Drawing.Rectangle(System.Drawing.Point.Empty, bmp.Size),
+                 ImageLockMode.WriteOnly,
+                 System.Drawing.Imaging.PixelFormat.Format32bppPArgb
+             );
+
+            source.CopyPixels
+            (
+              Int32Rect.Empty,
+              data.Scan0,
+              data.Height * data.Stride,
+              data.Stride
+            );
+
+            bmp.UnlockBits(data);
+
+            return bmp;
+        }
+
+        public static BitmapSource GetBitmapSource(this Bitmap bitmap)
+        {
+            return Imaging.CreateBitmapSourceFromHBitmap
+            (
+                bitmap.GetHbitmap(),
+                IntPtr.Zero,
+                Int32Rect.Empty,
+                BitmapSizeOptions.FromEmptyOptions()
+            );
+        }
+
+        public static ImageExtension GetImageExtension(string filePath)
+        {
+            if (!File.Exists(filePath)) return ImageExtension.Unknow;
 
             var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-            var fileExt = GetFileExtension(fs);
+            var fileExt = GetImageExtension(fs);
             fs.Close();
             return fileExt;
         }
 
-        public static FileExtension GetFileExtension(Stream stream)
+        public static ImageExtension GetImageExtension(Stream stream)
         {
-            FileExtension extension;
+            ImageExtension extension;
             try
             {
                 stream.Position = 0;
@@ -34,17 +92,17 @@ namespace DealImage
                 fileType += data.ToString();
                 data = reader.ReadByte();
                 fileType += data.ToString();
-                extension = (FileExtension)Enum.Parse(typeof(FileExtension), fileType);
+                extension = (ImageExtension)Enum.Parse(typeof(ImageExtension), fileType);
             }
             catch(Exception ex)
             {
                 Trace.WriteLine(ex.ToString());
-                extension = FileExtension.Unknow;
+                extension = ImageExtension.Unknow;
             }
             return extension;
         }
 
-        public static RenderTargetBitmap GetMinContainBitmap(this IDictionary<FrameworkElement, FrameworkElement> dictionary, SolidColorBrush backgrand = null)
+        public static BitmapSource GetMinContainBitmap(this IDictionary<FrameworkElement, FrameworkElement> dictionary, SolidColorBrush backgrand = null)
         {
             var rect = dictionary.Values.GetMinContainRect();
             var relationPoint = new Point(rect.X, rect.Y);
@@ -81,25 +139,20 @@ namespace DealImage
             return renderBitmap;
         }
 
-        public static RenderTargetBitmap GetFullScreenBitmap(this FrameworkElement element)
+        public static Rect GetMinContainRect(this FrameworkElement element)
         {
-            var rect = element.GetMinContainRect();
-            var width = (int)SystemParameters.VirtualScreenWidth;
-            var height = (int) SystemParameters.VirtualScreenHeight;
+            double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+            var rect = VisualTreeHelper.GetDescendantBounds(element);
+            var topLeft = element.PointToScreen(new Point(0, 0));
+            var topRight = element.PointToScreen(new Point(rect.Width, 0));
+            var bottomRight = element.PointToScreen(new Point(rect.Width, rect.Height));
+            var bottomLeft = element.PointToScreen(new Point(0, rect.Height));
+            minX = Math.Min(minX, Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomLeft.X, bottomRight.X)));
+            maxX = Math.Max(maxX, Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X)));
+            minY = Math.Min(minY, Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y)));
+            maxY = Math.Max(maxY, Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y)));
 
-            var drawingVisual = new DrawingVisual();
-            using (var context = drawingVisual.RenderOpen())
-            {
-                var brush = new VisualBrush(element)
-                {
-                    Stretch = Stretch.None,
-                };
-                context.DrawRectangle(brush, null, new Rect(rect.X - (width - rect.Width)/ 2.0, rect.Y - (height - rect.Height)/ 2.0, width, height));
-            }
-
-            var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-            renderBitmap.Render(drawingVisual);
-            return renderBitmap;
+            return new Rect(minX, minY, maxX - minX, maxY - minY);
         }
 
         public static Rect GetMinContainRect(this IEnumerable<FrameworkElement> elements)
@@ -120,23 +173,7 @@ namespace DealImage
             return new Rect(minX, minY, maxX - minX, maxY - minY);
         }
 
-        public static Rect GetMinContainRect(this FrameworkElement element)
-        {
-            double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
-            var rect = VisualTreeHelper.GetDescendantBounds(element);
-            var topLeft = element.PointToScreen(new Point(0, 0));
-            var topRight = element.PointToScreen(new Point(rect.Width, 0));
-            var bottomRight = element.PointToScreen(new Point(rect.Width, rect.Height));
-            var bottomLeft = element.PointToScreen(new Point(0, rect.Height));
-            minX = Math.Min(minX, Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomLeft.X, bottomRight.X)));
-            maxX = Math.Max(maxX, Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X)));
-            minY = Math.Min(minY, Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y)));
-            maxY = Math.Max(maxY, Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y)));
-
-            return new Rect(minX, minY, maxX - minX, maxY - minY);
-        }
-
-        public static Rect GetRelationRect(this FrameworkElement element, Point relationPoint)
+        private static Rect GetRelationRect(this FrameworkElement element, Point relationPoint)
         {
             double minX = double.MaxValue, minY = double.MaxValue;
             var rect = VisualTreeHelper.GetDescendantBounds(element);
@@ -153,7 +190,7 @@ namespace DealImage
             return new Rect(minX - relationPoint.X, minY - relationPoint.Y, width, height);
         }
 
-        public static Rect GetChildViewbox(this FrameworkElement element, FrameworkElement childElement)
+        private static Rect GetChildViewbox(this FrameworkElement element, FrameworkElement childElement)
         {
             var rect = VisualTreeHelper.GetDescendantBounds(element);
             var childRect = VisualTreeHelper.GetDescendantBounds(childElement);
@@ -184,12 +221,12 @@ namespace DealImage
             return new Rect(x / width, y / height, childWidth / width, childHeight / height);
         }
 
-        public static Point RotateTransform(this Point point, Point centerPoint, double angle)
-        {
-            var radian = angle * Math.PI / 180;
-            var rotatedX = (point.X - centerPoint.X) * Math.Cos(radian) + (point.Y - centerPoint.Y) * Math.Sin(radian) + centerPoint.X;
-            var rotatedY = -(point.X - centerPoint.X) * Math.Sin(radian) + (point.Y - centerPoint.Y) * Math.Cos(radian) + centerPoint.Y;
-            return new Point(rotatedX, rotatedY);
-        }
+        //public static Point RotateTransform(this Point point, Point centerPoint, double angle)
+        //{
+        //    var radian = angle * Math.PI / 180;
+        //    var rotatedX = (point.X - centerPoint.X) * Math.Cos(radian) + (point.Y - centerPoint.Y) * Math.Sin(radian) + centerPoint.X;
+        //    var rotatedY = -(point.X - centerPoint.X) * Math.Sin(radian) + (point.Y - centerPoint.Y) * Math.Cos(radian) + centerPoint.Y;
+        //    return new Point(rotatedX, rotatedY);
+        //}
     }
 }

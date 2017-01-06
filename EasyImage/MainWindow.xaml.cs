@@ -58,12 +58,14 @@ namespace EasyImage
         /// </summary>
         private System.Windows.Forms.NotifyIcon InitTrayIcon()
         {
+            var appName = Properties.Resources.ApplicationName;
             var trayIcon = new System.Windows.Forms.NotifyIcon()
             {
-                BalloonTipText = Properties.Resources.ApplicationName,
-                Text = Properties.Resources.ApplicationName,
+                BalloonTipText = appName,
+                Text = appName,
                 Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Windows.Forms.Application.ExecutablePath) /*读取程序图标，来作为托盘图标*/
             };
+           
             trayIcon.MouseClick += TrayIcon_MouseClick;
 
             var conntextMenu = new System.Windows.Forms.ContextMenuStrip();

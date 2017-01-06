@@ -38,5 +38,6 @@ namespace AnimatedImage
                 return metadata.GetQuery(query) as T;
             return null;
         }
+
     }
 }

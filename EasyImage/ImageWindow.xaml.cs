@@ -9,16 +9,15 @@ using EasyImage.Behaviors;
 using EasyImage.Config;
 using Microsoft.Win32;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Windows.Threading;
+using System.Windows.Interop;
 using DealImage.Paste;
 using EasyImage.Controls;
 using NHotkey;
 using NHotkey.Wpf;
 using UnmanagedToolkit;
-using UnmanagedToolkit.Enum;
 using WindowTemplate;
 
 namespace EasyImage
@@ -34,11 +33,68 @@ namespace EasyImage
         private ClipboardMonitor _clipboardMonitor;
         private BitmapImage _cacheInternalBitmapSource;
         private int _addInternalImgCount;
-        
+       
         public ImageWindow()
         {
             InitializeComponent();
         }
+
+        #region 重载方法
+
+        /// <summary>
+        /// 消息事件处理
+        /// </summary>
+        /// <param name="hwnd"></param>
+        /// <param name="msg"></param>
+        /// <param name="wParam"></param>
+        /// <param name="lParam"></param>
+        /// <param name="handled"></param>
+        /// <returns></returns>
+        IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == Win32.WmCopydata)
+            {
+                var copyDataStruct = (Win32.CopyDataStruct)Marshal.PtrToStructure(lParam, typeof(Win32.CopyDataStruct));
+                var data = copyDataStruct.lpData;
+                if (data == string.Empty)
+                {
+                    Extentions.ShowMessageBox("程序已运行");
+                }
+                else
+                {
+                    if (File.Exists(data))
+                    {
+                        Visibility = Visibility.Visible;
+                        if (_controlManager.StatusCodeChanged)
+                        {
+                            switch (IsSaveEasyIamgeToFile())
+                            {
+                                case ClickResult.LeftBtn:
+                                    SaveEasyImageToFile(null, null);
+                                    break;
+                                case ClickResult.MiddleBtn:
+                                    break;
+                                case ClickResult.RightBtn:
+                                case ClickResult.Close:
+                                    return hwnd;
+                            }
+                        }
+                        LoadEasyImageFromFile(data);
+                    }
+                }
+
+            }
+            return hwnd;
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            var hwndSource = PresentationSource.FromVisual(this) as HwndSource;
+            hwndSource?.AddHook(WndProc);
+        }
+
+        #endregion
 
         #region 主窗口事件
 
@@ -50,15 +106,17 @@ namespace EasyImage
             ImageCanvas.Height = Height;
             _userConfigution = ((MainWindow) Owner).UserConfigution;
             _controlManager = new ControlManager(ImageCanvas);
+            _controlManager.LoadPlugins(_userConfigution.AppSetting.PluginPath);
             _clipboardMonitor = new ClipboardMonitor();
             _clipboardMonitor.OnClipboardContentChanged += OnClipboardContentChanged;
             _addInternalImgCount = 0;
-            
+
             #endregion
 
             #region 加载其它配置
 
-            this.RemoveSystemMenuItems(SystemMenuItems.All); //去除窗口指定的系统菜单
+            Win32.ChangeWindowMessageFilter(Win32.WmCopydata, 1);
+            this.RemoveSystemMenuItems(Win32.SystemMenuItems.All); //去除窗口指定的系统菜单
             try
             {
                 HotkeyManager.Current.AddOrReplace("GlobalPasteFromClipboard", Key.V,
@@ -134,7 +192,7 @@ namespace EasyImage
                         SaveEasyImageToFile(null,null);
                         break;
                     case Key.Z:
-                        _controlManager.ActionManager.UnExecute();
+                        _controlManager.UnExecute();
                         break;
                     case Key.A:
                         _controlManager.SelectAll();
@@ -149,7 +207,7 @@ namespace EasyImage
                         _controlManager.ClipSelected();
                         break;
                     case Key.Y:
-                        _controlManager.ActionManager.ReExecute();
+                        _controlManager.ReExecute();
                         break;
                     case Key.O:
                         LoadEasyImageFromFile(null, null);
@@ -179,17 +237,20 @@ namespace EasyImage
         private void MainMenu_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
             var element = sender as Image;
-            var menuItem = element?.ContextMenu.Items[4] as MenuItem;
-            if (menuItem != null)
+            if (element?.ContextMenu != null)
             {
-                menuItem.Visibility = _userConfigution.WindowState.InitEasyImagePath == null
-                    ? Visibility.Collapsed
-                    : Visibility.Visible;
-            }
-            menuItem = element?.ContextMenu.Items[5] as MenuItem;
-            if (menuItem != null)
-            {
-                menuItem.IsEnabled = ImagePasteHelper.CanPasteImageFromClipboard();
+                var menuItem = element.ContextMenu.Items[4] as MenuItem;
+                if (menuItem != null)
+                {
+                    menuItem.Visibility = _userConfigution.WindowState.InitEasyImagePath == null
+                        ? Visibility.Collapsed
+                        : Visibility.Visible;
+                }
+                menuItem = element.ContextMenu.Items[5] as MenuItem;
+                if (menuItem != null)
+                {
+                    menuItem.IsEnabled = ImagePaster.CanPasteImageFromClipboard();
+                }
             }
         }
 
@@ -252,38 +313,6 @@ namespace EasyImage
                 }
             }
             _controlManager.AddElements(imageControls);
-        }
-
-        private void PasteImagesFromClipboard(object sender, RoutedEventArgs e)
-        {
-            if (ImagePasteHelper.CanInternalPasteFromClipboard())
-            {
-                var baseInfos = ImagePasteHelper.GetInternalPasteDataFromClipboard() as List<ImageControlBaseInfo>;
-                if (baseInfos != null)
-                {
-                    _controlManager.SelectNone();
-                    _controlManager.ContinuedPasteCount++;
-                    _controlManager.AddElements(baseInfos.Select(m => PackageBaseInfoToControl(m, true)));
-                    return;
-                }
-            }
-
-            if (!ImagePasteHelper.CanPasteImageFromClipboard()) return;
-            try
-            {
-                var imageSources = ImagePasteHelper.GetPasteImagesFromClipboard();
-                _controlManager.SelectNone();
-                _controlManager.ContinuedPasteCount++;
-                var enumerable = imageSources as IList<ImageSource> ?? imageSources.ToList();
-                var controls = new List<ImageControl>(enumerable.Count);
-                controls.AddRange(enumerable.Select(imageSource => PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill })));
-                _controlManager.AddElements(controls);
-            }
-            catch
-            {
-                Extentions.ShowMessageBox("无效的粘贴!");
-            }
-            
         }
 
         private void AddImageFromInternal(object sender, RoutedEventArgs e)
@@ -360,6 +389,43 @@ namespace EasyImage
             SaveEasyImageToFile(dialog.FileName);
         }
 
+        private void PasteImagesFromClipboard(object sender, RoutedEventArgs e)
+        {
+            if (ImagePaster.CanInternalPasteFromClipboard())
+            {
+                var baseInfos = ImagePaster.GetInternalPasteDataFromClipboard() as List<ImageControlBaseInfo>;
+                if (baseInfos != null)
+                {
+                    _controlManager.SelectNone();
+                    _controlManager.ContinuedPasteCount++;
+                    _controlManager.AddElements(baseInfos.Select(m => PackageBaseInfoToControl(m, true)));
+                    return;
+                }
+            }
+
+            if (!ImagePaster.CanPasteImageFromClipboard()) return;
+            try
+            {
+                var imageSources = ImagePaster.GetPasteImagesFromClipboard();
+                _controlManager.SelectNone();
+                _controlManager.ContinuedPasteCount++;
+                var enumerable = imageSources as IList<ImageSource> ?? imageSources.ToList();
+                var controls = new List<ImageControl>(enumerable.Count);
+                controls.AddRange(enumerable.Select(imageSource => PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill })));
+                _controlManager.AddElements(controls);
+            }
+            catch
+            {
+                Extentions.ShowMessageBox("无效的粘贴!");
+            }
+
+        }
+
+        private void CaptureScreen(object sender, RoutedEventArgs e)
+        {
+            
+        }
+
         #endregion
 
         #region Private methods
@@ -409,6 +475,12 @@ namespace EasyImage
             item.Click += PasteImagesFromClipboard;
             contextMenu.Items.Add(item);
 
+            item = new MenuItem { Header = "截屏" };
+            item.Click += CaptureScreen;
+            contextMenu.Items.Add(item);
+
+            contextMenu.Items.Add(new Separator());//分割线
+
             item = new MenuItem { Header = "退出" };
             item.Click += (sender, args) =>
             {
@@ -440,7 +512,7 @@ namespace EasyImage
                             var baseInfos = new BinaryFormatter().Deserialize(ms) as List<ImageControlBaseInfo>;
                             if (baseInfos != null)
                             {
-                                _controlManager.Reset();
+                                _controlManager.Clear();
                                 _controlManager.Initialize(baseInfos.Select(m => PackageBaseInfoToControl(m, false)));
                             }
                         }
@@ -650,4 +722,5 @@ namespace EasyImage
 
        
     }
+
 }

@@ -35,7 +35,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>window.ico</ApplicationIcon>
+    <ApplicationIcon>Icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AnimatedImage">
@@ -97,6 +97,7 @@
     <Compile Include="Actioins\WheelScaleAction.cs" />
     <Compile Include="Actioins\DragMoveAction.cs" />
     <Compile Include="Behaviors\MouseDragElementBehavior.cs" />
+    <Compile Include="Config\AppSetting.cs" />
     <Compile Include="Config\UserConfig.cs" />
     <Compile Include="Config\ImageSetting.cs" />
     <Compile Include="Config\WindowState.cs" />
@@ -159,9 +160,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="window.ico" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\Images\background\btn_hover.png" />
@@ -1126,12 +1124,14 @@
     <Resource Include="Resources\Images\rotate.png" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Screenshot\Screenshot.csproj">
-      <Project>{CB2D3C6F-EE0F-4590-AB9F-B6706859139F}</Project>
-      <Name>Screenshot</Name>
+    <Resource Include="Icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\IPlugins\IPlugins.csproj">
+      <Project>{A58D0620-D745-4670-BD0E-EAF5D852B5F6}</Project>
+      <Name>IPlugins</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

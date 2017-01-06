@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Threading;
 using System.Windows;
+using UnmanagedToolkit;
 
 namespace EasyImage
 {
@@ -14,8 +15,8 @@ namespace EasyImage
         private void App_OnStartup(object sender, StartupEventArgs e)
         {
             bool createNew;//返回是否赋予了使用线程的互斥体初始所属权
-            _instance = new Mutex(true, "EasyImage", out createNew);//同步基元变量
-
+            _instance = new Mutex(true, "WingStudio.ForCheng.EasyImage", out createNew);//同步基元变量
+   
             if (createNew)//控制程序只启动一次
             {
                 var mainWindow = new MainWindow();
@@ -31,7 +32,17 @@ namespace EasyImage
             }
             else
             {
-                Extentions.ShowMessageBox("程序已运行!");
+                Thread.Sleep(100);
+                var msg = string.Empty;
+                if (e.Args.Length > 0)
+                {
+                    var filePath = e.Args.First();
+                    if (System.IO.File.Exists(filePath) && filePath.LastIndexOf('.') > -1 && filePath.Split('.').Last().ToUpper() == "EI")
+                    {
+                        msg = filePath;
+                    }
+                }
+                Win32.SendMessage("WingStudio.ForCheng.EasyImage", msg);
                 Current.Shutdown(0);
             }
         }

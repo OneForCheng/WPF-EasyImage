@@ -19,7 +19,7 @@ namespace IconMaker
 
     public static class IconSaveHelper
     {
-        public static void SaveIcon(this BitmapSource source, Stream stream, IconSize iconSize = IconSize.Bmp32)
+        public static void SaveIcon(this BitmapSource source, Stream stream, IconSize iconSize)
         {
             var encoder = new IconBitmapEncoder();
            
@@ -83,7 +83,7 @@ namespace IconMaker
             encoder.Save(stream);
         }
 
-        public static void SaveIcon(this BitmapSource source, string fileName, IconSize iconSize = IconSize.Bmp32)
+        public static void SaveIcon(this BitmapSource source, string fileName, IconSize iconSize)
         {
             using (var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write))
             {

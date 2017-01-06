@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -8,6 +11,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Microsoft.Win32;
 using DealImage;
 using DealImage.Copy;
 using DealImage.Crop;
@@ -17,47 +21,45 @@ using EasyImage.Actioins;
 using EasyImage.Controls;
 using EasyImage.Enum;
 using IconMaker;
-using Microsoft.Win32;
-using Screenshot;
 using UndoFramework;
 using UndoFramework.Actions;
+using IPlugins;
+using Color = System.Drawing.Color;
 
 
 namespace EasyImage
 {
     public class ControlManager
     {
-        #region Data
-        private int _maxImageZIndex;
-        private readonly Panel _panelContainer;
-        private ImageControl[] _cacheSelectElements;
-        private long _statusCode;
-
-        #endregion Data
-
         #region Constructors
         public ControlManager(Panel container)
         {
             _panelContainer = container;
-            _maxImageZIndex = 0;
+            _maxControlZIndex = 0;
             MoveSpeed = 1.0;
-            ActionManager = new ActionManager { MaxBufferCount = 20 };
-            _statusCode = ActionManager.StatusCode;
+            _actionManager = new ActionManager { MaxBufferCount = 20 };
+            _statusCode = _actionManager.StatusCode;
+            
         }
 
         #endregion Constructors
 
-        #region Properties and Events
+        #region Private fields
+        private readonly Panel _panelContainer;
+        private readonly ActionManager _actionManager;
+        private Dictionary<string, List<IHandle>> _cachePlugins;
+        private ImageControl[] _cacheSelectedElements;
+        private long _statusCode;
+        private int _maxControlZIndex;
 
-        /// <summary>
-        /// 操作管理
-        /// </summary>
-        public ActionManager ActionManager { get; }
+        #endregion Private fields
+
+        #region Properties
 
         /// <summary>
         /// 状态码是否发生改变
         /// </summary>
-        public bool StatusCodeChanged => _statusCode != ActionManager.StatusCode;
+        public bool StatusCodeChanged => _statusCode != _actionManager.StatusCode;
 
         /// <summary>
         /// 移动速度
@@ -90,405 +92,52 @@ namespace EasyImage
             }
         }
 
-        private void Element_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            var element = sender as ImageControl;
-            if (element == null) return;
-            if ((Keyboard.Modifiers & ModifierKeys.Control) > 0)
-            {
-                var selected = Selector.GetIsSelected(element);
-                if (selected)
-                {
-                    _cacheSelectElements = SelectedElements.ToArray();
-                }
-                Selector.SetIsSelected(element, !selected);
-                if (!selected)
-                {
-                    _cacheSelectElements = SelectedElements.ToArray();
-                }
-            }
-            else
-            {
-                if (Selector.GetIsSelected(element)) return;
-                SelectNone();
-                Selector.SetIsSelected(element, true);
-            }
 
-        }
-
-        private void Element_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            var element = sender as ImageControl;
-            var rotateControl = element?.Template.FindName("RotateThumbControl", element) as Control;
-            if (rotateControl != null)
-            {
-                rotateControl.Visibility = element.Width < 30 ? Visibility.Hidden : Visibility.Visible;
-            }
-        }
-
-        private void Menu_ContextMenuOpening(object sender, ContextMenuEventArgs e)
-        {
-            e.Handled = true;
-            var element = sender as ImageControl;
-            if (element == null) return;
-            var count = SelectedElements.Count();
-            if (count <= 0) return;
-            e.Handled = false;
-            MenuItem menuItem;
-            for (var i = 3; i < 6; i++)
-            {
-                 menuItem = element.ContextMenu?.Items[i] as MenuItem;
-                if (menuItem != null)
-                {
-                    menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
-                }
-            }
-            menuItem = element.ContextMenu?.Items[6] as MenuItem;
-            if (menuItem != null)
-            {
-                menuItem.Visibility = count > 1 ? Visibility.Visible : Visibility.Collapsed;
-            }
-        }
-
-        private void MenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
-        {
-            var menu = sender as MenuItem;
-            var menuItem = menu?.Items[1] as MenuItem;
-            if (menuItem != null)
-            {
-                menuItem.IsEnabled = ImagePasteHelper.CanExchangeImageFromClip();
-            }
-        }
-
-        private void Menu_ZIndexTop(object sender, RoutedEventArgs e)
-        {
-            var elements = SelectedElements.OrderByDescending(Panel.GetZIndex);
-            var transactions = new TransactionAction();
-            foreach (var item in elements)
-            {
-                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Top)));
-            }
-            ActionManager.Execute(transactions);
-        }
-
-        private void Menu_ZIndexTopmost(object sender, RoutedEventArgs e)
-        {
-            var elements = SelectedElements.OrderBy(Panel.GetZIndex);
-            var transactions = new TransactionAction();
-            foreach (var item in elements)
-            {
-                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Topmost)));
-                _maxImageZIndex++;
-            }
-            ActionManager.Execute(transactions);
-        }
-
-        private void Menu_ZIndexBottom(object sender, RoutedEventArgs e)
-        {
-            var elements = SelectedElements.OrderBy(Panel.GetZIndex);
-            var transactions = new TransactionAction();
-            foreach (var item in elements)
-            {
-                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Bottom)));
-            }
-            ActionManager.Execute(transactions);
-        }
-
-        private void Menu_ZIndexBottommost(object sender, RoutedEventArgs e)
-        {
-            var elements = SelectedElements.OrderByDescending(Panel.GetZIndex);
-            var transactions = new TransactionAction();
-            foreach (var item in elements)
-            {
-                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Bottommost)));
-            }
-            ActionManager.Execute(transactions);
-        }
-
-        private void Menu_ExchangeImageFromFile(object sender, RoutedEventArgs e)
-        {
-            if (SelectedElements.Count() != 1) return;
-            var dialog = new OpenFileDialog
-            {
-                CheckPathExists = true,
-                Filter = "所有图片 (*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle)|*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle"
-                + "|ICO 图标格式 (*.ico)|*.ico"
-                + "|GIF 可交换的图形格式 (*.gif)|*.gif"
-                + "|JPEG 文件交换格式 (*.jpg;*.jpeg;*.jfif;*.jpe)|*.jpg;*.jpeg;*.jfif;*.jpe"
-                + "|PNG 可移植网络图形格式 (*.png)|*.png"
-                + "|TIFF Tag 图像文件格式 (*.tif;*.tiff)|*.tif;*.tiff"
-                + "|设备无关位图 (*.bmp;*.dib;*.rle)|*.bmp;*.dib;*.rle"
-            };
-            var showDialog = dialog.ShowDialog().GetValueOrDefault();
-            if (!showDialog) return;
-            var element = SelectedElements.First();
-            try
-            {
-                ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = Extentions.GetBitmapImage(dialog.FileName), Stretch = Stretch.Fill }));
-            }
-            catch 
-            {
-                Extentions.ShowMessageBox("不支持此格式的图片!");
-               
-            }
-          
-        }
-
-        private void MenuItem_CaptureImageFromScreen(object sender, RoutedEventArgs e)
-        {
-            ExchangeImageFromScreen(CropStyle.Default);
-        }
-
-        
-        private void MenuItem_ShadowCaptureImageFromScreen(object sender, RoutedEventArgs e)
-        {
-            ExchangeImageFromScreen(CropStyle.Shadow);
-        }
-
-        private void MenuItem_TransparentCaptureImageFromScreen(object sender, RoutedEventArgs e)
-        {
-            ExchangeImageFromScreen(CropStyle.Transparent);
-        }
-
-        private void MenuItem_CaptureImageFromInternal(object sender, RoutedEventArgs e)
-        {
-            CropImageFromInternal(CropStyle.Default);
-        }
-
-        private void MenuItem_ShadowCaptureImageFromInternal(object sender, RoutedEventArgs e)
-        {
-            CropImageFromInternal(CropStyle.Shadow);
-        }
-
-        private void MenuItem_TransparentCaptureImageFromInternal(object sender, RoutedEventArgs e)
-        {
-            CropImageFromInternal(CropStyle.Transparent);
-        }
-
-        private void MenuItem_CutImageFromInternal(object sender, RoutedEventArgs e)
-        {
-            CutImageFromInternal(CropStyle.Default);
-        }
-
-        private void MenuItem_ShadowCutImageFromInternal(object sender, RoutedEventArgs e)
-        {
-            CutImageFromInternal(CropStyle.Shadow);
-        }
-
-        private void MenuItem_TransparentCutImageFromInternal(object sender, RoutedEventArgs e)
-        {
-            CutImageFromInternal(CropStyle.Transparent);
-        }
-
-        private void Menu_ExchangeImageFromClipboard(object sender, RoutedEventArgs e)
-        {
-            if (SelectedElements.Count() != 1) return;
-            var imageSource = ImagePasteHelper.GetPasteImagesFromClipboard().First();
-            if (imageSource != null)
-            {
-                ActionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }));
-            }
-        }
-
-        private void Menu_ExchangeImageFromInternal(object sender, RoutedEventArgs e)
-        {
-            if (SelectedElements.Count() != 1) return;
-            var element = SelectedElements.First();
-            var width = (int)Math.Round(element.Width, 0);
-            var height = (int)Math.Round(element.Height, 0);
-            var drawingVisual = new DrawingVisual();
-            using (var context = drawingVisual.RenderOpen())
-            {
-                context.DrawRectangle(Brushes.White, null, new Rect(0, 0, width, height));
-            }
-            drawingVisual.Opacity = 0.1;
-            var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-            renderBitmap.Render(drawingVisual);
-            ActionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedImage.AnimatedImage { Source = renderBitmap.GetBitmapImage(), Stretch = Stretch.Fill }));
-
-        }
-
-        private void Menu_CombineImage(object sender, RoutedEventArgs e)
-        {
-            var count = SelectedElements.Count();
-            if (count < 2) return;
-            var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image) element.Content);
-            var template = SelectedElements.First().Template;
-            SetIsSelected(dict.Keys, false);
-
-            var rect = dict.Values.GetMinContainRect();
-            var imageSource = dict.GetMinContainBitmap();
-            SetIsSelected(dict.Keys, true);
-
-            var bitmapImage = imageSource.GetBitmapImage();
-            var animatedImage = new AnimatedImage.AnimatedImage {Source = bitmapImage, Stretch = Stretch.Fill};
-
-            var transformGroup = new TransformGroup();
-            transformGroup.Children.Add(new ScaleTransform(1, 1));
-            transformGroup.Children.Add(new RotateTransform(0));
-            transformGroup.Children.Add(new TranslateTransform(rect.X, rect.Y));
-
-            var imageControl = new ImageControl(this)
-            {
-                Width = bitmapImage.Width,
-                Height = bitmapImage.Height,
-                Content = animatedImage,
-                Template = template,
-                RenderTransform = transformGroup,
-            };
-            AttachProperty(imageControl);
-
-            var transactions = new TransactionAction();
-            foreach (var element in dict.Keys.Cast<ImageControl>())
-            {
-                transactions.Add(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m), element));
-            }
-            transactions.Add(new AddItemAction<ImageControl>(m => _panelContainer.Children.Add(m), _panelContainer.Children.Remove, imageControl));
-            ActionManager.Execute(transactions);
-        }
-
-        private void Menu_SaveToImage(object sender, RoutedEventArgs e)
-        {
-            var selectCount = SelectedElements.Count();
-            if (selectCount == 0) return;
-            var dialog = new SaveFileDialog
-            {
-                CheckPathExists = true,
-                AddExtension = true,
-                FilterIndex = 3,
-                FileName = "图形1",
-                Filter = "GIF 可交换的图形格式 (*.gif)|*.gif"
-                        + "|JPEG 文件交换格式 (*.jpg)|*.jpg"
-                        + "|PNG 可移植网络图形格式 (*.png)|*.png"
-                        + "|TIFF Tag 图像文件格式 (*.tif)|*.tif"
-                        + "|设备无关位图 (*.bmp)|*.bmp",
-                ValidateNames = true,
-            };
-            if (selectCount == 1)
-            {
-                var element = SelectedElements.First();
-                var bitmapSource = (element.Content as AnimatedImage.AnimatedImage)?.Source as BitmapImage;
-                if (bitmapSource != null)
-                {
-                    var fileExt = bitmapSource.StreamSource != null ? ImageHelper.GetFileExtension(bitmapSource.StreamSource) : ImageHelper.GetFileExtension(bitmapSource.UriSource.AbsolutePath);
-                    switch (fileExt)
-                    {
-                        case FileExtension.Gif:
-                            dialog.FilterIndex = 1;
-                            break;
-                        case FileExtension.Jpg:
-                            dialog.FilterIndex = 2;
-                            break;
-                        case FileExtension.Png:
-                            dialog.FilterIndex = 3;
-                            break;
-                        case FileExtension.Tif:
-                            dialog.FilterIndex = 4;
-                            break;
-                        case FileExtension.Bmp:
-                            dialog.FilterIndex = 5;
-                            break;
-                        default:
-                            dialog.FilterIndex = 3;
-                            break;
-                    }
-                }
-            }
-            var showDialog = dialog.ShowDialog().GetValueOrDefault();
-            if (!showDialog) return;
-            var filePath = dialog.FileName;
-            var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
-            SetIsSelected(dict.Keys, false);
-            dict.SaveChildElementsToImage(filePath);
-            SetIsSelected(dict.Keys, true);
-
-        }
-
-        private void Menu_SaveToIcon(object sender, RoutedEventArgs e)
-        {
-            if (!SelectedElements.Any()) return;
-            var menuItem = sender as MenuItem;
-            var menu = menuItem?.Parent as MenuItem;
-            if (menu != null)
-            {
-                var dialog = new SaveFileDialog
-                {
-                    CheckPathExists = true,
-                    AddExtension = true,
-                    FileName = "图标1",
-                    Filter = "ICO 图标格式 (*.ico)|*.ico",
-                    ValidateNames = true,
-                };
-                var showDialog = dialog.ShowDialog().GetValueOrDefault();
-                if (!showDialog) return;
-                var filePath = dialog.FileName;
-                var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
-                SetIsSelected(dict.Keys, false);
-                var imageSource = dict.GetMinContainBitmap();
-                SetIsSelected(dict.Keys, true);
-                var index = menu.Items.IndexOf(menuItem);
-                switch (index)
-                {
-                    case 0:
-                        imageSource.SaveIcon(filePath, IconSize.Bmp256);
-                        break;
-                    case 1:
-                        imageSource.SaveIcon(filePath, IconSize.Bmp128);
-                        break;
-                    case 2:
-                        imageSource.SaveIcon(filePath, IconSize.Bmp96);
-                        break;
-                    case 3:
-                        imageSource.SaveIcon(filePath, IconSize.Bmp72);
-                        break;
-                    case 4:
-                        imageSource.SaveIcon(filePath, IconSize.Bmp64);
-                        break;
-                    case 5:
-                        imageSource.SaveIcon(filePath, IconSize.Bmp48);
-                        break;
-                    case 6:
-                        imageSource.SaveIcon(filePath);
-                        break;
-                    case 7:
-                        imageSource.SaveIcon(filePath, IconSize.Bmp24);
-                        break;
-                    case 8:
-                        imageSource.SaveIcon(filePath, IconSize.Bmp16);
-                        break;
-                    default:
-                        imageSource.SaveIcon(filePath);
-                        break;
-                }
-
-            }
-        }
-
-        private void Menu_CopyImage(object sender, RoutedEventArgs e)
-        {
-            CopySelected();
-        }
-
-        private void Menu_ClipImage(object sender, RoutedEventArgs e)
-        {
-            ClipSelected();
-        }
-
-        #endregion Properties and Events
+        #endregion Properties
 
         #region Public methods
 
         /// <summary>
+        /// 加载插件
+        /// </summary>
+        /// <param name="pluginsDir">插件目录</param>
+        public void LoadPlugins(string pluginsDir)
+        {
+            if (!Directory.Exists(pluginsDir))
+            {
+                //Extentions.ShowMessageBox($"不存在插件路径:{pluginsDir}");
+                return;
+            }
+            _cachePlugins = new Dictionary<string, List<IHandle>>();
+            foreach (var filePath in Directory.GetFiles(pluginsDir, "*.dll"))
+            {
+                var fileName = Path.GetFileNameWithoutExtension(filePath) ?? string.Empty;
+                try
+                {
+                    var list = GetPluginIhandle(filePath);
+                    if (list != null && list.Count != 0)
+                    {
+                        _cachePlugins.Add(fileName, list);
+                    }
+                }
+                catch
+                {
+                    Extentions.ShowMessageBox($"加载 {fileName} 插件失败");
+                }
+            }
+        }
+
+        /// <summary>
         /// 重置所有状态
         /// </summary>
-        public void Reset()
+        public void Clear()
         {
-            _maxImageZIndex = 0;
-            _cacheSelectElements = null;
+            _maxControlZIndex = 0;
+            _cacheSelectedElements = null;
             ContinuedPasteCount = 0;
             MoveSpeed = 1;
-            ActionManager.Clear();
-            _statusCode = ActionManager.StatusCode;
+            _actionManager.Clear();
+            _statusCode = _actionManager.StatusCode;
             _panelContainer.Children.Clear();
             GC.Collect();
         }
@@ -498,7 +147,7 @@ namespace EasyImage
         /// </summary>
         public void UpdateStatusCode()
         {
-            _statusCode = ActionManager.StatusCode;
+            _statusCode = _actionManager.StatusCode;
         }
 
         /// <summary>
@@ -518,6 +167,34 @@ namespace EasyImage
         }
 
         /// <summary>
+        /// 撤销操作
+        /// </summary>
+        public void UnExecute()
+        {
+            _actionManager.UnExecute();
+        }
+
+        /// <summary>
+        /// 反撤销操作
+        /// </summary>
+        public void ReExecute()
+        {
+            _actionManager.ReExecute();
+        }
+
+        /// <summary>
+        /// 添加选中元素
+        /// </summary>
+        /// <param name="element"></param>
+        public void AddElement(ImageControl element)
+        {
+            AttachProperty(element);
+            var addItemAction = new AddItemAction<ImageControl>(m => _panelContainer.Children.Add(m),
+                _panelContainer.Children.Remove, element);
+            _actionManager.Execute(addItemAction);
+        }
+
+        /// <summary>
         /// 添加选中元素集合
         /// </summary>
         /// <param name="elements"></param>
@@ -531,19 +208,7 @@ namespace EasyImage
                 AttachProperty(element);
                 transactions.Add(new AddItemAction<ImageControl>(m => _panelContainer.Children.Add(m), _panelContainer.Children.Remove, element));
             }
-            ActionManager.Execute(transactions);
-        }
-
-        /// <summary>
-        /// 添加选中元素
-        /// </summary>
-        /// <param name="element"></param>
-        public void AddElement(ImageControl element)
-        {
-            AttachProperty(element);
-            var addItemAction = new AddItemAction<ImageControl>(m => _panelContainer.Children.Add(m),
-                _panelContainer.Children.Remove, element);
-            ActionManager.Execute(addItemAction);
+            _actionManager.Execute(transactions);
         }
 
         /// <summary>
@@ -557,7 +222,7 @@ namespace EasyImage
             {
                 transactions.Add(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m), element));
             }
-            ActionManager.Execute(transactions);
+            _actionManager.Execute(transactions);
         }
 
         /// <summary>
@@ -586,10 +251,10 @@ namespace EasyImage
         public void CloneSelected()
         {
             SelectNone();
-            if (_cacheSelectElements != null)
+            if (_cacheSelectedElements != null)
             {
-                AddElements(_cacheSelectElements.Select(m => m.Clone()).Cast<ImageControl>());
-                _cacheSelectElements = null;
+                AddElements(_cacheSelectedElements.Select(m => m.Clone()).Cast<ImageControl>());
+                _cacheSelectedElements = null;
             }
 
         }
@@ -653,7 +318,7 @@ namespace EasyImage
             {
                 transactions.Add(new DragMoveAction(item.GetTransform<TranslateTransform>(), moveX, moveY));
             }
-            ActionManager.Execute(transactions);
+            _actionManager.Execute(transactions);
         }
 
         /// <summary>
@@ -674,7 +339,7 @@ namespace EasyImage
                     translateTransform.X -= moveX;
                     translateTransform.Y -= moveY;
                 }
-                ActionManager.Execute(transactions);
+                _actionManager.Execute(transactions);
             }
             else
             {
@@ -706,7 +371,7 @@ namespace EasyImage
                 {
                     transactions.Add(new DragRotateAction(item.GetTransform<RotateTransform>(), angle));
                 }
-                ActionManager.Execute(transactions);
+                _actionManager.Execute(transactions);
             }
             else
             {
@@ -778,7 +443,7 @@ namespace EasyImage
                     transactions.Add(new DragResizeAction(element, 1 / scaleHorizontal, 1 / scaleVertical, turnHorizontal, turnVerticale, thumbFlag));
                 }
 
-                ActionManager.Execute(transactions);
+                _actionManager.Execute(transactions);
             }
             else
             {
@@ -845,7 +510,7 @@ namespace EasyImage
         /// <param name="scalePoint">放缩点(相对于元素)</param>
         public void WheelFixedScaleElement(ImageControl element, double delta, Point scalePoint)
         {
-            ActionManager.Execute(new WheelScaleAction(element, delta, scalePoint));
+            _actionManager.Execute(new WheelScaleAction(element, delta, scalePoint));
         }
 
         /// <summary>
@@ -859,18 +524,439 @@ namespace EasyImage
             {
                 transactions.Add(new WheelScaleAction(item, delta, new Point(item.Width / 2, item.Height / 2)));
             }
-            ActionManager.Execute(transactions);
+            _actionManager.Execute(transactions);
         }
 
         #endregion Public methods
+
+        
+
+        #region Events
+
+        private void PluginItem_Click(object sender, EventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            var bitmapSource = ((Image)element.Content).Source as BitmapSource;
+            try
+            {
+                var result = ((sender as MenuItem)?.Tag as IHandle)?.ExecHandle(bitmapSource.GetResizeBitmap((int)Math.Round(element.Width), (int)Math.Round(element.Height)).GetBitmap());
+                if (result == null || !result.IsModified) return;
+                _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = result.ResultBitmap.GetBitmapSource().GetBitmapImage(), Stretch = Stretch.Fill }));
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex.ToString());
+                Extentions.ShowMessageBox("执行失败!");
+            }
+        }
+
+        private void Element_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var element = sender as ImageControl;
+            if (element == null) return;
+            if ((Keyboard.Modifiers & ModifierKeys.Control) > 0)
+            {
+                var selected = Selector.GetIsSelected(element);
+                if (selected)
+                {
+                    _cacheSelectedElements = SelectedElements.ToArray();
+                }
+                Selector.SetIsSelected(element, !selected);
+                if (!selected)
+                {
+                    _cacheSelectedElements = SelectedElements.ToArray();
+                }
+            }
+            else
+            {
+                if (Selector.GetIsSelected(element)) return;
+                SelectNone();
+                Selector.SetIsSelected(element, true);
+            }
+
+        }
+
+        private void Element_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            var element = sender as ImageControl;
+            var rotateControl = element?.Template.FindName("RotateThumbControl", element) as Control;
+            if (rotateControl != null)
+            {
+                rotateControl.Visibility = element.Width < 30 ? Visibility.Hidden : Visibility.Visible;
+            }
+        }
+
+        private void Menu_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            e.Handled = true;
+            var element = sender as ImageControl;
+            if (element == null) return;
+            var count = SelectedElements.Count();
+            if (count <= 0) return;
+            e.Handled = false;
+
+            var menuItems = element.ContextMenu?.Items?.OfType<MenuItem>().ToArray();
+            if (menuItems == null) return;
+            var menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "CaptureImage");
+            if (menuItem != null)
+            {
+                menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+            }
+            menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "CutImage");
+            if (menuItem != null)
+            {
+                menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+            }
+            menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "Exchange");
+            if (menuItem != null)
+            {
+                menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+            }
+            menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "Combine");
+            if (menuItem != null)
+            {
+                menuItem.IsEnabled = count > 1;
+            }
+            menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "Plugin");
+            if (menuItem != null)
+            {
+                menuItem.IsEnabled = count == 1;
+            }
+        }
+
+        private void MenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
+        {
+            var menu = sender as MenuItem;
+            var menuItem = menu?.Items[1] as MenuItem;
+            if (menuItem != null)
+            {
+                menuItem.IsEnabled = ImagePaster.CanExchangeImageFromClip();
+            }
+        }
+
+        private void Menu_ZIndexTop(object sender, RoutedEventArgs e)
+        {
+            var elements = SelectedElements.OrderByDescending(Panel.GetZIndex);
+            var transactions = new TransactionAction();
+            foreach (var item in elements)
+            {
+                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Top)));
+            }
+            _actionManager.Execute(transactions);
+        }
+
+        private void Menu_ZIndexTopmost(object sender, RoutedEventArgs e)
+        {
+            var elements = SelectedElements.OrderBy(Panel.GetZIndex);
+            var transactions = new TransactionAction();
+            foreach (var item in elements)
+            {
+                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Topmost)));
+                _maxControlZIndex++;
+            }
+            _actionManager.Execute(transactions);
+        }
+
+        private void Menu_ZIndexBottom(object sender, RoutedEventArgs e)
+        {
+            var elements = SelectedElements.OrderBy(Panel.GetZIndex);
+            var transactions = new TransactionAction();
+            foreach (var item in elements)
+            {
+                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Bottom)));
+            }
+            _actionManager.Execute(transactions);
+        }
+
+        private void Menu_ZIndexBottommost(object sender, RoutedEventArgs e)
+        {
+            var elements = SelectedElements.OrderByDescending(Panel.GetZIndex);
+            var transactions = new TransactionAction();
+            foreach (var item in elements)
+            {
+                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Bottommost)));
+            }
+            _actionManager.Execute(transactions);
+        }
+
+        private void Menu_ExchangeImageFromFile(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var dialog = new OpenFileDialog
+            {
+                CheckPathExists = true,
+                Filter = "所有图片 (*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle)|*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle"
+                + "|ICO 图标格式 (*.ico)|*.ico"
+                + "|GIF 可交换的图形格式 (*.gif)|*.gif"
+                + "|JPEG 文件交换格式 (*.jpg;*.jpeg;*.jfif;*.jpe)|*.jpg;*.jpeg;*.jfif;*.jpe"
+                + "|PNG 可移植网络图形格式 (*.png)|*.png"
+                + "|TIFF Tag 图像文件格式 (*.tif;*.tiff)|*.tif;*.tiff"
+                + "|设备无关位图 (*.bmp;*.dib;*.rle)|*.bmp;*.dib;*.rle"
+            };
+            var showDialog = dialog.ShowDialog().GetValueOrDefault();
+            if (!showDialog) return;
+            var element = SelectedElements.First();
+            try
+            {
+                _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = Extentions.GetBitmapImage(dialog.FileName), Stretch = Stretch.Fill }));
+            }
+            catch
+            {
+                Extentions.ShowMessageBox("不支持此格式的图片!");
+
+            }
+
+        }
+
+        private void MenuItem_CaptureImageFromScreen(object sender, RoutedEventArgs e)
+        {
+            ExchangeImageFromScreen(CropStyle.Default);
+        }
+
+        private void MenuItem_ShadowCaptureImageFromScreen(object sender, RoutedEventArgs e)
+        {
+            ExchangeImageFromScreen(CropStyle.Shadow);
+        }
+
+        private void MenuItem_TransparentCaptureImageFromScreen(object sender, RoutedEventArgs e)
+        {
+            ExchangeImageFromScreen(CropStyle.Transparent);
+        }
+
+        private void MenuItem_CaptureImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            CropImageFromInternal(CropStyle.Default);
+        }
+
+        private void MenuItem_ShadowCaptureImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            CropImageFromInternal(CropStyle.Shadow);
+        }
+
+        private void MenuItem_TransparentCaptureImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            CropImageFromInternal(CropStyle.Transparent);
+        }
+
+        private void MenuItem_CutImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            CutImageFromInternal(CropStyle.Default);
+        }
+
+        private void MenuItem_ShadowCutImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            CutImageFromInternal(CropStyle.Shadow);
+        }
+
+        private void MenuItem_TransparentCutImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            CutImageFromInternal(CropStyle.Transparent);
+        }
+
+        private void Menu_ExchangeImageFromClipboard(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var imageSource = ImagePaster.GetPasteImagesFromClipboard().First();
+            if (imageSource != null)
+            {
+                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }));
+            }
+        }
+
+        private void Menu_ExchangeImageFromInternal(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            var width = (int)Math.Round(element.Width, 0);
+            var height = (int)Math.Round(element.Height, 0);
+            var drawingVisual = new DrawingVisual();
+            using (var context = drawingVisual.RenderOpen())
+            {
+                context.DrawRectangle(Brushes.White, null, new Rect(0, 0, width, height));
+            }
+            drawingVisual.Opacity = 0.1;
+            var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            renderBitmap.Render(drawingVisual);
+            _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedImage.AnimatedImage { Source = renderBitmap.GetBitmapImage(), Stretch = Stretch.Fill }));
+
+        }
+
+        private void Menu_CombineImage(object sender, RoutedEventArgs e)
+        {
+            var count = SelectedElements.Count();
+            if (count < 2) return;
+            var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
+            var template = SelectedElements.First().Template;
+            SetIsSelected(dict.Keys, false);
+
+            var rect = dict.Values.GetMinContainRect();
+            var imageSource = dict.GetMinContainBitmap();
+            SetIsSelected(dict.Keys, true);
+
+            var bitmapImage = imageSource.GetBitmapImage();
+            var animatedImage = new AnimatedImage.AnimatedImage { Source = bitmapImage, Stretch = Stretch.Fill };
+
+            var transformGroup = new TransformGroup();
+            transformGroup.Children.Add(new ScaleTransform(1, 1));
+            transformGroup.Children.Add(new RotateTransform(0));
+            transformGroup.Children.Add(new TranslateTransform(rect.X, rect.Y));
+
+            var imageControl = new ImageControl(this)
+            {
+                Width = bitmapImage.Width,
+                Height = bitmapImage.Height,
+                Content = animatedImage,
+                Template = template,
+                RenderTransform = transformGroup,
+            };
+            AttachProperty(imageControl);
+
+            var transactions = new TransactionAction();
+            foreach (var element in dict.Keys.Cast<ImageControl>())
+            {
+                transactions.Add(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m), element));
+            }
+            transactions.Add(new AddItemAction<ImageControl>(m => _panelContainer.Children.Add(m), _panelContainer.Children.Remove, imageControl));
+            _actionManager.Execute(transactions);
+        }
+
+        private void Menu_SaveToImage(object sender, RoutedEventArgs e)
+        {
+            var selectCount = SelectedElements.Count();
+            if (selectCount == 0) return;
+            var dialog = new SaveFileDialog
+            {
+                CheckPathExists = true,
+                AddExtension = true,
+                FilterIndex = 3,
+                FileName = "图形1",
+                Filter = "GIF 可交换的图形格式 (*.gif)|*.gif"
+                        + "|JPEG 文件交换格式 (*.jpg)|*.jpg"
+                        + "|PNG 可移植网络图形格式 (*.png)|*.png"
+                        + "|TIFF Tag 图像文件格式 (*.tif)|*.tif"
+                        + "|设备无关位图 (*.bmp)|*.bmp",
+                ValidateNames = true,
+            };
+            if (selectCount == 1)
+            {
+                var element = SelectedElements.First();
+                var bitmapSource = (element.Content as AnimatedImage.AnimatedImage)?.Source as BitmapImage;
+                if (bitmapSource != null)
+                {
+                    var fileExt = bitmapSource.StreamSource != null ? ImageHelper.GetImageExtension(bitmapSource.StreamSource) : ImageHelper.GetImageExtension(bitmapSource.UriSource.AbsolutePath);
+                    switch (fileExt)
+                    {
+                        case ImageExtension.Gif:
+                            dialog.FilterIndex = 1;
+                            break;
+                        case ImageExtension.Jpg:
+                            dialog.FilterIndex = 2;
+                            break;
+                        case ImageExtension.Png:
+                            dialog.FilterIndex = 3;
+                            break;
+                        case ImageExtension.Tif:
+                            dialog.FilterIndex = 4;
+                            break;
+                        case ImageExtension.Bmp:
+                            dialog.FilterIndex = 5;
+                            break;
+                        default:
+                            dialog.FilterIndex = 3;
+                            break;
+                    }
+                }
+            }
+            var showDialog = dialog.ShowDialog().GetValueOrDefault();
+            if (!showDialog) return;
+            var filePath = dialog.FileName;
+            var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
+            SetIsSelected(dict.Keys, false);
+            dict.SaveChildElementsToImage(filePath);
+            SetIsSelected(dict.Keys, true);
+
+        }
+
+        private void Menu_SaveToIcon(object sender, RoutedEventArgs e)
+        {
+            if (!SelectedElements.Any()) return;
+            var menuItem = sender as MenuItem;
+            var menu = menuItem?.Parent as MenuItem;
+            if (menu != null)
+            {
+                var dialog = new SaveFileDialog
+                {
+                    CheckPathExists = true,
+                    AddExtension = true,
+                    FileName = "图标1",
+                    Filter = "ICO 图标格式 (*.ico)|*.ico",
+                    ValidateNames = true,
+                };
+                var showDialog = dialog.ShowDialog().GetValueOrDefault();
+                if (!showDialog) return;
+                var filePath = dialog.FileName;
+                var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
+                SetIsSelected(dict.Keys, false);
+                var imageSource = dict.GetMinContainBitmap();
+                SetIsSelected(dict.Keys, true);
+                var index = menu.Items.IndexOf(menuItem);
+                switch (index)
+                {
+                    case 0:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp16);
+                        break;
+                    case 1:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp24);
+                        break;
+                    case 2:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp32);
+                        break;
+                    case 3:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp48);
+                        break;
+                    case 4:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp64);
+                        break;
+                    case 5:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp72);
+                        break;
+                    case 6:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp96);
+                        break;
+                    case 7:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp128);
+                        break;
+                    case 8:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp256);
+                        break;
+                    default:
+                        imageSource.SaveIcon(filePath, IconSize.Bmp32);
+                        break;
+                }
+
+            }
+        }
+
+        private void Menu_CopyImage(object sender, RoutedEventArgs e)
+        {
+            CopySelected();
+        }
+
+        private void Menu_ClipImage(object sender, RoutedEventArgs e)
+        {
+            ClipSelected();
+        }
+
+        #endregion Properties and Events
 
         #region Private methods
         private void AttachProperty(ImageControl element)
         {
             #region 设置属性
             Selector.SetIsSelected(element, true);
-            _maxImageZIndex++;
-            Panel.SetZIndex(element, _maxImageZIndex);
+            _maxControlZIndex++;
+            Panel.SetZIndex(element, _maxControlZIndex);
 
             #endregion
 
@@ -878,21 +964,21 @@ namespace EasyImage
             var contextMenu = new ContextMenu();
 
             #region 剪切
-            var item = new MenuItem { Header = "剪切" };
+            var item = new MenuItem { Header = "剪切", Tag = "Clip" };
             item.Click += Menu_ClipImage;
             contextMenu.Items.Add(item);
 
             #endregion
 
             #region 复制
-            item = new MenuItem { Header = "复制" };
+            item = new MenuItem { Header = "复制", Tag = "Copy" };
             item.Click += Menu_CopyImage;
             contextMenu.Items.Add(item);
 
             #endregion
 
             #region 截屏
-            item = new MenuItem { Header = "截屏" };
+            item = new MenuItem { Header = "截屏", Tag = "CaptureScreen" };
 
             #region 二级菜单
 
@@ -915,11 +1001,11 @@ namespace EasyImage
             #endregion
 
             #region 截图
-            item = new MenuItem { Header = "截图" };
+            item = new MenuItem { Header = "截图", Tag = "CaptureImage" };
 
             #region 二级菜单
 
-            subItem = new MenuItem {Header = "普通截图" };
+            subItem = new MenuItem { Header = "普通截图" };
             subItem.Click += MenuItem_CaptureImageFromInternal;
             item.Items.Add(subItem);
 
@@ -938,7 +1024,7 @@ namespace EasyImage
             #endregion
 
             #region 抠图
-            item = new MenuItem { Header = "抠图" };
+            item = new MenuItem { Header = "抠图", Tag = "CutImage" };
 
             #region 二级菜单
 
@@ -962,7 +1048,7 @@ namespace EasyImage
 
             #region 更改图片
 
-            item = new MenuItem { Header = "更改图片" };
+            item = new MenuItem { Header = "更改图片", Tag = "Exchange" };
             item.SubmenuOpened += MenuItem_SubmenuOpened;
             #region 二级菜单
 
@@ -983,7 +1069,7 @@ namespace EasyImage
             #endregion
 
             #region 组合图片
-            item = new MenuItem { Header = "组合" };
+            item = new MenuItem { Header = "组合", Tag = "Combine" };
             item.Click += Menu_CombineImage;
             contextMenu.Items.Add(item);
 
@@ -991,7 +1077,7 @@ namespace EasyImage
 
             #region 置于顶层
 
-            item = new MenuItem { Header = "置于顶层" };
+            item = new MenuItem { Header = "置于顶层", Tag = "ZIndexTop" };
 
             #region 二级菜单
 
@@ -1010,7 +1096,7 @@ namespace EasyImage
 
             #region 置于底层
 
-            item = new MenuItem { Header = "置于底层" };
+            item = new MenuItem { Header = "置于底层", Tag = "ZIndexBottom" };
 
             #region 二级菜单
 
@@ -1028,42 +1114,18 @@ namespace EasyImage
             #endregion
 
             #region 另存为图片
-            item = new MenuItem { Header = "另存为图片..." };
+            item = new MenuItem { Header = "另存为图片...", Tag = "SaveToImage" };
             item.Click += Menu_SaveToImage;
             contextMenu.Items.Add(item);
 
             #endregion
 
             #region 另存为图标
-            item = new MenuItem { Header = "另存为图标" };
+            item = new MenuItem { Header = "另存为图标", Tag = "SaveToIcon" };
             contextMenu.Items.Add(item);
 
             #region 二级菜单
-            subItem = new MenuItem { Header = "ICO 256*256" };
-            subItem.Click += Menu_SaveToIcon;
-            item.Items.Add(subItem);
-
-            subItem = new MenuItem { Header = "ICO 128*128" };
-            subItem.Click += Menu_SaveToIcon;
-            item.Items.Add(subItem);
-
-            subItem = new MenuItem { Header = "ICO 96*96" };
-            subItem.Click += Menu_SaveToIcon;
-            item.Items.Add(subItem);
-
-            subItem = new MenuItem { Header = "ICO 72*72" };
-            subItem.Click += Menu_SaveToIcon;
-            item.Items.Add(subItem);
-
-            subItem = new MenuItem { Header = "ICO 64*64" };
-            subItem.Click += Menu_SaveToIcon;
-            item.Items.Add(subItem);
-
-            subItem = new MenuItem { Header = "ICO 48*48" };
-            subItem.Click += Menu_SaveToIcon;
-            item.Items.Add(subItem);
-
-            subItem = new MenuItem { Header = "ICO 32*32" };
+            subItem = new MenuItem { Header = "ICO 16*16" };
             subItem.Click += Menu_SaveToIcon;
             item.Items.Add(subItem);
 
@@ -1071,7 +1133,31 @@ namespace EasyImage
             subItem.Click += Menu_SaveToIcon;
             item.Items.Add(subItem);
 
-            subItem = new MenuItem { Header = "ICO 16*16" };
+            subItem = new MenuItem { Header = "ICO 32*32" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 48*48" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 64*64" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 72*72" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 96*96" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 128*128" };
+            subItem.Click += Menu_SaveToIcon;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "ICO 256*256" };
             subItem.Click += Menu_SaveToIcon;
             item.Items.Add(subItem);
 
@@ -1079,11 +1165,62 @@ namespace EasyImage
 
             #endregion
 
-            #region 设置
-            var separatorMenuItem = new Separator();//分割线
-            contextMenu.Items.Add(separatorMenuItem);
+            #region 插件
 
-            item = new MenuItem { Header = "设置" };
+            if (_cachePlugins != null && _cachePlugins.Count > 0)
+            {
+                item = new MenuItem
+                {
+                    Header = "插件",
+                    Tag = "Plugin"
+                };
+                foreach (var plugin in _cachePlugins)
+                {
+                    if (plugin.Value.Count == 1)
+                    {
+                        subItem = new MenuItem
+                        {
+                            Header = plugin.Value[0].GetPluginName(),
+                            Tag = plugin.Value[0]
+                        };
+                        var bitmap = plugin.Value[0].GetPluginIcon();
+                        if (bitmap != null)
+                        {
+                            subItem.Icon = new Image {Source = bitmap.GetBitmapSource()};
+                        }
+                        subItem.Click += PluginItem_Click;
+                    }
+                    else
+                    {
+                        subItem = new MenuItem { Header = plugin.Key };
+                        foreach (var ihanle in plugin.Value)
+                        {
+                            var thirdItem = new MenuItem
+                            {
+                                Header = ihanle.GetPluginName(),
+                                Tag = ihanle
+                            };
+
+                            var bitmap = ihanle.GetPluginIcon();
+                            if (bitmap != null)
+                            {
+                                thirdItem.Icon = new Image { Source = bitmap.GetBitmapSource() };
+                            }
+                            thirdItem.Click += PluginItem_Click;
+                            subItem.Items.Add(thirdItem);
+                        }
+                    }
+                    item.Items.Add(subItem);
+                }
+                contextMenu.Items.Add(item);
+            }
+
+            #endregion
+
+            #region 设置
+            contextMenu.Items.Add(new Separator());//分割线
+
+            item = new MenuItem { Header = "设置", Tag = "Config" };
             contextMenu.Items.Add(item);
             #endregion
 
@@ -1096,6 +1233,20 @@ namespace EasyImage
             element.SizeChanged += Element_SizeChanged;
 
             #endregion
+        }
+
+        private List<IHandle> GetPluginIhandle(string filePath)
+        {
+            var list = new List<IHandle>();
+            var assembly = Assembly.LoadFile(Path.GetFullPath(filePath));
+            foreach (var type in assembly.GetTypes())
+            {
+                if (type.GetInterface("IHandle") == null) continue;
+                var ihandle = (IHandle)Activator.CreateInstance(type);
+                ihandle.InitPlugin(AppDomain.CurrentDomain.SetupInformation.ApplicationBase);
+                list.Add(ihandle);
+            }
+            return list;
         }
 
         private UIElement GetExchangeZIndexElement(ImageControl element, ZIndex zIndex)
@@ -1165,14 +1316,14 @@ namespace EasyImage
             {
                 var scaleTransform = element.GetTransform<ScaleTransform>();
                 var imageSource = ScreenCropper.CropScreen(new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY, -7, -7));
-                if(imageSource != null && cropStyle != CropStyle.Default)
+                if (imageSource != null && cropStyle != CropStyle.Default)
                 {
-                    imageSource = ImageCropper.CropBitmapSource(imageSource, ((AnimatedImage.AnimatedImage)element.Content).Source.ConvertToBitmapSource((int)Math.Round(element.Width), (int)Math.Round(element.Height)), cropStyle);
+                    imageSource = ImageCropper.CropBitmapSource(imageSource, ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth, imageSource.PixelHeight), cropStyle);
                 }
 
                 if (imageSource != null)
                 {
-                    ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
+                    _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
                 }
                 else
                 {
@@ -1196,11 +1347,11 @@ namespace EasyImage
             var imageSource = ScreenCropper.CropScreen(renderBitmap, new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
             if (imageSource != null && cropStyle != CropStyle.Default)
             {
-                imageSource = ImageCropper.CropBitmapSource(imageSource, ((AnimatedImage.AnimatedImage)element.Content).Source.ConvertToBitmapSource((int)Math.Round(element.Width), (int)Math.Round(element.Height)), cropStyle);
+                imageSource = ImageCropper.CropBitmapSource(imageSource, ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth, imageSource.PixelHeight), cropStyle);
             }
             if (imageSource != null)
             {
-                ActionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
+                _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
             }
             else
             {
@@ -1220,10 +1371,11 @@ namespace EasyImage
             var renderBitmap = new RenderTargetBitmap((int)SystemParameters.VirtualScreenWidth, (int)SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
             renderBitmap.Render(_panelContainer);
             var scaleTransform = element.GetTransform<ScaleTransform>();
-            var imageSource = ScreenCropper.CropScreen(renderBitmap, new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
+            var cropViewBox = new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY);
+            var imageSource = ScreenCropper.CropScreen(renderBitmap, cropViewBox);
             if (imageSource != null && cropStyle != CropStyle.Default)
             {
-                imageSource = ImageCropper.CropBitmapSource(imageSource, ((AnimatedImage.AnimatedImage)element.Content).Source.ConvertToBitmapSource((int)Math.Round(element.Width), (int)Math.Round(element.Height)), cropStyle);
+                imageSource = ImageCropper.CropBitmapSource(imageSource, ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth, imageSource.PixelHeight), cropStyle);
             }
             element.Visibility = Visibility.Visible;
             if (imageSource == null)
@@ -1231,45 +1383,73 @@ namespace EasyImage
                 Extentions.ShowMessageBox("不合法的抠图操作!");
                 return;
             }
-            var originalImage = (Image)element.Content;
             var unSelectedElements = _panelContainer.Children.Cast<object>().OfType<ImageControl>().Where(m => !Selector.GetIsSelected(m)).ToList();
-            Selector.SetIsSelected(element, false);
+            var intersectElements = unSelectedElements.Where(m => ((Image)element.Content).IsOverlapped((Image)m.Content)).ToArray();
 
-            var intersectElements = unSelectedElements.Where(m => originalImage.IsOverlapped((Image)m.Content)).ToArray();
-            var cropViewBoxs = new List<CropViewBox>(intersectElements.Length);
+            var fullScreenBitmap = GetFullScreenBitmap(element, cropStyle);
+            var transactions = new TransactionAction();
             foreach (var item in intersectElements)
             {
                 scaleTransform = item.GetTransform<ScaleTransform>();
-                cropViewBoxs.Add(new CropViewBox((Image)item.Content, item.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
+                cropViewBox = new CropViewBox((Image)item.Content, item.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY);
+                var bitmapSource = ScreenCropper.CropScreen(fullScreenBitmap, cropViewBox);
+                var cutBitmapSource = ImageCropper.CropBitmapSource(((BitmapSource)((Image)item.Content).Source).GetResizeBitmap(bitmapSource.PixelWidth, bitmapSource.PixelHeight), bitmapSource, CropStyle.Transparent);
+                transactions.Add(new ExchangeImageAction(item, new AnimatedImage.AnimatedImage { Source = cutBitmapSource.GetBitmapImage(), Stretch = Stretch.Fill }));
             }
-            
+            transactions.Add(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
+            _actionManager.Execute(transactions);
 
-            Clipboard.Clear();
-            Clipboard.SetImage(element.GetFullScreenBitmap());
-            
-            Selector.SetIsSelected(element, true);
         }
 
-
-        private BitmapSource GetCropStyleBitmap(BitmapSource bitmapSource, CropStyle cropStyle)
+        private BitmapSource GetFullScreenBitmap(ImageControl imageControl, CropStyle cropStyle)
         {
-            switch (cropStyle)
+            var rect = ((Image)(imageControl.Content)).GetMinContainRect();
+            var centerPoint = new Point(rect.Left + rect.Width / 2, rect.Top + rect.Height / 2);
+            var rotateTransform = imageControl.GetTransform<RotateTransform>();
+            var scaleTransform = imageControl.GetTransform<ScaleTransform>();
+            var transformGroup = new TransformGroup();
+            transformGroup.Children.Add(new ScaleTransform(scaleTransform.ScaleX, scaleTransform.ScaleY, 0.5, 0.5));
+            transformGroup.Children.Add(new RotateTransform(rotateTransform.Angle, 0.5, 0.5));
+
+            var bitmapSource = GetCropStyleBitmap(((AnimatedImage.AnimatedImage)imageControl.Content).Source as BitmapSource, (int)Math.Round(imageControl.Width, 0), (int)Math.Round(imageControl.Height, 0), cropStyle);
+            var bevelSideLength = Math.Sqrt(bitmapSource.Width * bitmapSource.Width + bitmapSource.Height * bitmapSource.Height);
+            var screenWidth = (int)SystemParameters.VirtualScreenWidth;
+            var screenHeight = (int)SystemParameters.VirtualScreenHeight;
+
+            var drawingVisual = new DrawingVisual();
+            using (var context = drawingVisual.RenderOpen())
             {
-                case CropStyle.Default:
-
-                    break;
-                case CropStyle.Shadow:
-                    return bitmapSource;
-                case CropStyle.Transparent:
-
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(cropStyle), cropStyle, null);
+                var brush = new ImageBrush(bitmapSource)
+                {
+                    Stretch = Stretch.None,
+                    RelativeTransform = transformGroup,
+                };
+                context.DrawRectangle(brush, null, new Rect((centerPoint.X - bevelSideLength / 2) + 7, (centerPoint.Y - bevelSideLength / 2) + 7, bevelSideLength, bevelSideLength));
             }
-            return null;
+            drawingVisual.Opacity = imageControl.Opacity;
+            var renderBitmap = new RenderTargetBitmap(screenWidth, screenHeight, 96, 96, PixelFormats.Pbgra32);
+            renderBitmap.Render(drawingVisual);
+            return renderBitmap;
         }
-        #endregion Private methods
 
+        private BitmapSource GetCropStyleBitmap(BitmapSource bitmapSource, int width, int height, CropStyle cropStyle)
+        {
+            if (cropStyle == CropStyle.Default)
+            {
+                var drawingVisual = new DrawingVisual();
+                using (var context = drawingVisual.RenderOpen())
+                {
+                    context.DrawRectangle(Brushes.White, null, new Rect(0, 0, width, height));
+                }
+                var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                renderBitmap.Render(drawingVisual);
+                return renderBitmap;
+            }
+            var resizeBitmap = bitmapSource.GetResizeBitmap(width, height);
+            return cropStyle == CropStyle.Shadow ? resizeBitmap : resizeBitmap.GetBitmap().ShadowSwapTransparent(Color.White).GetBitmapSource();
+        }
+
+        #endregion Private methods
     }
 
 }

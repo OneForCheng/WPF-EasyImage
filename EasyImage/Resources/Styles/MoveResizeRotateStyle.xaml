@@ -8,7 +8,8 @@
 
     <!-- ResizeRectThumb Template -->
     <ControlTemplate x:Key="ResizeRectThumbTemplate" TargetType="{x:Type Thumb}">
-        <Rectangle Height="7" Width="7" Fill="White" Stroke="Gray" StrokeThickness="0.5"></Rectangle>
+        <!--<Rectangle Height="7" Width="7" Fill="White" Stroke="Gray" StrokeThickness="0.5"></Rectangle>-->
+        <Ellipse Height="10" Width="10" Fill="White" Stroke="Gray" StrokeThickness="0.5"></Ellipse>
     </ControlTemplate>
 
     <!-- RotateIconThumb Template -->
@@ -24,11 +25,8 @@
     <!-- Rotate Template -->
     <ControlTemplate x:Key="RotateTemplate"  TargetType="{x:Type Control}">
         <Grid>
-            <Line  StrokeThickness="1" X1="0" Y1="0" X2="0" Y2="8"  Stroke="Gray" Margin="1,-12,0,0"
-                       VerticalAlignment="Top" HorizontalAlignment="Center">
-            </Line>
-            <s:RotateThumb Template="{StaticResource RotateIconThumbTemplate}"   Cursor="Hand" Margin="2,-32,0,0"
-                       VerticalAlignment="Top" HorizontalAlignment="Center"/>
+            <Line StrokeThickness="1" X1="0" Y1="0" X2="0" Y2="8"  Stroke="Gray" Margin="1,-12,0,0"  VerticalAlignment="Top" HorizontalAlignment="Center"></Line>
+            <s:RotateThumb Template="{StaticResource RotateIconThumbTemplate}"   Cursor="Hand" Margin="2,-32,0,0" VerticalAlignment="Top" HorizontalAlignment="Center"/>
         </Grid>
     </ControlTemplate>
 
@@ -36,21 +34,21 @@
     <ControlTemplate x:Key="ResizeTemplate"  TargetType="{x:Type Control}">
         <Border BorderThickness="1" BorderBrush="Gray" >
             <Grid>
-                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}" Cursor="SizeNS" Margin="0 -4 0 0"
+                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}" Cursor="SizeNS" Margin="0 -5 0 0"
                        VerticalAlignment="Top" HorizontalAlignment="Stretch"/>
-                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}"  Cursor="SizeWE" Margin="-4 0 0 0"
+                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}"  Cursor="SizeWE" Margin="-5 0 0 0"
                        VerticalAlignment="Stretch" HorizontalAlignment="Left"/>
-                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}"  Cursor="SizeWE" Margin="0 0 -4 0"
+                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}"  Cursor="SizeWE" Margin="0 0 -5 0"
                        VerticalAlignment="Stretch" HorizontalAlignment="Right"/>
-                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}"  Cursor="SizeNS" Margin="0 0 0 -4"
+                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}"  Cursor="SizeNS" Margin="0 0 0 -5"
                        VerticalAlignment="Bottom" HorizontalAlignment="Stretch"/>
-                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}" Cursor="SizeNWSE" Margin="-4 -4 0 0"
+                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}" Cursor="SizeNWSE" Margin="-5 -5 0 0"
                        VerticalAlignment="Top" HorizontalAlignment="Left"/>
-                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}" Cursor="SizeNESW" Margin="0 -4 -4 0"
+                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}" Cursor="SizeNESW" Margin="0 -5 -5 0"
                        VerticalAlignment="Top" HorizontalAlignment="Right"/>
-                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}" Cursor="SizeNESW" Margin="-4 0 0 -4"
+                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}" Cursor="SizeNESW" Margin="-5 0 0 -5"
                        VerticalAlignment="Bottom" HorizontalAlignment="Left"/>
-                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}" Cursor="SizeNWSE" Margin="0 0 -4 -4"
+                <s:ResizeThumb Template="{StaticResource ResizeRectThumbTemplate}" Cursor="SizeNWSE" Margin="0 0 -5 -5"
                        VerticalAlignment="Bottom" HorizontalAlignment="Right"/>
             </Grid>
         </Border>
