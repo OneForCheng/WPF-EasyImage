@@ -62,7 +62,7 @@ namespace EasyImage.Config
             }
             catch (Exception ex)
             {
-                Trace.WriteLine($"LoadConfigFromXml operation failed: {ex.Message}");
+                App.Log.Error(ex.ToString());
             }
         }
 

@@ -44,50 +44,46 @@ namespace DealImage.Paste
 
         public static bool CanPasteImageFromClipboard()
         {
-            var dataObject = Clipboard.GetDataObject();
-            if (dataObject == null) return false;
-            var dataFormats = dataObject.GetFormats();
-            if (ImageDataFormats.GetPasteFormats().Any(item => dataFormats.Contains(item)))
-            {
-                return true;
-            }
-            if (Clipboard.ContainsFileDropList())
-            {
-                return
-                    Clipboard.GetFileDropList()
-                        .Cast<string>()
-                        .Any(item => IsValidFileExtension(ImageHelper.GetImageExtension(item)));
-            }
-            return false;
+            return CanGetImageFromIDataObject(Clipboard.GetDataObject());
         }
 
-        public static bool CanExchangeImageFromClip()
+        public static List<ImageSource> GetPasteImagesFromClipboard()
         {
-            var dataObject = Clipboard.GetDataObject();
-            if (dataObject == null) return false;
-            var dataFormats = dataObject.GetFormats();
-            if (ImageDataFormats.GetPasteFormats().Any(item => dataFormats.Contains(item)))
-            {
-                return true;
-            }
+            var imageSources = GetImageFromIDataObject(Clipboard.GetDataObject());
 
-            if (Clipboard.ContainsFileDropList())
+            if (imageSources.Count > 0) return imageSources;
+
+            //兼容
+            if (System.Windows.Forms.Clipboard.ContainsImage())
             {
-                var filePaths = Clipboard.GetFileDropList();
-                if (filePaths.Count != 1) return false;
-                if (IsValidFileExtension(ImageHelper.GetImageExtension(filePaths[0])))
+                var image = System.Windows.Forms.Clipboard.GetImage();
+                if (image != null)
                 {
-                    return true;
+                    try
+                    {
+                        var ms = new MemoryStream();
+                        image.Save(ms, ImageFormat.Png);
+                        var bitmapImage = new BitmapImage();
+                        bitmapImage.BeginInit();
+                        bitmapImage.StreamSource = ms;
+                        bitmapImage.EndInit();
+                        imageSources.Add(bitmapImage);
+                        return imageSources;
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine(ex.ToString());
+                    }
                 }
             }
-            return false;
+
+            return imageSources;
         }
 
-        public static IEnumerable<ImageSource> GetPasteImagesFromClipboard()
+        public static List<ImageSource> GetImageFromIDataObject(IDataObject dataObject)
         {
             var imageSources = new List<ImageSource>();
 
-            var dataObject = Clipboard.GetDataObject();
             if (dataObject == null) return imageSources;
             var dataFormats = dataObject.GetFormats();
 
@@ -113,30 +109,34 @@ namespace DealImage.Paste
                 }
             }
 
-            if (Clipboard.ContainsFileDropList())
+            if (dataFormats.Contains(ImageDataFormats.FileDrop))
             {
                 var isSuccess = false;
-                foreach (var filePath in Clipboard.GetFileDropList())
+                var filePaths = dataObject.GetData(ImageDataFormats.FileDrop) as string[];
+                if (filePaths != null)
                 {
-                    if (!IsValidFileExtension(ImageHelper.GetImageExtension(filePath))) continue;
-                    try
+                    foreach (var filePath in filePaths)
                     {
-                        var stream = new MemoryStream();
-                        using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                        if (!IsValidFileExtension(ImageHelper.GetImageExtension(filePath))) continue;
+                        try
                         {
-                            fileStream.CopyTo(stream);
+                            var stream = new MemoryStream();
+                            using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                            {
+                                fileStream.CopyTo(stream);
+                            }
+                            stream.Position = 0;
+                            var bitmapImage = new BitmapImage();
+                            bitmapImage.BeginInit();
+                            bitmapImage.StreamSource = stream;
+                            bitmapImage.EndInit();
+                            imageSources.Add(bitmapImage);
+                            isSuccess = true;
                         }
-                        stream.Position = 0;
-                        var bitmapImage = new BitmapImage();
-                        bitmapImage.BeginInit();
-                        bitmapImage.StreamSource = stream;
-                        bitmapImage.EndInit();
-                        imageSources.Add(bitmapImage);
-                        isSuccess = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine(ex.ToString());
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine(ex.ToString());
+                        }
                     }
                 }
                 if (isSuccess)
@@ -207,31 +207,40 @@ namespace DealImage.Paste
                 }
             }
 
-            //兼容
-            if (System.Windows.Forms.Clipboard.ContainsImage())
+            return imageSources;
+        }
+
+        public static bool CanGetImageFromIDataObject(IDataObject dataObject)
+        {
+            if (dataObject == null) return false;
+            var dataFormats = dataObject.GetFormats();
+            if (ImageDataFormats.GetPasteFormats().Any(item => dataFormats.Contains(item)))
             {
-                var image = System.Windows.Forms.Clipboard.GetImage();
-                if (image != null)
+                return true;
+            }
+            if (dataFormats.Contains(ImageDataFormats.FileDrop))
+            {
+                var filePaths = dataObject.GetData(ImageDataFormats.FileDrop) as string[];
+                if (filePaths != null)
                 {
-                    try
-                    {
-                        var ms = new MemoryStream();
-                        image.Save(ms, ImageFormat.Png);
-                        var bitmapImage = new BitmapImage();
-                        bitmapImage.BeginInit();
-                        bitmapImage.StreamSource = ms;
-                        bitmapImage.EndInit();
-                        imageSources.Add(bitmapImage);
-                        return imageSources;
-                    }
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine(ex.ToString());
-                    }
+                    return filePaths.Any(item => IsValidFileExtension(ImageHelper.GetImageExtension(item)));
                 }
             }
-
-            return imageSources;
+            if (dataFormats.Contains(ImageDataFormats.Html))
+            {
+                var html = dataObject.GetData(ImageDataFormats.Html)?.ToString();
+                if (html != null)
+                {
+                    var reg = new Regex(@"(http|ftp|https)://(([a-zA-Z0-9\._-]+\.[a-zA-Z]{2,6})|([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}))(:[0-9]{1,4})*(/[\w- \./?%&~=]*)\.(png|jpg|gif)", RegexOptions.IgnoreCase);//正则表达式的类实例化
+                    var mc = reg.Matches(html);
+                    if (mc.Count > 0)
+                    {
+                        return true;
+                    }
+                }
+                
+            }
+            return false;
         }
 
         public static bool IsValidFileExtension(ImageExtension extension)

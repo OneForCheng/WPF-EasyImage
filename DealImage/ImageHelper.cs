@@ -4,6 +4,9 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
+using System.Net;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -28,7 +31,6 @@ namespace DealImage
             transformedBitmap.EndInit();
             return transformedBitmap;
         }
-
 
         public static Bitmap GetBitmap(this BitmapSource source)
         {

@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Threading;
 using System.Windows;
+using log4net;
 using UnmanagedToolkit;
 
 namespace EasyImage
@@ -11,6 +12,20 @@ namespace EasyImage
     public partial class App
     {
         private Mutex _instance;//同步基元，保证不被回收
+        public static readonly ILog Log = LogManager.GetLogger("InfoLogger");
+
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            log4net.Config.XmlConfigurator.Configure();
+            base.OnStartup(e);
+            Log.Info("程序启动！");
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            Log.Info("程序关闭！");
+            base.OnExit(e);
+        }
 
         private void App_OnStartup(object sender, StartupEventArgs e)
         {

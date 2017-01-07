@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -67,9 +66,9 @@ namespace EasyImage
         public double MoveSpeed { get; set; }
 
         /// <summary>
-        /// 连续复制次数
+        /// 连续添加元素的次数
         /// </summary>
-        public int ContinuedPasteCount { get; set; }
+        public int ContinuedAddCount { get; set; }
 
         /// <summary>
         /// 获取选中的元素
@@ -120,8 +119,9 @@ namespace EasyImage
                         _cachePlugins.Add(fileName, list);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    App.Log.Error(ex.ToString());
                     Extentions.ShowMessageBox($"加载 {fileName} 插件失败");
                 }
             }
@@ -134,7 +134,7 @@ namespace EasyImage
         {
             _maxControlZIndex = 0;
             _cacheSelectedElements = null;
-            ContinuedPasteCount = 0;
+            ContinuedAddCount = 0;
             MoveSpeed = 1;
             _actionManager.Clear();
             _statusCode = _actionManager.StatusCode;
@@ -529,8 +529,6 @@ namespace EasyImage
 
         #endregion Public methods
 
-        
-
         #region Events
 
         private void PluginItem_Click(object sender, EventArgs e)
@@ -546,7 +544,7 @@ namespace EasyImage
             }
             catch (Exception ex)
             {
-                Trace.WriteLine(ex.ToString());
+                App.Log.Error(ex.ToString());
                 Extentions.ShowMessageBox("执行失败!");
             }
         }
@@ -631,7 +629,7 @@ namespace EasyImage
             var menuItem = menu?.Items[1] as MenuItem;
             if (menuItem != null)
             {
-                menuItem.IsEnabled = ImagePaster.CanExchangeImageFromClip();
+                menuItem.IsEnabled = ImagePaster.CanPasteImageFromClipboard();
             }
         }
 
@@ -701,8 +699,9 @@ namespace EasyImage
             {
                 _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = Extentions.GetBitmapImage(dialog.FileName), Stretch = Stretch.Fill }));
             }
-            catch
+            catch (Exception ex)
             {
+                App.Log.Error(ex.ToString());
                 Extentions.ShowMessageBox("不支持此格式的图片!");
 
             }

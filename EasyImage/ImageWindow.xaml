@@ -22,9 +22,9 @@
     <Window.CommandBindings>
         <CommandBinding Command="{StaticResource Hidden}" Executed="WindowHidden"/>
     </Window.CommandBindings>
-    <Canvas x:Name="MainCanvas">
+    <Canvas x:Name="MainCanvas" AllowDrop="true" Drop="MainCanvas_Drop" DragEnter="MainCanvas_DragEnter" >
         <Canvas x:Name="ImageCanvas">
         </Canvas>
-        <Image x:Name="MainMenuIcon" Source="Resources/Images/icon/default_normal.png"/>
+        <Image x:Name="MainMenuIcon" Source="Resources/Images/MainIcon.png"/>
     </Canvas>
 </Window>

@@ -8,13 +8,12 @@
 
     <!-- ResizeRectThumb Template -->
     <ControlTemplate x:Key="ResizeRectThumbTemplate" TargetType="{x:Type Thumb}">
-        <!--<Rectangle Height="7" Width="7" Fill="White" Stroke="Gray" StrokeThickness="0.5"></Rectangle>-->
-        <Ellipse Height="10" Width="10" Fill="White" Stroke="Gray" StrokeThickness="0.5"></Ellipse>
+        <Ellipse Height="10" Width="10" Fill="White" Stroke="Gray" StrokeThickness="1"></Ellipse>
     </ControlTemplate>
 
     <!-- RotateIconThumb Template -->
     <ControlTemplate x:Key="RotateIconThumbTemplate" TargetType="{x:Type Thumb}">
-        <Image Width="22" Height="22" Source="../Images/rotate.png"></Image>
+        <Image Width="22" Height="22" Source="../Images/Rotate.png"></Image>
     </ControlTemplate>
 
     <!-- Move Template -->

@@ -15,7 +15,7 @@ namespace EasyImage
         private ImageWindow _imgWin;
         
         public UserConfig UserConfigution { get; set; }
-
+        
         public MainWindow()
         {
             InitializeComponent();
@@ -70,21 +70,19 @@ namespace EasyImage
 
             var conntextMenu = new System.Windows.Forms.ContextMenuStrip();
 
-            var item1 = new System.Windows.Forms.ToolStripMenuItem("设置");
-            item1.Click += (sender, e) =>
-                           {
-                           };
-            conntextMenu.Items.Add(item1);
+            var item = new System.Windows.Forms.ToolStripMenuItem("显示日志");
+            item.Click += (sender, e) => {};
+            conntextMenu.Items.Add(item);
 
-            var tsp = new System.Windows.Forms.ToolStripSeparator();
-            conntextMenu.Items.Add(tsp);
+            item = new System.Windows.Forms.ToolStripMenuItem("设置");
+            item.Click += (sender, e) => {};
+            conntextMenu.Items.Add(item);
 
-            var item2 = new System.Windows.Forms.ToolStripMenuItem("退出");
-            item2.Click += (sender, e) =>
-                           {
-                                _imgWin.Close();
-                           };
-            conntextMenu.Items.Add(item2);
+            conntextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
+
+            item = new System.Windows.Forms.ToolStripMenuItem("退出");
+            item.Click += (sender, e) => {_imgWin.Close();};
+            conntextMenu.Items.Add(item);
 
             trayIcon.ContextMenuStrip = conntextMenu;
             trayIcon.ShowBalloonTip(500);//设置显示提示气球时间
@@ -98,6 +96,7 @@ namespace EasyImage
             if (e.Button == System.Windows.Forms.MouseButtons.Left  && _imgWin != null)
             {
                 _imgWin.Visibility = Visibility.Visible;
+                _imgWin.Activate();
             }
         }
 

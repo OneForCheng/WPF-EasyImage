@@ -7,7 +7,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using EasyImage.Behaviors;
 using EasyImage.Config;
-using Microsoft.Win32;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -19,6 +18,14 @@ using NHotkey;
 using NHotkey.Wpf;
 using UnmanagedToolkit;
 using WindowTemplate;
+using ContextMenu = System.Windows.Controls.ContextMenu;
+using Cursors = System.Windows.Input.Cursors;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using MenuItem = System.Windows.Controls.MenuItem;
+using Message = WindowTemplate.Message;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+using Panel = System.Windows.Controls.Panel;
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
 namespace EasyImage
 {
@@ -33,7 +40,7 @@ namespace EasyImage
         private ClipboardMonitor _clipboardMonitor;
         private BitmapImage _cacheInternalBitmapSource;
         private int _addInternalImgCount;
-       
+
         public ImageWindow()
         {
             InitializeComponent();
@@ -65,6 +72,7 @@ namespace EasyImage
                     if (File.Exists(data))
                     {
                         Visibility = Visibility.Visible;
+                        Activate();
                         if (_controlManager.StatusCodeChanged)
                         {
                             switch (IsSaveEasyIamgeToFile())
@@ -124,8 +132,9 @@ namespace EasyImage
                 HotkeyManager.Current.AddOrReplace("GlobalAddCanvas", Key.N,
                     ModifierKeys.Control | ModifierKeys.Alt, GlobalAddCanvas);
             }
-            catch
+            catch(Exception ex)
             {
+                App.Log.Error(ex.ToString());
                 Extentions.ShowMessageBox("全局快捷键设置失败!");
             }
 
@@ -136,9 +145,8 @@ namespace EasyImage
             {
                 LoadEasyImageFromFile(filePath);
             }
-
+            
             #endregion
-
             //var timer = new DispatcherTimer(
             //            TimeSpan.FromMinutes(10),
             //            DispatcherPriority.ApplicationIdle,// Or DispatcherPriority.SystemIdle
@@ -225,6 +233,36 @@ namespace EasyImage
             _controlManager.MoveSpeed = 1.0;
         }
 
+
+        #endregion
+
+        #region 控件事件
+
+        private void MainCanvas_Drop(object sender, DragEventArgs e)
+        {
+            try
+            {
+                var imageSources = ImagePaster.GetImageFromIDataObject(e.Data);
+                if (imageSources.Count <= 0) return;
+                _controlManager.SelectNone();
+                var curPosition = Mouse.GetPosition(null);
+                var translate = new Point(curPosition.X - SystemParameters.VirtualScreenWidth / 2, curPosition.Y - SystemParameters.VirtualScreenHeight / 2);
+                var controls = new List<ImageControl>(imageSources.Count);
+                controls.AddRange(imageSources.Select(imageSource => PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }, translate)));
+                _controlManager.AddElements(controls);
+            }
+            catch (Exception ex)
+            {
+                App.Log.Error(ex.ToString());
+                Extentions.ShowMessageBox("无效的粘贴!");
+            }
+        }
+
+        private void MainCanvas_DragEnter(object sender, DragEventArgs e)
+        {
+            Activate();
+        }
+
         #endregion
 
         #region 主菜单事件
@@ -237,20 +275,20 @@ namespace EasyImage
         private void MainMenu_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
             var element = sender as Image;
-            if (element?.ContextMenu != null)
+
+            var menuItems = element?.ContextMenu?.Items?.OfType<MenuItem>().ToArray();
+            if (menuItems == null) return;
+            var menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "SaveAs");
+            if (menuItem != null)
             {
-                var menuItem = element.ContextMenu.Items[4] as MenuItem;
-                if (menuItem != null)
-                {
-                    menuItem.Visibility = _userConfigution.WindowState.InitEasyImagePath == null
-                        ? Visibility.Collapsed
-                        : Visibility.Visible;
-                }
-                menuItem = element.ContextMenu.Items[5] as MenuItem;
-                if (menuItem != null)
-                {
-                    menuItem.IsEnabled = ImagePaster.CanPasteImageFromClipboard();
-                }
+                menuItem.Visibility = _userConfigution.WindowState.InitEasyImagePath == null
+                    ? Visibility.Collapsed
+                    : Visibility.Visible;
+            }
+            menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "Paste");
+            if (menuItem != null)
+            {
+                menuItem.IsEnabled = ImagePaster.CanPasteImageFromClipboard();
             }
         }
 
@@ -299,16 +337,17 @@ namespace EasyImage
             var showDialog = dialog.ShowDialog().GetValueOrDefault();
             if (!showDialog) return;
             _controlManager.SelectNone();
-            _controlManager.ContinuedPasteCount = 0;
+            _controlManager.ContinuedAddCount = 0;
             var imageControls = new List<ImageControl>(dialog.FileNames.Length);
             foreach (var file in dialog.FileNames)
             {
                 try
                 {
-                    imageControls.Add(PackageImageToControl(new AnimatedImage.AnimatedImage { Source = Extentions.GetBitmapImage(file), Stretch = Stretch.Fill }));
+                    imageControls.Add(PackageImageToControl(new AnimatedImage.AnimatedImage { Source = Extentions.GetBitmapImage(file), Stretch = Stretch.Fill }, new Point(0, 0)));
                 }
-                catch
+                catch (Exception ex)
                 {
+                    App.Log.Error(ex.ToString());
                     Extentions.ShowMessageBox("不支持此格式的图片!");
                 }
             }
@@ -397,7 +436,7 @@ namespace EasyImage
                 if (baseInfos != null)
                 {
                     _controlManager.SelectNone();
-                    _controlManager.ContinuedPasteCount++;
+                    _controlManager.ContinuedAddCount++;
                     _controlManager.AddElements(baseInfos.Select(m => PackageBaseInfoToControl(m, true)));
                     return;
                 }
@@ -407,15 +446,17 @@ namespace EasyImage
             try
             {
                 var imageSources = ImagePaster.GetPasteImagesFromClipboard();
+                if (imageSources.Count <= 0) return;
                 _controlManager.SelectNone();
-                _controlManager.ContinuedPasteCount++;
-                var enumerable = imageSources as IList<ImageSource> ?? imageSources.ToList();
-                var controls = new List<ImageControl>(enumerable.Count);
-                controls.AddRange(enumerable.Select(imageSource => PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill })));
+                _controlManager.ContinuedAddCount++;
+                var translate = _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedAddCount;
+                var controls = new List<ImageControl>(imageSources.Count);
+                controls.AddRange(imageSources.Select(imageSource => PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }, new Point(translate, translate))));
                 _controlManager.AddElements(controls);
             }
-            catch
+            catch (Exception ex)
             {
+                App.Log.Error(ex.ToString());
                 Extentions.ShowMessageBox("无效的粘贴!");
             }
 
@@ -423,7 +464,7 @@ namespace EasyImage
 
         private void CaptureScreen(object sender, RoutedEventArgs e)
         {
-            
+           
         }
 
         #endregion
@@ -451,37 +492,37 @@ namespace EasyImage
 
             #region 添加上下文菜单
             var contextMenu = new ContextMenu();
-            var item = new MenuItem {Header = "新建"};
+            var item = new MenuItem {Header = "新建", Tag = "New"};
             item.Click += AddImageFromInternal;
             contextMenu.Items.Add(item);
 
-            item = new MenuItem { Header = "打开" };
+            item = new MenuItem { Header = "打开", Tag = "Open"};
             item.Click += LoadEasyImageFromFile;
             contextMenu.Items.Add(item);
 
-            item = new MenuItem { Header = "添加" };
+            item = new MenuItem { Header = "添加", Tag = "Add"};
             item.Click += AddImagesFromFile;
             contextMenu.Items.Add(item);
 
-            item = new MenuItem { Header = "保存" };
+            item = new MenuItem { Header = "保存", Tag = "Save"};
             item.Click += SaveEasyImageToFile;
             contextMenu.Items.Add(item);
 
-            item = new MenuItem { Header = "另保存" };
+            item = new MenuItem { Header = "另保存", Tag = "SaveAs"};
             item.Click += SaveAsEasyImageToFile;
             contextMenu.Items.Add(item);
 
-            item = new MenuItem { Header = "粘贴" };
+            item = new MenuItem { Header = "粘贴", Tag = "Paste"};
             item.Click += PasteImagesFromClipboard;
             contextMenu.Items.Add(item);
 
-            item = new MenuItem { Header = "截屏" };
+            item = new MenuItem { Header = "截屏", Tag = "CaptureScreen"};
             item.Click += CaptureScreen;
             contextMenu.Items.Add(item);
 
             contextMenu.Items.Add(new Separator());//分割线
 
-            item = new MenuItem { Header = "退出" };
+            item = new MenuItem { Header = "退出", Tag = "Exit"};
             item.Click += (sender, args) =>
             {
                 Close();
@@ -519,9 +560,11 @@ namespace EasyImage
                     }
                 }
                 _userConfigution.WindowState.InitEasyImagePath = filePath;
+                App.Log.InfoFormat("加载 EasyImage 元文件: {0}", filePath);
             }
-            catch 
+            catch (Exception ex)
             {
+                App.Log.Error(ex.ToString());
                 Extentions.ShowMessageBox("无效的文件，打开失败!");
             }
         }
@@ -553,8 +596,9 @@ namespace EasyImage
                 _controlManager.UpdateStatusCode();
                 _userConfigution.WindowState.InitEasyImagePath = filePath;
             }
-            catch
+            catch (Exception ex)
             {
+                App.Log.Error(ex.ToString());
                 Extentions.ShowMessageBox("文件可能被占用,保存失败!");
             }
         }
@@ -583,7 +627,7 @@ namespace EasyImage
             return msg.Result;
         }
 
-        private ImageControl PackageImageToControl(AnimatedImage.AnimatedImage image)
+        private ImageControl PackageImageToControl(AnimatedImage.AnimatedImage image, Point translate)
         {
             var imageControl = new ImageControl(_controlManager);
 
@@ -609,7 +653,7 @@ namespace EasyImage
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new ScaleTransform(1, 1));
             transformGroup.Children.Add(new RotateTransform(0));
-            transformGroup.Children.Add(new TranslateTransform((SystemParameters.VirtualScreenWidth - imageControl.Width) / 2 + _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedPasteCount, (SystemParameters.VirtualScreenHeight - imageControl.Height) / 2 + _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedPasteCount));
+            transformGroup.Children.Add(new TranslateTransform((SystemParameters.VirtualScreenWidth - imageControl.Width) / 2 + translate.X, (SystemParameters.VirtualScreenHeight - imageControl.Height) / 2 + translate.Y));
             imageControl.RenderTransform = transformGroup;
             
             return imageControl;
@@ -692,8 +736,8 @@ namespace EasyImage
             if (isMove)
             {
                 var translateTransform = imageControl.GetTransform<TranslateTransform>();
-                translateTransform.X += _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedPasteCount;
-                translateTransform.Y += _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedPasteCount;
+                translateTransform.X += _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedAddCount;
+                translateTransform.Y += _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedAddCount;
             }
 
             return imageControl;
@@ -713,14 +757,16 @@ namespace EasyImage
 
         private void OnClipboardContentChanged(object sender, EventArgs e)
         {
-            _controlManager.ContinuedPasteCount = 0;
+            _controlManager.ContinuedAddCount = 0;
         }
 
-        #endregion
+
 
         #endregion
 
-       
+        #endregion
+
+        
     }
 
 }
