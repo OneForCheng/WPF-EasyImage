@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 
-namespace Gray
+namespace ThresholdDeal
 {
     internal static class Win32
     {

@@ -3,16 +3,17 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ai="clr-namespace:AnimatedImage;assembly=AnimatedImage"
         x:Name="ImageWin" 
         x:Class="EasyImage.ImageWindow"
     mc:Ignorable="d"
-        Title="WingStudio.ForCheng.EasyImage"  Height="350" Width="525" Background="Transparent" WindowStyle="None" AllowsTransparency="True" Topmost="True" WindowState="Maximized" ShowInTaskbar="False"  Loaded="WindowLoaded" KeyDown="WindowKeyDown" KeyUp="WindowKeyUp" Closing="WindowClosing">
+        Title="WingStudio.ForCheng.EasyImage" Top="0" Left="0"  Height="300" Width="600" Background="Transparent" WindowStyle="None" AllowsTransparency="True" Topmost="True" ShowInTaskbar="False" AllowDrop="True"  Loaded="WindowLoaded" KeyDown="WindowKeyDown" KeyUp="WindowKeyUp" Closing="WindowClosing"  Drop="WindowDrop" DragEnter="WindowDragEnter">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources/Styles/MoveResizeRotateStyle.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-            <!--<SolidColorBrush x:Key="OpacityBrush" Color="Gray" Opacity="0.3" />-->
+            <ai:AnimatedImage x:Key="MainMenuIcon" Source="Resources/Images/MainIcon.png"/>
             <RoutedCommand x:Key="Hidden" />
         </ResourceDictionary>
     </Window.Resources>
@@ -22,9 +23,8 @@
     <Window.CommandBindings>
         <CommandBinding Command="{StaticResource Hidden}" Executed="WindowHidden"/>
     </Window.CommandBindings>
-    <Canvas x:Name="MainCanvas" AllowDrop="true" Drop="MainCanvas_Drop" DragEnter="MainCanvas_DragEnter" >
-        <Canvas x:Name="ImageCanvas">
+    <Canvas x:Name="MainCanvas" Top="0" Left="0" >
+        <Canvas Top="0" Left="0" x:Name="ImageCanvas">
         </Canvas>
-        <Image x:Name="MainMenuIcon" Source="Resources/Images/MainIcon.png"/>
     </Canvas>
 </Window>

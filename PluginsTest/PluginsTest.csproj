@@ -97,13 +97,13 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Gray\Gray.csproj">
-      <Project>{7D31B3B1-AE2A-4F7B-8B75-D7BDC9964575}</Project>
-      <Name>Gray</Name>
-    </ProjectReference>
+    <None Include="Resources\1.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\1.png" />
+    <ProjectReference Include="..\ThresholdDeal\ThresholdDeal.csproj">
+      <Project>{18C22BC1-7549-494F-B07B-F78DAC96F622}</Project>
+      <Name>ThresholdDeal</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

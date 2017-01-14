@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Gray.Properties {
+namespace EasyDeal.Properties {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace Gray.Properties {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Gray.Properties.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("EasyDeal.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -63,9 +63,9 @@ namespace Gray.Properties {
         /// <summary>
         ///   查找 System.Drawing.Bitmap 类型的本地化资源。
         /// </summary>
-        internal static System.Drawing.Bitmap BinaryIcon {
+        internal static System.Drawing.Bitmap GrayIcon {
             get {
-                object obj = ResourceManager.GetObject("BinaryIcon", resourceCulture);
+                object obj = ResourceManager.GetObject("GrayIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -73,9 +73,9 @@ namespace Gray.Properties {
         /// <summary>
         ///   查找 System.Drawing.Bitmap 类型的本地化资源。
         /// </summary>
-        internal static System.Drawing.Bitmap GrayIcon {
+        internal static System.Drawing.Bitmap InvertIcon {
             get {
-                object obj = ResourceManager.GetObject("GrayIcon", resourceCulture);
+                object obj = ResourceManager.GetObject("InvertIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

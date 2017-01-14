@@ -1,9 +1,8 @@
-﻿using IPlugins;
+﻿using System;
+using IPlugins;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
 
-namespace Gray
+namespace ThresholdDeal
 {
     public class PluginBinary : IHandle
     {
@@ -24,8 +23,9 @@ namespace Gray
 
         public HandleResult ExecHandle(Bitmap bitmap)
         {
-            var binaryWin = new BinaryWindow(bitmap);
-            return binaryWin.ShowDialog().GetValueOrDefault() ? new HandleResult(binaryWin.ResultBitmap, true) : new HandleResult(null, false);
+            var window = new BinaryWindow(bitmap);
+            window.ShowDialog();
+            return window.HandleResult;
         }
     }
 }

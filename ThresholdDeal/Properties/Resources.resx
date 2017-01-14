@@ -118,10 +118,22 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="AtomizedIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\icon_atomized.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
   <data name="BinaryIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\icon_binary.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="GrayIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\icon_gray.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="BlurIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\icon_blur.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="EnchaseIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\icon_enchase.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="MosiacIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\icon_mosaic.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="SharpenIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\icon_sharpen.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

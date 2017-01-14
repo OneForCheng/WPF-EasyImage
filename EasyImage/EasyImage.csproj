@@ -100,6 +100,7 @@
     <Compile Include="Actioins\DragRotateAction.cs" />
     <Compile Include="Actioins\WheelScaleAction.cs" />
     <Compile Include="Actioins\DragMoveAction.cs" />
+    <Compile Include="Behaviors\AutoHideElementBehavior.cs" />
     <Compile Include="Behaviors\MouseDragElementBehavior.cs" />
     <Compile Include="Config\AppSetting.cs" />
     <Compile Include="Config\UserConfig.cs" />

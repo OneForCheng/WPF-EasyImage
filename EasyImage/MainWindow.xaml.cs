@@ -20,7 +20,7 @@ namespace EasyImage
         {
             InitializeComponent();
             UserConfigution = new UserConfig();
-            UserConfigution.LoadConfigFromXml(Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, ConfigurationManager.AppSettings["UserConfigPath"]));
+            UserConfigution.LoadConfigFromXml(ConfigurationManager.AppSettings["UserConfigPath"]);
         }
 
         #region 主窗口事件
@@ -43,7 +43,7 @@ namespace EasyImage
         /// <param name="e"></param>
         private void WindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            UserConfigution.SaveConfigToXml(Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, ConfigurationManager.AppSettings["UserConfigPath"]));
+            UserConfigution.SaveConfigToXml(ConfigurationManager.AppSettings["UserConfigPath"]);
             if (_trayIcon != null)
             {
                 _trayIcon.Visible = false;

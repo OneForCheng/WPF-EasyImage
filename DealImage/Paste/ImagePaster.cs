@@ -1,21 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text.RegularExpressions;
+using System.Web;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Path = System.IO.Path;
 
 namespace DealImage.Paste
 {
     public static class ImagePaster
     {
+
+        private const string RegexImgLable = @"<img\b[^<>]*?\bsrc[\s\t\r\n]*=[\s\t\r\n]*[""']?[\s\t\r\n]*(?<imgUrl>[^\s\t\r\n""'<>]*)[^<>]*?/?[\s\t\r\n]*>";
+
         public static bool CanInternalPasteFromClipboard()
         {
             var dataObject = Clipboard.GetDataObject();
@@ -44,13 +48,42 @@ namespace DealImage.Paste
 
         public static bool CanPasteImageFromClipboard()
         {
-            return CanGetImageFromIDataObject(Clipboard.GetDataObject());
+            var dataObject = Clipboard.GetDataObject();
+            if (dataObject == null) return false;
+            var dataFormats = dataObject.GetFormats();
+            if (ImageDataFormats.GetPasteFormats().Any(item => dataFormats.Contains(item)))
+            {
+                return true;
+            }
+            if (dataFormats.Contains(ImageDataFormats.FileDrop))
+            {
+                var filePaths = dataObject.GetData(ImageDataFormats.FileDrop) as string[];
+                if (filePaths != null)
+                {
+                    return filePaths.Any(item => ImageHelper.IsValidFileExtension(ImageHelper.GetImageExtension(item)));
+                }
+            }
+            if (dataFormats.Contains(ImageDataFormats.Html))
+            {
+                var html = dataObject.GetData(ImageDataFormats.Html)?.ToString();
+                if (html != null)
+                {
+                    var reg = new Regex(RegexImgLable, RegexOptions.IgnoreCase);//正则表达式的类实例化
+                    var mc = reg.Matches(html);
+                    if (mc.Count > 0)
+                    {
+                        return true;
+                    }
+                }
+
+            }
+            return false;
         }
 
         public static List<ImageSource> GetPasteImagesFromClipboard()
         {
-            var imageSources = GetImageFromIDataObject(Clipboard.GetDataObject());
 
+            var imageSources = GetImageFromIDataObject(Clipboard.GetDataObject());
             if (imageSources.Count > 0) return imageSources;
 
             //兼容
@@ -117,7 +150,7 @@ namespace DealImage.Paste
                 {
                     foreach (var filePath in filePaths)
                     {
-                        if (!IsValidFileExtension(ImageHelper.GetImageExtension(filePath))) continue;
+                        if (!ImageHelper.IsValidFileExtension(ImageHelper.GetImageExtension(filePath))) continue;
                         try
                         {
                             var stream = new MemoryStream();
@@ -150,21 +183,30 @@ namespace DealImage.Paste
                 var html = dataObject.GetData(ImageDataFormats.Html)?.ToString();
                 if (html != null)
                 {
-                    var reg = new Regex(@"(http|ftp|https)://(([a-zA-Z0-9\._-]+\.[a-zA-Z]{2,6})|([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}))(:[0-9]{1,4})*(/[\w- \./?%&~=]*)\.(png|jpg|gif)", RegexOptions.IgnoreCase);//正则表达式的类实例化
+                    html = HttpUtility.HtmlDecode(html);
+                    var reg = new Regex(RegexImgLable, RegexOptions.IgnoreCase);//正则表达式的类实例化
                     var mc = reg.Matches(html);
                     if (mc.Count > 0)
                     {
                         try
                         {
-                            var tempFilePath = Path.GetTempFileName();
-                            using (var webClient = new WebClient())
+                            MemoryStream stream;
+                            var source = mc[0].Groups["imgUrl"].Value;
+                            if (source.StartsWith("data:image"))
                             {
-                                webClient.DownloadFile(mc[0].Value, tempFilePath);
+                                var imageBytes = Convert.FromBase64String(source.Substring(source.IndexOf(',') + 1));
+                                stream = new MemoryStream(imageBytes);
                             }
-                            var stream = new MemoryStream();
-                            using (var fileStream = new FileStream(tempFilePath, FileMode.Open, FileAccess.Read))
+                            else
                             {
-                                fileStream.CopyTo(stream);
+                                using (var webClient = new WebClient())
+                                {
+                                    stream = new MemoryStream();
+                                    using (var reader = webClient.OpenRead(source))
+                                    {
+                                        reader?.CopyTo(stream);
+                                    }
+                                }
                             }
                             stream.Position = 0;
                             var bitmapImage = new BitmapImage();
@@ -208,56 +250,6 @@ namespace DealImage.Paste
             }
 
             return imageSources;
-        }
-
-        public static bool CanGetImageFromIDataObject(IDataObject dataObject)
-        {
-            if (dataObject == null) return false;
-            var dataFormats = dataObject.GetFormats();
-            if (ImageDataFormats.GetPasteFormats().Any(item => dataFormats.Contains(item)))
-            {
-                return true;
-            }
-            if (dataFormats.Contains(ImageDataFormats.FileDrop))
-            {
-                var filePaths = dataObject.GetData(ImageDataFormats.FileDrop) as string[];
-                if (filePaths != null)
-                {
-                    return filePaths.Any(item => IsValidFileExtension(ImageHelper.GetImageExtension(item)));
-                }
-            }
-            if (dataFormats.Contains(ImageDataFormats.Html))
-            {
-                var html = dataObject.GetData(ImageDataFormats.Html)?.ToString();
-                if (html != null)
-                {
-                    var reg = new Regex(@"(http|ftp|https)://(([a-zA-Z0-9\._-]+\.[a-zA-Z]{2,6})|([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}))(:[0-9]{1,4})*(/[\w- \./?%&~=]*)\.(png|jpg|gif)", RegexOptions.IgnoreCase);//正则表达式的类实例化
-                    var mc = reg.Matches(html);
-                    if (mc.Count > 0)
-                    {
-                        return true;
-                    }
-                }
-                
-            }
-            return false;
-        }
-
-        public static bool IsValidFileExtension(ImageExtension extension)
-        {
-            switch (extension)
-            {
-                case ImageExtension.Ico:
-                case ImageExtension.Jpg:
-                case ImageExtension.Gif:
-                case ImageExtension.Bmp:
-                case ImageExtension.Png:
-                case ImageExtension.Tif:
-                    //case FileExtension.Wmf:
-                    //case FileExtension.Emf:
-                    return true;
-            }
-            return false;
         }
 
     }

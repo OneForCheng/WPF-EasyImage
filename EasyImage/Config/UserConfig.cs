@@ -48,7 +48,11 @@ namespace EasyImage.Config
 
         public void LoadConfigFromXml(string path)
         {
-            if (!File.Exists(path)) return;
+            if (!File.Exists(path))
+            {
+                path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, path);
+                if(!File.Exists(path))return;
+            }
             try
             {
                 using (var fs = new FileStream(path, FileMode.Open))
@@ -71,8 +75,8 @@ namespace EasyImage.Config
             if (!File.Exists(path))
             {
                 path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, "Config/UserConfig.xml");
-            }
-
+            }   
+  
             var xmlsz = new XmlSerializer(typeof(UserConfig));
 
             var file = new FileInfo(path);

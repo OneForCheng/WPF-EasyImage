@@ -38,14 +38,14 @@ namespace DealImage
             (
               source.PixelWidth,
               source.PixelHeight,
-              System.Drawing.Imaging.PixelFormat.Format32bppPArgb
+              System.Drawing.Imaging.PixelFormat.Format32bppArgb
             );
 
             var data = bmp.LockBits
              (
                  new System.Drawing.Rectangle(System.Drawing.Point.Empty, bmp.Size),
                  ImageLockMode.WriteOnly,
-                 System.Drawing.Imaging.PixelFormat.Format32bppPArgb
+                 System.Drawing.Imaging.PixelFormat.Format32bppArgb
              );
 
             source.CopyPixels
@@ -104,6 +104,24 @@ namespace DealImage
             return extension;
         }
 
+        public static bool IsValidFileExtension(ImageExtension extension)
+        {
+            switch (extension)
+            {
+                case ImageExtension.Ico:
+                case ImageExtension.Jpg:
+                case ImageExtension.Gif:
+                case ImageExtension.Bmp:
+                case ImageExtension.Png:
+                case ImageExtension.Tif:
+                    //case FileExtension.Wmf:
+                    //case FileExtension.Emf:
+                    return true;
+            }
+            return false;
+        }
+
+
         public static BitmapSource GetMinContainBitmap(this IDictionary<FrameworkElement, FrameworkElement> dictionary, SolidColorBrush backgrand = null)
         {
             var rect = dictionary.Values.GetMinContainRect();
@@ -123,6 +141,7 @@ namespace DealImage
                     };
                     context.DrawRectangle(brush, null, item.Value.GetRelationRect(relationPoint));
                 }
+              
             }
 
             var renderBitmap = new RenderTargetBitmap((int)rect.Width, (int)rect.Height, 96, 96, PixelFormats.Pbgra32);
@@ -137,7 +156,7 @@ namespace DealImage
 
             renderBitmap.Render(rectangle);
             renderBitmap.Render(drawingVisual);
-
+            
             return renderBitmap;
         }
 

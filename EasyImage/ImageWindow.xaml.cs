@@ -8,6 +8,7 @@ using System.Windows.Media.Imaging;
 using EasyImage.Behaviors;
 using EasyImage.Config;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -39,11 +40,15 @@ namespace EasyImage
         private ControlManager _controlManager;
         private ClipboardMonitor _clipboardMonitor;
         private BitmapImage _cacheInternalBitmapSource;
+        private UserControl _mainMenu;
         private int _addInternalImgCount;
 
         public ImageWindow()
         {
             InitializeComponent();
+            ImageCanvas.Width = MainCanvas.Width = Width = SystemParameters.VirtualScreenWidth;
+            ImageCanvas.Height = MainCanvas.Height = Height = SystemParameters.VirtualScreenHeight;
+
         }
 
         #region 重载方法
@@ -145,8 +150,9 @@ namespace EasyImage
             {
                 LoadEasyImageFromFile(filePath);
             }
-            
+
             #endregion
+
             //var timer = new DispatcherTimer(
             //            TimeSpan.FromMinutes(10),
             //            DispatcherPriority.ApplicationIdle,// Or DispatcherPriority.SystemIdle
@@ -173,6 +179,7 @@ namespace EasyImage
             }
             if (!e.Cancel)
             {
+                SaveCurrentState();
                 Owner.Close();
             }
         }
@@ -233,19 +240,14 @@ namespace EasyImage
             _controlManager.MoveSpeed = 1.0;
         }
 
-
-        #endregion
-
-        #region 控件事件
-
-        private void MainCanvas_Drop(object sender, DragEventArgs e)
+        private void WindowDrop(object sender, DragEventArgs e)
         {
             try
             {
+                var curPosition = Mouse.GetPosition(null);
                 var imageSources = ImagePaster.GetImageFromIDataObject(e.Data);
                 if (imageSources.Count <= 0) return;
                 _controlManager.SelectNone();
-                var curPosition = Mouse.GetPosition(null);
                 var translate = new Point(curPosition.X - SystemParameters.VirtualScreenWidth / 2, curPosition.Y - SystemParameters.VirtualScreenHeight / 2);
                 var controls = new List<ImageControl>(imageSources.Count);
                 controls.AddRange(imageSources.Select(imageSource => PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }, translate)));
@@ -258,7 +260,7 @@ namespace EasyImage
             }
         }
 
-        private void MainCanvas_DragEnter(object sender, DragEventArgs e)
+        private void WindowDragEnter(object sender, DragEventArgs e)
         {
             Activate();
         }
@@ -274,7 +276,7 @@ namespace EasyImage
 
         private void MainMenu_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
-            var element = sender as Image;
+            var element = sender as UserControl;
 
             var menuItems = element?.ContextMenu?.Items?.OfType<MenuItem>().ToArray();
             if (menuItems == null) return;
@@ -471,22 +473,44 @@ namespace EasyImage
 
         #region Private methods
 
+        private void SaveCurrentState()
+        {
+            var mainMenuIconInfo = _userConfigution.ImageSetting.MainMenuInfo;
+            mainMenuIconInfo.Width = _mainMenu.Width;
+            mainMenuIconInfo.Height = _mainMenu.Height;
+            var translate = _mainMenu.GetTransform<TranslateTransform>();
+            mainMenuIconInfo.TranslateX = translate.X;
+            mainMenuIconInfo.TranslateY = translate.Y;
+        }
+
         private void InitMainMenu()
         {
             #region 初始化属性
-            MainMenuIcon.Width = 30;
-            MainMenuIcon.Height = 30;
-            MainMenuIcon.ToolTip = "EasyImage主菜单";
-            MainMenuIcon.Cursor = Cursors.SizeAll;
+            var mainMenuInfo = _userConfigution.ImageSetting.MainMenuInfo;
 
+            _mainMenu = new UserControl
+            {
+                Content = GetMainMenuIcon(),
+                Width = mainMenuInfo.Width,
+                Height = mainMenuInfo.Height,
+                ToolTip = "EasyImage主菜单",
+                Cursor = Cursors.SizeAll,
+            };
+           
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new ScaleTransform(1, 1));
             transformGroup.Children.Add(new RotateTransform(0));
-            transformGroup.Children.Add(new TranslateTransform((SystemParameters.VirtualScreenWidth - MainMenuIcon.Width) / 2, (SystemParameters.VirtualScreenHeight - MainMenuIcon.Height) / 2));
-            MainMenuIcon.RenderTransform = transformGroup;
+            transformGroup.Children.Add(new TranslateTransform(mainMenuInfo.TranslateX, mainMenuInfo.TranslateY));
+            _mainMenu.RenderTransform = transformGroup;
 
-            var dragBehavior = new MouseDragElementBehavior<Image>();
-            dragBehavior.Attach(MainMenuIcon);
+            var dragBehavior = new MouseDragElementBehavior<UserControl>
+            {
+                MoveableRange = new Rect(0, 0, SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight),
+            };
+            dragBehavior.Attach(_mainMenu);
+
+            var autoHideBehavior = new AutoHideElementBehavior<UserControl>();
+            autoHideBehavior.Attach(_mainMenu);
 
             #endregion
 
@@ -529,14 +553,46 @@ namespace EasyImage
             };
             contextMenu.Items.Add(item);
 
-            MainMenuIcon.ContextMenu = contextMenu;
+            _mainMenu.ContextMenu = contextMenu;
             #endregion
 
             #region 添加事件
-            MainMenuIcon.MouseDown += MainMenu_MouseDown;
-            MainMenuIcon.ContextMenuOpening += MainMenu_ContextMenuOpening;
-
+            _mainMenu.MouseDown += MainMenu_MouseDown;
+            _mainMenu.ContextMenuOpening += MainMenu_ContextMenuOpening;
+            
             #endregion
+
+            MainCanvas.Children.Add(_mainMenu);
+        }
+
+        private AnimatedImage.AnimatedImage GetMainMenuIcon()
+        {
+            AnimatedImage.AnimatedImage animatedImage;
+            var path = _userConfigution.ImageSetting.MainMenuInfo.Path;
+            if (!File.Exists(path))
+            {
+                path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, path);
+                if (!File.Exists(path))
+                {
+                    animatedImage = (AnimatedImage.AnimatedImage)Resources["MainMenuIcon"];
+                    return animatedImage;
+                }
+            }
+            try
+            {
+                animatedImage = new AnimatedImage.AnimatedImage
+                {
+                    Source = Extentions.GetBitmapImage(path),
+                    Stretch = Stretch.Fill
+                };
+            }
+            catch (Exception ex)
+            {
+                App.Log.Error(ex.ToString());
+                animatedImage = (AnimatedImage.AnimatedImage)Resources["MainMenuIcon"];
+            }
+
+            return animatedImage;
         }
 
         private void LoadEasyImageFromFile(string filePath)

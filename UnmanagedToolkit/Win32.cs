@@ -7,6 +7,7 @@ namespace UnmanagedToolkit
 {
     public static class Win32
     {
+
         #region 1、去除系统菜单
         public enum SystemMenuItems
         {
@@ -161,6 +162,27 @@ namespace UnmanagedToolkit
 
         #endregion
 
+        #region MyRegion
+
+
+        //获取鼠标坐标
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        public static extern bool GetCursorPos(out Point pt);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct Point
+        {
+            public int X;
+            public int Y;
+
+            public Point(int x, int y)
+            {
+                X = x;
+                Y = y;
+            }
+        }
+
+        #endregion
     }
 
 }

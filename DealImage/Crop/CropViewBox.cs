@@ -17,7 +17,7 @@ namespace DealImage.Crop
 
         public Rect CropViewbox { get; }//视图裁剪框
 
-        public CropViewBox(UIElement element, double angle = 0, double scaleX = 1, double scaleY = 1, double correctionX = 0, double correctionY = 0)
+        public CropViewBox(UIElement element, double angle = 0, double scaleX = 1, double scaleY = 1)
         {
             IsTransform = !(angle.Equals(0) && scaleX.Equals(1) && scaleY.Equals(1));
 
@@ -38,7 +38,7 @@ namespace DealImage.Crop
             var minY = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y));
             var maxY = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y));
 
-            CropScreenbox = new Rect(minX + correctionX, minY + correctionY, maxX - minX, maxY - minY);
+            CropScreenbox = new Rect(minX, minY, maxX - minX, maxY - minY);
 
             var bevelSideLength = Math.Sqrt((maxX - minX) * (maxX - minX) + (maxY - minY) * (maxY - minY));
             TransformViewbox = new Rect(0, 0, bevelSideLength, bevelSideLength);

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -104,8 +105,8 @@ namespace EasyImage
         {
             if (!Directory.Exists(pluginsDir))
             {
-                //Extentions.ShowMessageBox($"不存在插件路径:{pluginsDir}");
-                return;
+                pluginsDir = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, pluginsDir);
+                if(!Directory.Exists(pluginsDir)) return;
             }
             _cachePlugins = new Dictionary<string, List<IHandle>>();
             foreach (var filePath in Directory.GetFiles(pluginsDir, "*.dll"))
@@ -339,6 +340,7 @@ namespace EasyImage
                     translateTransform.X -= moveX;
                     translateTransform.Y -= moveY;
                 }
+                
                 _actionManager.Execute(transactions);
             }
             else
@@ -536,16 +538,16 @@ namespace EasyImage
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
             var bitmapSource = ((Image)element.Content).Source as BitmapSource;
-            try
+            var result = ((sender as MenuItem)?.Tag as IHandle)?.ExecHandle(bitmapSource.GetResizeBitmap((int)Math.Round(element.Width), (int)Math.Round(element.Height)).GetBitmap());
+            if (result == null)return;
+            if (!result.IsSuccess)
             {
-                var result = ((sender as MenuItem)?.Tag as IHandle)?.ExecHandle(bitmapSource.GetResizeBitmap((int)Math.Round(element.Width), (int)Math.Round(element.Height)).GetBitmap());
-                if (result == null || !result.IsModified) return;
-                _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = result.ResultBitmap.GetBitmapSource().GetBitmapImage(), Stretch = Stretch.Fill }));
+                App.Log.Error(result.Exception.ToString());
+                Extentions.ShowMessageBox("程序错误,请查看日志了解详细情况!");
             }
-            catch (Exception ex)
+            else if (result.IsModified)
             {
-                App.Log.Error(ex.ToString());
-                Extentions.ShowMessageBox("执行失败!");
+                _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = result.ResultBitmap.GetBitmapSource().GetBitmapImage(), Stretch = Stretch.Fill }));
             }
         }
 
@@ -1113,7 +1115,7 @@ namespace EasyImage
             #endregion
 
             #region 另存为图片
-            item = new MenuItem { Header = "另存为图片...", Tag = "SaveToImage" };
+            item = new MenuItem { Header = "另存为图片", Tag = "SaveToImage" };
             item.Click += Menu_SaveToImage;
             contextMenu.Items.Add(item);
 
@@ -1314,7 +1316,7 @@ namespace EasyImage
             foreach (var element in elements)
             {
                 var scaleTransform = element.GetTransform<ScaleTransform>();
-                var imageSource = ScreenCropper.CropScreen(new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY, -7, -7));
+                var imageSource = ScreenCropper.CropScreen(new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
                 if (imageSource != null && cropStyle != CropStyle.Default)
                 {
                     imageSource = ImageCropper.CropBitmapSource(imageSource, ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth, imageSource.PixelHeight), cropStyle);
@@ -1423,7 +1425,7 @@ namespace EasyImage
                     Stretch = Stretch.None,
                     RelativeTransform = transformGroup,
                 };
-                context.DrawRectangle(brush, null, new Rect((centerPoint.X - bevelSideLength / 2) + 7, (centerPoint.Y - bevelSideLength / 2) + 7, bevelSideLength, bevelSideLength));
+                context.DrawRectangle(brush, null, new Rect((centerPoint.X - bevelSideLength / 2), (centerPoint.Y - bevelSideLength / 2), bevelSideLength, bevelSideLength));
             }
             drawingVisual.Opacity = imageControl.Opacity;
             var renderBitmap = new RenderTargetBitmap(screenWidth, screenHeight, 96, 96, PixelFormats.Pbgra32);
