@@ -1,0 +1,161 @@
+﻿<Window x:Class="Drawing.DrawingWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:controls="clr-namespace:Drawing.Resources.Controls"
+             xmlns:local="clr-namespace:Drawing"
+             mc:Ignorable="d" 
+             Height="370" Width="370" MinHeight="370" MinWidth="370" ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" ShowInTaskbar="False" Topmost="True" Loaded="WindowLoaded" KeyDown="WindowKeyDown" >
+    <Window.Resources>
+        <ResourceDictionary>
+            <!-- 引用资源字典 -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles/ButtonStyle.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid x:Name="BasicGrid">
+        <Rectangle Fill="#FF6A96E4" Height="25" Stroke="#FF6A96E4" VerticalAlignment="Top"/>
+        <Rectangle Fill="#FF6A96E4" Stroke="#FF6A96E4" HorizontalAlignment="Right" Width="10" MouseLeftButtonDown="DragMoveWindow"/>
+        <Rectangle Fill="#FF6A96E4" Stroke="#FF6A96E4" HorizontalAlignment="Left" Width="10" MouseLeftButtonDown="DragMoveWindow"/>
+        <Rectangle Fill="#FF6A96E4" Height="10" Stroke="#FF6A96E4" VerticalAlignment="Bottom" MouseLeftButtonDown="DragMoveWindow"/>
+        <CheckBox x:Name="ExchangeBgCbx" FontSize="3" Padding="0" IsChecked="True" BorderThickness="0" FontStretch="Condensed" Click="ExchangeBgCbx_Click" ToolTip="切换背景(右击选择)" Margin="0,0,0,155" Height="12" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="11" MouseRightButtonDown="ExchangeBgCbx_MouseRightButtonDown"/>
+        <Label x:Name="TitleLbl" Content="Drawing" VerticalAlignment="Top" Foreground="White" Margin="0,0,25,0" FontSize="14"  MouseLeftButtonDown="DragMoveWindow"/>
+        <Button x:Name="CloseBtn" Content="×" Style="{StaticResource CloseBtnStyle}" VerticalAlignment="Top" HorizontalAlignment="Right" Width="18" Height="18" BorderThickness="0" Margin="0,4,4,0"  Click="CloseBtn_Click"/>
+        <Button x:Name="SettingBtn" Style="{StaticResource SettingBtnStyle}" VerticalAlignment="Top" HorizontalAlignment="Right" Width="18" Height="18" BorderThickness="0" Margin="0,4,30,0" Click="SettingBtn_Click"/>
+            <Grid Margin="10,25,10,10" >
+            <Grid.RowDefinitions>
+                <RowDefinition Height="285*"/>
+                <RowDefinition Height="155"/>
+            </Grid.RowDefinitions>
+            <Grid Grid.Row="0" x:Name="ImageViewGrid" Background="White">
+                <Grid Margin="10">
+                    <Border x:Name="ImageBorder" BorderThickness="0.1" BorderBrush="Gray" HorizontalAlignment="Center" VerticalAlignment="Center" >
+                        <Grid x:Name="ImageVisulGrid" Background="Transparent">
+                            <Image x:Name="TargetImage" Stretch="Uniform" MouseLeftButtonDown="TargetImage_MouseLeftButtonDown" MouseLeftButtonUp="TargetImage_MouseLeftButtonUp"  Cursor="Cross" HorizontalAlignment="Center" VerticalAlignment="Center" MouseMove="TargetImage_MouseMove" MouseLeave="TargetImage_MouseLeave" />
+                            <TextBox x:Name="ImageTextBox" Focusable="True" BorderThickness="1" TextWrapping="Wrap" AcceptsTab="True" AcceptsReturn="true" BorderBrush="#FF6A96E4" MinWidth="20" MinHeight="17"  Background="Transparent" Visibility="Hidden"  VerticalAlignment="Top" HorizontalAlignment="Left"  LostFocus="ImageTextBox_LostFocus"></TextBox>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+            <Grid Grid.Row="1" >
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="105"/>
+                    <RowDefinition Height="50"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid Grid.ColumnSpan="2" >
+                    <Grid Height="30" VerticalAlignment="Top">
+                        <Grid.Background>
+                            <SolidColorBrush Color="#FF6A96E4" Opacity="0.8"></SolidColorBrush>
+                        </Grid.Background>
+                        <StackPanel SnapsToDevicePixels="True"  Height="30" VerticalAlignment="Top" Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Button ToolTip="矩形" Style="{StaticResource ImageButtonStyle}" Click="ImageButton_Click" >
+                                <Button.Tag>
+                                    <x:Static Member="local:DrawingTool.RectTool"></x:Static>
+                                </Button.Tag>
+                                <Button.Background>
+                                    <ImageBrush ImageSource="Resources/Images/icon_rect.png"></ImageBrush>
+                                </Button.Background>
+                            </Button>
+                            <Button ToolTip="圆圈" Style="{StaticResource ImageButtonStyle}"  Click="ImageButton_Click">
+                                <Button.Tag>
+                                    <x:Static Member="local:DrawingTool.EllipseTool"></x:Static>
+                                </Button.Tag>
+                                <Button.Background>
+                                    <ImageBrush ImageSource="Resources/Images/icon_circle.png"></ImageBrush>
+                                </Button.Background>
+                            </Button>
+                            <Button ToolTip="箭头" Style="{StaticResource ImageButtonStyle}"  Click="ImageButton_Click">
+                                <Button.Tag>
+                                    <x:Static Member="local:DrawingTool.ArrowTool"></x:Static>
+                                </Button.Tag>
+                                <Button.Background>
+                                    <ImageBrush ImageSource="Resources/Images/icon_arrow.png"></ImageBrush>
+                                </Button.Background>
+                            </Button>
+                            <Button x:Name="PenToolBtn" Selector.IsSelected="True" ToolTip="画笔" Style="{StaticResource ImageButtonStyle}"  Click="ImageButton_Click">
+                                <Button.Tag>
+                                    <x:Static Member="local:DrawingTool.PenTool"></x:Static>
+                                </Button.Tag>
+                                <Button.Background>
+                                    <ImageBrush ImageSource="Resources/Images/icon_pencil.png"></ImageBrush>
+                                </Button.Background>
+                            </Button>
+                            <Button ToolTip="文字" Style="{StaticResource ImageButtonStyle}"  Click="ImageButton_Click">
+                                <Button.Tag>
+                                    <x:Static Member="local:DrawingTool.TextTool"></x:Static>
+                                </Button.Tag>
+                                <Button.Background>
+                                    <ImageBrush ImageSource="Resources/Images/icon_text.png"></ImageBrush>
+                                </Button.Background>
+                            </Button>
+                            <Button ToolTip="橡皮擦(透明)" Style="{StaticResource ImageButtonStyle}"  Click="ImageButton_Click">
+                                <Button.Tag>
+                                    <x:Static Member="local:DrawingTool.EraserTool"></x:Static>
+                                </Button.Tag>
+                                <Button.Background>
+                                    <ImageBrush ImageSource="Resources/Images/icon_eraser.png"></ImageBrush>
+                                </Button.Background>
+                            </Button>
+                            
+                            <Button ToolTip="取色器" Style="{StaticResource ImageButtonStyle}" Click="ImageButton_Click">
+                                <Button.Tag>
+                                    <x:Static Member="local:DrawingTool.PickerTool"></x:Static>
+                                </Button.Tag>
+                                <Button.Background>
+                                    <ImageBrush ImageSource="Resources/Images/icon_colorselector.png"></ImageBrush>
+                                </Button.Background>
+                            </Button>
+                            <Button ToolTip="复制(Ctrl+C)"  Style="{StaticResource ImageButtonStyle}" Click="ImageButton_Click" >
+                                <Button.Tag>
+                                    <x:Static Member="local:DrawingTool.CopyTool"></x:Static>
+                                </Button.Tag>
+                                <Button.Background>
+                                    <ImageBrush ImageSource="Resources/Images/icon_copy.png"></ImageBrush>
+                                </Button.Background>
+                            </Button>
+                            <Button x:Name="UndoButton" ToolTip="撤销(Ctrl+Z)" IsEnabled="False"  Style="{StaticResource ImageButtonStyle}" Click="ImageButton_Click" >
+                                <Button.Tag>
+                                    <x:Static Member="local:DrawingTool.UndoTool"></x:Static>
+                                </Button.Tag>
+                                <Button.Background>
+                                    <ImageBrush ImageSource="Resources/Images/icon_undo.png"></ImageBrush>
+                                </Button.Background>
+                            </Button>
+                            <Button x:Name="RedoButton" ToolTip="反撤销(Ctrl+Y)" IsEnabled="False"  Style="{StaticResource ImageButtonStyle}" Click="ImageButton_Click" >
+                                <Button.Tag>
+                                    <x:Static Member="local:DrawingTool.RedoTool"></x:Static>
+                                </Button.Tag>
+                                <Button.Background>
+                                    <ImageBrush ImageSource="Resources/Images/icon_redo.png"></ImageBrush>
+                                </Button.Background>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <controls:DrawingInfoPicker Grid.Row="0" Grid.Column="0" x:Name="DrawingInfo" Height="75" BorderThickness="1" BorderBrush="White" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" ColorChanged="DrawingInfo_ColorChanged" FontChanged="DrawingInfo_FontChanged" SelectedRadioChanged="DrawingInfo_SelectedRadioChanged">
+                        <controls:DrawingInfoPicker.Background>
+                            <SolidColorBrush Color="#FF6A96E4" Opacity="0.8"></SolidColorBrush>
+                        </controls:DrawingInfoPicker.Background>
+                    </controls:DrawingInfoPicker>
+                </Grid>
+                <Grid Grid.Row="1" Grid.Column="0">
+                    <Grid.Background>
+                        <SolidColorBrush Color="#FF6A96E4" Opacity="0.8"></SolidColorBrush>
+                    </Grid.Background>
+                    <Button x:Name="LeftBtn" Content="取消" FontSize="14" Margin="0,10,40,0" Style="{StaticResource NormalBtnStyle}" Click="LeftBtn_Click" Grid.Column="0" HorizontalAlignment="Right" Width="71" Height="30" VerticalAlignment="Top"/>
+                </Grid>
+                <Grid Grid.Row="1" Grid.Column="1" >
+                    <Grid.Background>
+                        <SolidColorBrush Color="#FF6A96E4" Opacity="0.8"></SolidColorBrush>
+                    </Grid.Background>
+                    <Button x:Name="RightBtn" Content="确定" FontSize="14" Margin="40,10,0,0" Style="{StaticResource NormalBtnStyle}" Click="RightBtn_Click" HorizontalAlignment="Left" Width="69" Height="30" VerticalAlignment="Top" />
+                </Grid>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

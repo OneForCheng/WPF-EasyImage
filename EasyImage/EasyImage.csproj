@@ -188,30 +188,6 @@
   <ItemGroup>
     <Resource Include="Resources\Images\MainIcon.png" />
   </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\Images\Toolbar\back_toolbar.png" />
-    <Resource Include="Resources\Images\Toolbar\btn_arrow.png" />
-    <Resource Include="Resources\Images\Toolbar\btn_brush.png" />
-    <Resource Include="Resources\Images\Toolbar\btn_undo.png" />
-    <Resource Include="Resources\Images\Toolbar\btn_close.png" />
-    <Resource Include="Resources\Images\Toolbar\btn_ellips.png" />
-    <Resource Include="Resources\Images\Toolbar\btn_mosaic.png" />
-    <Resource Include="Resources\Images\Toolbar\btn_ok.png" />
-    <Resource Include="Resources\Images\Toolbar\btn_rect.png" />
-    <Resource Include="Resources\Images\Toolbar\btn_save.png" />
-    <Resource Include="Resources\Images\Toolbar\btn_text.png" />
-    <Resource Include="Resources\Images\Toolbar\separator.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\Images\Toolbar\btn_redo.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\Images\Toolbar\alpha_back.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\Images\Toolbar\btn_eraser.png" />
-    <Resource Include="Resources\Images\Toolbar\btn_pencil.png" />
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

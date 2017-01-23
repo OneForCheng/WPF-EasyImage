@@ -11,16 +11,6 @@ namespace EasyImage.Behaviors
 {
     public class AutoHideElementBehavior<T> : Behavior<FrameworkElement> where T : FrameworkElement
     {
-        public AutoHideElementBehavior()
-        {
-            _lockTimer = false;
-            _hideStatus = HideState.None;
-            _autoHideTimer = new DispatcherTimer {Interval = TimeSpan.FromMilliseconds(100)};
-            _autoHideTimer.Tick += AutoHideTimer_Tick;
-        }
-
-        public bool IsHide => _hideStatus != HideState.None;
-
         private enum HideState
         {
             None,
@@ -30,6 +20,7 @@ namespace EasyImage.Behaviors
             Left,
         }
 
+        #region Private fields
         private HideState _hideStatus;
         private readonly DispatcherTimer _autoHideTimer;//一个触发器
         private bool _lockTimer;
@@ -38,6 +29,69 @@ namespace EasyImage.Behaviors
         private const double Factor = 3;
         private Win32.Point _curPosition;
 
+        #endregion
+
+        #region Constructor
+        public AutoHideElementBehavior()
+        {
+            _lockTimer = false;
+            _hideStatus = HideState.None;
+            _autoHideTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+            _autoHideTimer.Tick += AutoHideTimer_Tick;
+        }
+
+        #endregion
+
+        #region Public properties and methods
+
+        public bool IsHide => _hideStatus != HideState.None;
+
+        public void Show()
+        {
+            if (_hideStatus != HideState.None)
+            {
+                if (_autoHideTimer.IsEnabled)
+                {
+                    _autoHideTimer.Stop();
+                }
+                switch (_hideStatus)
+                {
+                    case HideState.Top:
+                        AnimationTranslate(HideState.Bottom, _targetElement.ActualHeight + Factor, () =>
+                        {
+                            _cacheTranslateTransform.Y = 0;
+                            _hideStatus = HideState.None;
+
+                        });
+                        break;
+                    case HideState.Right:
+                        AnimationTranslate(HideState.Left, _targetElement.ActualWidth + Factor, () =>
+                        {
+                            _cacheTranslateTransform.X = SystemParameters.VirtualScreenWidth - _targetElement.ActualWidth;
+                            _hideStatus = HideState.None;
+                        });
+                        break;
+                    case HideState.Bottom:
+                        AnimationTranslate(HideState.Top, _targetElement.ActualHeight + Factor, () =>
+                        {
+                            _cacheTranslateTransform.Y = SystemParameters.VirtualScreenHeight - _targetElement.ActualHeight;
+                            _hideStatus = HideState.None;
+                        });
+                        break;
+                    case HideState.Left:
+                        AnimationTranslate(HideState.Right, _targetElement.ActualWidth + Factor, () =>
+                        {
+                            _cacheTranslateTransform.X = 0;
+                            _hideStatus = HideState.None;
+                        });
+                        break;
+                }
+            }
+        }
+
+        #endregion
+
+        #region Protect methods
         protected override void OnAttached()
         {
             base.OnAttached();
@@ -50,46 +104,9 @@ namespace EasyImage.Behaviors
             AssociatedObject.MouseLeave -= AssociatedObject_MouseLeave;
         }
 
-        private void AnimationTranslate(HideState hideDirection, double distance, Action completedEvent = null)
-        {
-            double fromValue  = 0, toValue = 0;
-            var dependencyProperty = TranslateTransform.YProperty;
-            switch (hideDirection)
-            {
-                case HideState.Top:
-                    dependencyProperty = TranslateTransform.YProperty;
-                    fromValue = _cacheTranslateTransform.Y;
-                    toValue = fromValue - distance;
-                    break;
-                case HideState.Right:
-                    dependencyProperty = TranslateTransform.XProperty;
-                    fromValue = _cacheTranslateTransform.X;
-                    toValue = fromValue + distance;
-                    break;
-                case HideState.Bottom:
-                    dependencyProperty = TranslateTransform.YProperty;
-                    fromValue = _cacheTranslateTransform.Y;
-                    toValue = fromValue + distance;
-                    break;
-                case HideState.Left:
-                    dependencyProperty = TranslateTransform.XProperty;
-                    fromValue = _cacheTranslateTransform.X;
-                    toValue = fromValue - distance;
-                    break;
-            }
-            var animation = new DoubleAnimation(fromValue, toValue, new Duration(TimeSpan.FromMilliseconds(500)), FillBehavior.Stop);
-            if (completedEvent != null)
-            {
-                animation.Completed += (sender, args) =>
-                {
-                    completedEvent.Invoke();
-                };
-            }
-            _cacheTranslateTransform.BeginAnimation(dependencyProperty, animation);
-            
-        }
+        #endregion
 
-        #region Event
+        #region Events and Private methods
         private void AssociatedObject_MouseLeave(object sender, MouseEventArgs e)
         {
             if(_hideStatus != HideState.None) return;
@@ -219,6 +236,45 @@ namespace EasyImage.Behaviors
                 }
                 _lockTimer = false;
             }
+        }
+
+        private void AnimationTranslate(HideState hideDirection, double distance, Action completedEvent = null)
+        {
+            double fromValue = 0, toValue = 0;
+            var dependencyProperty = TranslateTransform.YProperty;
+            switch (hideDirection)
+            {
+                case HideState.Top:
+                    dependencyProperty = TranslateTransform.YProperty;
+                    fromValue = _cacheTranslateTransform.Y;
+                    toValue = fromValue - distance;
+                    break;
+                case HideState.Right:
+                    dependencyProperty = TranslateTransform.XProperty;
+                    fromValue = _cacheTranslateTransform.X;
+                    toValue = fromValue + distance;
+                    break;
+                case HideState.Bottom:
+                    dependencyProperty = TranslateTransform.YProperty;
+                    fromValue = _cacheTranslateTransform.Y;
+                    toValue = fromValue + distance;
+                    break;
+                case HideState.Left:
+                    dependencyProperty = TranslateTransform.XProperty;
+                    fromValue = _cacheTranslateTransform.X;
+                    toValue = fromValue - distance;
+                    break;
+            }
+            var animation = new DoubleAnimation(fromValue, toValue, new Duration(TimeSpan.FromMilliseconds(500)), FillBehavior.Stop);
+            if (completedEvent != null)
+            {
+                animation.Completed += (sender, args) =>
+                {
+                    completedEvent.Invoke();
+                };
+            }
+            _cacheTranslateTransform.BeginAnimation(dependencyProperty, animation);
+
         }
 
         #endregion

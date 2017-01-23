@@ -23,18 +23,19 @@ namespace DealImage.Crop
         {
             var width = bitmap.Width;
             var height = bitmap.Height;
+            const int pixelSize = 4;
+
             var width1 = transparentBitmap.Width;
             var height1 = transparentBitmap.Height;
             var outputBitmap = new Bitmap(width, height);
 
-            var data = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, bitmap.PixelFormat);
-            var compareData = transparentBitmap.LockBits(new Rectangle(0, 0, width1, height1), ImageLockMode.ReadOnly, transparentBitmap.PixelFormat);
+            var data = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            var compareData = transparentBitmap.LockBits(new Rectangle(0, 0, width1, height1), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
             var outData = outputBitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
-            const int pixelSize = 4;
+            
             unsafe
             {
                 var output = (byte*)outData.Scan0;
-                var offset = outData.Stride - width * 4;
                 for (var y = 0; y < height; y++)
                 {
                     //每一行内存中的位置  
@@ -47,7 +48,8 @@ namespace DealImage.Crop
                         {
                             if (row1[x * pixelSize + 3] == 0)
                             {
-                                output[3] = 0;//设置输出图这部分为透明   
+                                output[0] = output[1] = output[2] = 255;
+                                output[3] = 0;
                             }
                             else
                             {
@@ -59,11 +61,11 @@ namespace DealImage.Crop
                         }
                         else
                         {
-                            output[3] = 0;//设置输出图这部分为透明  
+                            output[0] = output[1] = output[2] = 255;
+                            output[3] = 0;
                         }
-                        output += 4;
+                        output += pixelSize;
                     }
-                    output += offset;
                 }
             }
             bitmap.UnlockBits(data);
@@ -77,18 +79,19 @@ namespace DealImage.Crop
         {
             var width = bitmap.Width;
             var height = bitmap.Height;
+            const int pixelSize = 4;
+
             var width1 = transparentBitmap.Width;
             var height1 = transparentBitmap.Height;
             var outputBitmap = new Bitmap(width, height);
 
-            var data = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, bitmap.PixelFormat);
-            var compareData = transparentBitmap.LockBits(new Rectangle(0, 0, width1, height1), ImageLockMode.ReadOnly, transparentBitmap.PixelFormat);
+            var data = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            var compareData = transparentBitmap.LockBits(new Rectangle(0, 0, width1, height1), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
             var outData = outputBitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
-            const int pixelSize = 4;
+           
             unsafe
             {
                 var output = (byte*)outData.Scan0;
-                var offset = outData.Stride - width * 4;
                 for (var y = 0; y < height; y++)
                 {
                     //每一行内存中的位置  
@@ -108,7 +111,8 @@ namespace DealImage.Crop
                             }
                             else
                             {
-                                output[3] = 0;//设置输出图这部分为透明   
+                                output[0] = output[1] = output[2] = 255;
+                                output[3] = 0;
                             }
                         }
                         else
@@ -118,9 +122,8 @@ namespace DealImage.Crop
                             output[2] = row[x * pixelSize + 2];
                             output[3] = row[x * pixelSize + 3];
                         }
-                        output += 4;
+                        output += pixelSize;
                     }
-                    output += offset;
                 }
             }
             bitmap.UnlockBits(data);
@@ -134,15 +137,15 @@ namespace DealImage.Crop
         {
             var width = bitmap.Width;
             var height = bitmap.Height;
-            var outputBitmap = new Bitmap(width, height);
-
-            var data = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, bitmap.PixelFormat);
-            var outData = outputBitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
             const int pixelSize = 4;
+
+            var outputBitmap = new Bitmap(width, height);
+            var data = bitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            var outData = outputBitmap.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+            
             unsafe
             {
                 var output = (byte*)outData.Scan0;
-                var offset = outData.Stride - width * 4;
                 for (var y = 0; y < height; y++)
                 {
                     //每一行内存中的位置  
@@ -158,11 +161,11 @@ namespace DealImage.Crop
                         }
                         else
                         {
-                            output[3] = 0;//设置输出图这部分为透明
+                            output[0] = output[1] = output[2] = 255;
+                            output[3] = 0;
                         }
-                        output += 4;
+                        output += pixelSize;
                     }
-                    output += offset;
                 }
             }
             bitmap.UnlockBits(data);

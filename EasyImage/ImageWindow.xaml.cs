@@ -8,7 +8,6 @@ using System.Windows.Media.Imaging;
 using EasyImage.Behaviors;
 using EasyImage.Config;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -36,75 +35,24 @@ namespace EasyImage
     /// </summary>
     public partial class ImageWindow
     {
+        #region Private properties
         private UserConfig _userConfigution;
         private ControlManager _controlManager;
         private ClipboardMonitor _clipboardMonitor;
         private BitmapImage _cacheInternalBitmapSource;
         private UserControl _mainMenu;
+        private AutoHideElementBehavior<UserControl> _autoHideBehavior;
         private int _addInternalImgCount;
 
+        #endregion
+
+        #region Constructor
         public ImageWindow()
         {
             InitializeComponent();
             ImageCanvas.Width = MainCanvas.Width = Width = SystemParameters.VirtualScreenWidth;
             ImageCanvas.Height = MainCanvas.Height = Height = SystemParameters.VirtualScreenHeight;
 
-        }
-
-        #region 重载方法
-
-        /// <summary>
-        /// 消息事件处理
-        /// </summary>
-        /// <param name="hwnd"></param>
-        /// <param name="msg"></param>
-        /// <param name="wParam"></param>
-        /// <param name="lParam"></param>
-        /// <param name="handled"></param>
-        /// <returns></returns>
-        IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-        {
-            if (msg == Win32.WmCopydata)
-            {
-                var copyDataStruct = (Win32.CopyDataStruct)Marshal.PtrToStructure(lParam, typeof(Win32.CopyDataStruct));
-                var data = copyDataStruct.lpData;
-                if (data == string.Empty)
-                {
-                    Extentions.ShowMessageBox("程序已运行");
-                }
-                else
-                {
-                    if (File.Exists(data))
-                    {
-                        Visibility = Visibility.Visible;
-                        Activate();
-                        if (_controlManager.StatusCodeChanged)
-                        {
-                            switch (IsSaveEasyIamgeToFile())
-                            {
-                                case ClickResult.LeftBtn:
-                                    SaveEasyImageToFile(null, null);
-                                    break;
-                                case ClickResult.MiddleBtn:
-                                    break;
-                                case ClickResult.RightBtn:
-                                case ClickResult.Close:
-                                    return hwnd;
-                            }
-                        }
-                        LoadEasyImageFromFile(data);
-                    }
-                }
-
-            }
-            return hwnd;
-        }
-
-        protected override void OnSourceInitialized(EventArgs e)
-        {
-            base.OnSourceInitialized(e);
-            var hwndSource = PresentationSource.FromVisual(this) as HwndSource;
-            hwndSource?.AddHook(WndProc);
         }
 
         #endregion
@@ -244,7 +192,8 @@ namespace EasyImage
         {
             try
             {
-                var curPosition = Mouse.GetPosition(null);
+                Win32.Point curPosition;
+                Win32.GetCursorPos(out curPosition);
                 var imageSources = ImagePaster.GetImageFromIDataObject(e.Data);
                 if (imageSources.Count <= 0) return;
                 _controlManager.SelectNone();
@@ -322,6 +271,7 @@ namespace EasyImage
 
         private void AddImagesFromFile(object sender, RoutedEventArgs e)
         {
+            
             var dialog = new OpenFileDialog()
             {
                 Multiselect = true,
@@ -334,25 +284,45 @@ namespace EasyImage
                     + "|PNG 可移植网络图形格式 (*.png)|*.png"
                     + "|TIFF Tag 图像文件格式 (*.tif;*.tiff)|*.tif;*.tiff"
                     + "|设备无关位图 (*.bmp;*.dib;*.rle)|*.bmp;*.dib;*.rle"
+                    + "|文件图标 (*.*)|*.*"
             };
-
+            
             var showDialog = dialog.ShowDialog().GetValueOrDefault();
             if (!showDialog) return;
             _controlManager.SelectNone();
             _controlManager.ContinuedAddCount = 0;
             var imageControls = new List<ImageControl>(dialog.FileNames.Length);
-            foreach (var file in dialog.FileNames)
+            if (dialog.FilterIndex == 8)
             {
-                try
+                foreach (var filePath in dialog.FileNames)
                 {
-                    imageControls.Add(PackageImageToControl(new AnimatedImage.AnimatedImage { Source = Extentions.GetBitmapImage(file), Stretch = Stretch.Fill }, new Point(0, 0)));
-                }
-                catch (Exception ex)
-                {
-                    App.Log.Error(ex.ToString());
-                    Extentions.ShowMessageBox("不支持此格式的图片!");
+                    try
+                    {
+                        imageControls.Add(PackageImageToControl(new AnimatedImage.AnimatedImage { Source = Extentions.GetBitmapFormFileIcon(filePath), Stretch = Stretch.Fill }, new Point(0, 0)));
+                    }
+                    catch (Exception ex)
+                    {
+                        App.Log.Error(ex.ToString());
+                        Extentions.ShowMessageBox("无法加载文件的图标!");
+                    }
                 }
             }
+            else
+            {
+                foreach (var file in dialog.FileNames)
+                {
+                    try
+                    {
+                        imageControls.Add(PackageImageToControl(new AnimatedImage.AnimatedImage { Source = Extentions.GetBitmapImage(file), Stretch = Stretch.Fill }, new Point(0, 0)));
+                    }
+                    catch (Exception ex)
+                    {
+                        App.Log.Error(ex.ToString());
+                        Extentions.ShowMessageBox("不支持此格式的图片!");
+                    }
+                }
+            }
+
             _controlManager.AddElements(imageControls);
         }
 
@@ -392,7 +362,7 @@ namespace EasyImage
             }
             _controlManager.SelectNone();
             _addInternalImgCount++;
-            _controlManager.AddElement(PackageImageSourceToControl(_cacheInternalBitmapSource));
+            _controlManager.AddElement(PackageBitmapSourceToControl(_cacheInternalBitmapSource));
         }
 
         private void SaveEasyImageToFile(object sender, RoutedEventArgs e)
@@ -471,6 +441,29 @@ namespace EasyImage
 
         #endregion
 
+        #region Protect methods
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            var hwndSource = PresentationSource.FromVisual(this) as HwndSource;
+            hwndSource?.AddHook(WndProc);
+        }
+
+        #endregion
+
+        #region Public methods
+
+        public void ShowMainMenu()
+        {
+            if (_autoHideBehavior != null && _autoHideBehavior.IsHide)
+            {
+                _autoHideBehavior.Show();
+            }
+        }
+
+        #endregion
+
         #region Private methods
 
         private void SaveCurrentState()
@@ -509,8 +502,8 @@ namespace EasyImage
             };
             dragBehavior.Attach(_mainMenu);
 
-            var autoHideBehavior = new AutoHideElementBehavior<UserControl>();
-            autoHideBehavior.Attach(_mainMenu);
+            _autoHideBehavior = new AutoHideElementBehavior<UserControl>();
+            _autoHideBehavior.Attach(_mainMenu);
 
             #endregion
 
@@ -687,9 +680,9 @@ namespace EasyImage
         {
             var imageControl = new ImageControl(_controlManager);
 
-            var width = imageControl.Width = image.Source.Width;
-            var height = imageControl.Height = image.Source.Height;
-            
+            var width = imageControl.Width = ((BitmapSource)image.Source).Width;
+            var height = imageControl.Height = ((BitmapSource)image.Source).Height;
+
             imageControl.Content = image;
             imageControl.Template = (ControlTemplate)Resources["MoveResizeRotateTemplate"];
 
@@ -715,7 +708,7 @@ namespace EasyImage
             return imageControl;
         }
 
-        private ImageControl PackageImageSourceToControl(ImageSource imageSource)
+        private ImageControl PackageBitmapSourceToControl(BitmapSource imageSource)
         {
             var animatedImage = new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill };
             var imageControl = new ImageControl(_controlManager)
@@ -799,7 +792,56 @@ namespace EasyImage
             return imageControl;
         }
 
-        #region 全局事件
+        /// <summary>
+        /// 消息事件处理
+        /// </summary>
+        /// <param name="hwnd"></param>
+        /// <param name="msg"></param>
+        /// <param name="wParam"></param>
+        /// <param name="lParam"></param>
+        /// <param name="handled"></param>
+        /// <returns></returns>
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == Win32.WmCopydata)
+            {
+                var copyDataStruct = (Win32.CopyDataStruct)Marshal.PtrToStructure(lParam, typeof(Win32.CopyDataStruct));
+                var data = copyDataStruct.lpData;
+                if (data == string.Empty)
+                {
+                    Extentions.ShowMessageBox("程序已运行");
+                }
+                else
+                {
+                    if (File.Exists(data))
+                    {
+                        Visibility = Visibility.Visible;
+                        Activate();
+                        if (_controlManager.StatusCodeChanged)
+                        {
+                            switch (IsSaveEasyIamgeToFile())
+                            {
+                                case ClickResult.LeftBtn:
+                                    SaveEasyImageToFile(null, null);
+                                    break;
+                                case ClickResult.MiddleBtn:
+                                    break;
+                                case ClickResult.RightBtn:
+                                case ClickResult.Close:
+                                    return hwnd;
+                            }
+                        }
+                        LoadEasyImageFromFile(data);
+                    }
+                }
+
+            }
+            return hwnd;
+        }
+
+        #endregion
+
+        #region Global events
 
         private void GlobalPasteFromClipboard(object sender, HotkeyEventArgs e)
         {
@@ -816,13 +858,6 @@ namespace EasyImage
             _controlManager.ContinuedAddCount = 0;
         }
 
-
-
         #endregion
-
-        #endregion
-
-        
     }
-
 }

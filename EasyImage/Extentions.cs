@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
@@ -27,12 +28,12 @@ namespace EasyImage
             else
             {
                 var group = transform as TransformGroup;
-                if (@group != null)
+                if (group != null)
                 {
-                    var count = @group.Children.Count;
+                    var count = group.Children.Count;
                     for (var i = count - 1; i >= 0; i--)
                     {
-                        targetTransform = @group.Children[i] as T;
+                        targetTransform = group.Children[i] as T;
                         if (targetTransform != null)
                         {
                             break;
@@ -40,19 +41,19 @@ namespace EasyImage
                     }
                     if (targetTransform != null) return targetTransform;
                     targetTransform = new T();
-                    @group.Children.Add(targetTransform);
+                    group.Children.Add(targetTransform);
                     return targetTransform;
                 }
                 else
                 {
-                    @group = new TransformGroup();
+                    group = new TransformGroup();
                     if (transform != null)
                     {
-                        @group.Children.Add(transform);
+                        group.Children.Add(transform);
                     }
                     targetTransform = new T();
-                    @group.Children.Add(targetTransform);
-                    element.RenderTransform = @group;
+                    group.Children.Add(targetTransform);
+                    element.RenderTransform = group;
 
                     return targetTransform;
                 }
@@ -95,6 +96,26 @@ namespace EasyImage
             using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
             {
                 fileStream.CopyTo(stream);
+            }
+            stream.Position = 0;
+            var bitmapImage = new BitmapImage();
+            bitmapImage.BeginInit();
+            bitmapImage.StreamSource = stream;
+            bitmapImage.EndInit();
+            return bitmapImage;
+        }
+
+        public static BitmapImage GetBitmapFormFileIcon(string filePath)
+        {
+            if (!File.Exists(filePath)) return null;
+            var stream = new MemoryStream();
+            using (var icon = System.Drawing.Icon.ExtractAssociatedIcon(filePath))
+            {
+                if (icon != null)
+                {
+                    var bitmap = icon.ToBitmap();
+                    bitmap.Save(stream, ImageFormat.Png);
+                }
             }
             stream.Position = 0;
             var bitmapImage = new BitmapImage();

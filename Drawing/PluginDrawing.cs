@@ -1,0 +1,30 @@
+﻿using System.Drawing;
+using IPlugins;
+
+namespace Drawing
+{
+    public class PluginDrawing : IHandle
+    {
+        public string GetPluginName()
+        {
+            return "Drawing";
+        }
+
+        public Bitmap GetPluginIcon()
+        {
+            return Properties.Resources.DrawingIcon;
+        }
+
+        public void InitPlugin(string appStartupPath)
+        {
+
+        }
+
+        public HandleResult ExecHandle(Bitmap bitmap)
+        {
+            var window = new DrawingWindow(bitmap);
+            window.ShowDialog();
+            return window.HandleResult;
+        }
+    }
+}

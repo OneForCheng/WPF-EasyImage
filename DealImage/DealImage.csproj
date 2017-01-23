@@ -53,7 +53,6 @@
     <Compile Include="Crop\ImageCropper.cs" />
     <Compile Include="Copy\ImageCopyer.cs" />
     <Compile Include="Crop\ScreenCropper.cs" />
-    <Compile Include="DealColor\ImageColorHelper.cs" />
     <Compile Include="ImageExtension.cs" />
     <Compile Include="ImageDataFormats.cs" />
     <Compile Include="ImageHelper.cs" />

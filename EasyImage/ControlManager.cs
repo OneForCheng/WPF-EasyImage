@@ -11,6 +11,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using DealImage;
 using DealImage.Copy;
@@ -49,13 +50,12 @@ namespace EasyImage
         private readonly ActionManager _actionManager;
         private Dictionary<string, List<IHandle>> _cachePlugins;
         private ImageControl[] _cacheSelectedElements;
-        private long _statusCode;
+        private int _statusCode;
         private int _maxControlZIndex;
 
         #endregion Private fields
 
         #region Properties
-
         /// <summary>
         /// 状态码是否发生改变
         /// </summary>
@@ -547,7 +547,10 @@ namespace EasyImage
             }
             else if (result.IsModified)
             {
-                _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = result.ResultBitmap.GetBitmapSource().GetBitmapImage(), Stretch = Stretch.Fill }));
+                using (var bitmap = result.ResultBitmap)
+                {
+                    _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = bitmap.GetBitmapSource().GetBitmapImage(), Stretch = Stretch.Fill }));
+                }
             }
         }
 
@@ -1230,6 +1233,7 @@ namespace EasyImage
 
             #region 添加事件
             element.PreviewMouseDown += Element_PreviewMouseDown;
+            element.MouseDoubleClick += MenuItem_CaptureImageFromScreen;
             element.ContextMenuOpening += Menu_ContextMenuOpening;
             element.SizeChanged += Element_SizeChanged;
 
@@ -1319,12 +1323,19 @@ namespace EasyImage
                 var imageSource = ScreenCropper.CropScreen(new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
                 if (imageSource != null && cropStyle != CropStyle.Default)
                 {
-                    imageSource = ImageCropper.CropBitmapSource(imageSource, ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth, imageSource.PixelHeight), cropStyle);
+                    imageSource = ImageCropper.CropBitmapSource(imageSource,
+                        ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth,
+                            imageSource.PixelHeight), cropStyle);
                 }
 
                 if (imageSource != null)
                 {
-                    _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
+                    _actionManager.Execute(new ExchangeImageAction(element,
+                        new AnimatedImage.AnimatedImage
+                        {
+                            Source = imageSource.GetBitmapImage(),
+                            Stretch = Stretch.Fill
+                        }));
                 }
                 else
                 {
@@ -1334,72 +1345,92 @@ namespace EasyImage
             elements.ForEach(m => m.Visibility = Visibility.Visible);
         }
 
-        private async void CropImageFromInternal(CropStyle cropStyle)
+        private void CropImageFromInternal(CropStyle cropStyle)
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
             element.Visibility = Visibility.Hidden;
 
-            await Task.Delay(300);
-
-            var renderBitmap = new RenderTargetBitmap((int)SystemParameters.VirtualScreenWidth, (int)SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
-            renderBitmap.Render(_panelContainer);
-            var scaleTransform = element.GetTransform<ScaleTransform>();
-            var imageSource = ScreenCropper.CropScreen(renderBitmap, new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
-            if (imageSource != null && cropStyle != CropStyle.Default)
+             element.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                imageSource = ImageCropper.CropBitmapSource(imageSource, ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth, imageSource.PixelHeight), cropStyle);
-            }
-            if (imageSource != null)
-            {
-                _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
-            }
-            else
-            {
-                Extentions.ShowMessageBox("不合法的截图操作!");
-            }
-            element.Visibility = Visibility.Visible;
+                var renderBitmap = new RenderTargetBitmap((int)SystemParameters.VirtualScreenWidth, (int)SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
+                renderBitmap.Render(_panelContainer);
+                var scaleTransform = element.GetTransform<ScaleTransform>();
+                var imageSource = ScreenCropper.CropScreen(renderBitmap, new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
+                if (imageSource != null && cropStyle != CropStyle.Default)
+                {
+                    imageSource = ImageCropper.CropBitmapSource(imageSource, ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth, imageSource.PixelHeight), cropStyle);
+                }
+                if (imageSource != null)
+                {
+                    _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
+                }
+                else
+                {
+                    Extentions.ShowMessageBox("不合法的截图操作!");
+                }
+                element.Visibility = Visibility.Visible;
+            }));
         }
 
-        private async void CutImageFromInternal(CropStyle cropStyle)
+        private void CutImageFromInternal(CropStyle cropStyle)
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
             element.Visibility = Visibility.Hidden;
 
-            await Task.Delay(300);
-
-            var renderBitmap = new RenderTargetBitmap((int)SystemParameters.VirtualScreenWidth, (int)SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
-            renderBitmap.Render(_panelContainer);
-            var scaleTransform = element.GetTransform<ScaleTransform>();
-            var cropViewBox = new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY);
-            var imageSource = ScreenCropper.CropScreen(renderBitmap, cropViewBox);
-            if (imageSource != null && cropStyle != CropStyle.Default)
+            element.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                imageSource = ImageCropper.CropBitmapSource(imageSource, ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth, imageSource.PixelHeight), cropStyle);
-            }
-            element.Visibility = Visibility.Visible;
-            if (imageSource == null)
-            {
-                Extentions.ShowMessageBox("不合法的抠图操作!");
-                return;
-            }
-            var unSelectedElements = _panelContainer.Children.Cast<object>().OfType<ImageControl>().Where(m => !Selector.GetIsSelected(m)).ToList();
-            var intersectElements = unSelectedElements.Where(m => ((Image)element.Content).IsOverlapped((Image)m.Content)).ToArray();
+                var renderBitmap = new RenderTargetBitmap((int) SystemParameters.VirtualScreenWidth,
+                    (int) SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
+                renderBitmap.Render(_panelContainer);
+                var scaleTransform = element.GetTransform<ScaleTransform>();
+                var cropViewBox = new CropViewBox((Image) element.Content, element.GetTransform<RotateTransform>().Angle,
+                    scaleTransform.ScaleX, scaleTransform.ScaleY);
+                var imageSource = ScreenCropper.CropScreen(renderBitmap, cropViewBox);
+                if (imageSource != null && cropStyle != CropStyle.Default)
+                {
+                    imageSource = ImageCropper.CropBitmapSource(imageSource,
+                        ((BitmapSource) ((Image) element.Content).Source).GetResizeBitmap(imageSource.PixelWidth,
+                            imageSource.PixelHeight), cropStyle);
+                }
+                element.Visibility = Visibility.Visible;
+                if (imageSource == null)
+                {
+                    Extentions.ShowMessageBox("不合法的抠图操作!");
+                    return;
+                }
+                var unSelectedElements =
+                    _panelContainer.Children.Cast<object>()
+                        .OfType<ImageControl>()
+                        .Where(m => !Selector.GetIsSelected(m))
+                        .ToList();
+                var intersectElements =
+                    unSelectedElements.Where(m => ((Image) element.Content).IsOverlapped((Image) m.Content)).ToArray();
 
-            var fullScreenBitmap = GetFullScreenBitmap(element, cropStyle);
-            var transactions = new TransactionAction();
-            foreach (var item in intersectElements)
-            {
-                scaleTransform = item.GetTransform<ScaleTransform>();
-                cropViewBox = new CropViewBox((Image)item.Content, item.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY);
-                var bitmapSource = ScreenCropper.CropScreen(fullScreenBitmap, cropViewBox);
-                var cutBitmapSource = ImageCropper.CropBitmapSource(((BitmapSource)((Image)item.Content).Source).GetResizeBitmap(bitmapSource.PixelWidth, bitmapSource.PixelHeight), bitmapSource, CropStyle.Transparent);
-                transactions.Add(new ExchangeImageAction(item, new AnimatedImage.AnimatedImage { Source = cutBitmapSource.GetBitmapImage(), Stretch = Stretch.Fill }));
-            }
-            transactions.Add(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
-            _actionManager.Execute(transactions);
-
+                var fullScreenBitmap = GetFullScreenBitmap(element, cropStyle);
+                var transactions = new TransactionAction();
+                foreach (var item in intersectElements)
+                {
+                    scaleTransform = item.GetTransform<ScaleTransform>();
+                    cropViewBox = new CropViewBox((Image) item.Content, item.GetTransform<RotateTransform>().Angle,
+                        scaleTransform.ScaleX, scaleTransform.ScaleY);
+                    var bitmapSource = ScreenCropper.CropScreen(fullScreenBitmap, cropViewBox);
+                    var cutBitmapSource =
+                        ImageCropper.CropBitmapSource(
+                            ((BitmapSource) ((Image) item.Content).Source).GetResizeBitmap(bitmapSource.PixelWidth,
+                                bitmapSource.PixelHeight), bitmapSource, CropStyle.Transparent);
+                    transactions.Add(new ExchangeImageAction(item,
+                        new AnimatedImage.AnimatedImage
+                        {
+                            Source = cutBitmapSource.GetBitmapImage(),
+                            Stretch = Stretch.Fill
+                        }));
+                }
+                transactions.Add(new ExchangeImageAction(element,
+                    new AnimatedImage.AnimatedImage {Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill}));
+                _actionManager.Execute(transactions);
+            }));
         }
 
         private BitmapSource GetFullScreenBitmap(ImageControl imageControl, CropStyle cropStyle)

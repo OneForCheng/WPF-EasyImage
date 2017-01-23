@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ArtDeal;
+using Drawing;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -13,7 +15,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using ThresholdDeal;
 
 namespace PluginsTest
 {
@@ -29,7 +30,8 @@ namespace PluginsTest
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            var window = new SoftenWindow(Properties.Resources.TestImage);
+
+            var window = new DrawingWindow(Properties.Resources.TestImage);
             window.ShowDialog();
         }
     }

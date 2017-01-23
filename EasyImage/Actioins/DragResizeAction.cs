@@ -75,6 +75,7 @@ namespace EasyImage.Actioins
                     _translateX -= 2 * _width * Math.Cos(radian) * _scaleX;
                 }
             }
+
         }
 
         /// <summary>

@@ -4,9 +4,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -21,15 +18,27 @@ namespace DealImage
     {
         public  static BitmapSource GetResizeBitmap(this BitmapSource bitmapSource, int width, int height)
         {
-            var transformedBitmap = new TransformedBitmap();
-            transformedBitmap.BeginInit();
-            transformedBitmap.Source = bitmapSource;
-            var scaleX = width / (double)bitmapSource.PixelWidth;
-            var scaleY = height / (double)bitmapSource.PixelHeight;
-            var scaleTransform = new ScaleTransform(scaleX, scaleY, bitmapSource.Width / 2, bitmapSource.Height / 2);
-            transformedBitmap.Transform = scaleTransform;
-            transformedBitmap.EndInit();
-            return transformedBitmap;
+
+            var drawingVisual = new DrawingVisual();
+            using (var context = drawingVisual.RenderOpen())
+            {
+                var brush = new ImageBrush(bitmapSource);
+                context.DrawRectangle(brush, null, new Rect(0, 0, width, height));
+            }
+            var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            renderBitmap.Render(drawingVisual);
+
+            return renderBitmap;
+
+            //var transformedBitmap = new TransformedBitmap();
+            //transformedBitmap.BeginInit();
+            //transformedBitmap.Source = bitmapSource;
+            //var scaleX = width / bitmapSource.Width;
+            //var scaleY = height / bitmapSource.Height;
+            //var scaleTransform = new ScaleTransform(scaleX, scaleY, bitmapSource.Width / 2, bitmapSource.Height / 2);
+            //transformedBitmap.Transform = scaleTransform;
+            //transformedBitmap.EndInit();
+            //return transformedBitmap;
         }
 
         public static Bitmap GetBitmap(this BitmapSource source)

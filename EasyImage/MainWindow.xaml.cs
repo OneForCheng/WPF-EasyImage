@@ -1,6 +1,4 @@
-﻿using System;
-using System.Configuration;
-using System.IO;
+﻿using System.Configuration;
 using System.Windows;
 using EasyImage.Config;
 
@@ -97,6 +95,7 @@ namespace EasyImage
             {
                 _imgWin.Visibility = Visibility.Visible;
                 _imgWin.Activate();
+                _imgWin.ShowMainMenu();
             }
         }
 

@@ -11,10 +11,10 @@ namespace UndoFramework
     public class ActionManager : IActionManager
     {
         #region Data
-        private readonly List<IBackableAction> _actionList;
+        private readonly List<Tuple<int, IBackableAction>> _actionList;
         private int _nextUndo;
         private int _maxBufferCount;
-
+        private int _id;
         #endregion Data
 
         #region Constructors
@@ -23,8 +23,9 @@ namespace UndoFramework
         /// </summary>
         public ActionManager()
         {
-            _actionList = new List<IBackableAction>();
+            _actionList = new List<Tuple<int, IBackableAction>>();
             _nextUndo = -1;
+            _id = 0;
             _maxBufferCount = int.MaxValue;
         }
 
@@ -50,7 +51,7 @@ namespace UndoFramework
         /// <summary>
         /// 当前操作管理器的状态码
         /// </summary>
-        public long StatusCode { get; private set; }
+        public int StatusCode => _nextUndo > -1 ? _actionList.ElementAt(_nextUndo).Item1 : 0;
 
         /// <summary>
         /// 能否执行撤销操作
@@ -72,7 +73,6 @@ namespace UndoFramework
         public void RecordAction(IAction action)
         {
             action.Execute();
-            StatusCode++;
             if (CanReExecute)
             {
                 for(var i = _actionList.Count - 1; i > _nextUndo; i--)
@@ -83,7 +83,7 @@ namespace UndoFramework
             var backableCommond = action as IBackableAction;
             if (backableCommond != null)
             {
-                _actionList.Add(backableCommond);
+                _actionList.Add(new Tuple<int, IBackableAction>(++_id, backableCommond));
                 if(_actionList.Count > _maxBufferCount)
                 {
                     _actionList.RemoveAt(0);
@@ -105,9 +105,8 @@ namespace UndoFramework
         public  void UnExecute()
         {
             if (!CanUnExecute) return;
-            _actionList.ElementAt(_nextUndo).UnExecute();
+            _actionList.ElementAt(_nextUndo).Item2.UnExecute();
             _nextUndo--;
-            StatusCode--;
         }
 
         /// <summary>
@@ -116,9 +115,8 @@ namespace UndoFramework
         public void ReExecute()
         {
             if (!CanReExecute) return;
-            _actionList.ElementAt(_nextUndo + 1).Execute();
+            _actionList.ElementAt(_nextUndo + 1).Item2.Execute();
             _nextUndo++;
-            StatusCode++;
         }
 
         /// <summary>
@@ -128,7 +126,7 @@ namespace UndoFramework
         {
             _actionList.Clear();
             _nextUndo = -1;
-            StatusCode = 0;
+            _id = 0;
         }
 
         /// <summary>
@@ -137,7 +135,7 @@ namespace UndoFramework
         /// <returns></returns>
         public IEnumerable<IBackableAction> EnumUndoableActions()
         {
-            return _actionList.Take(_nextUndo + 1);
+            return _actionList.Select(m => m.Item2).Take(_nextUndo + 1);
         }
 
         /// <summary>
@@ -146,7 +144,7 @@ namespace UndoFramework
         /// <returns></returns>
         public IEnumerable<IBackableAction> EnumRedoableActions()
         {
-            return _actionList.Skip(_nextUndo + 1);
+            return _actionList.Select(m => m.Item2).Skip(_nextUndo + 1);
         }
 
         #endregion  Public methods
