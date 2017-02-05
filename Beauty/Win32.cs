@@ -3,14 +3,13 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 
-namespace Drawing
+namespace Beauty
 {
     internal static class Win32
     {
         /// <summary>
         /// 系统菜单选项
         /// </summary>
-        [Flags]
         public enum SystemMenuItems
         {
             /// <summary>

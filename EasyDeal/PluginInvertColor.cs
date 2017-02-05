@@ -59,15 +59,23 @@ namespace EasyDeal
                 unsafe
                 {
                     var ptr = (byte*)(bmpData.Scan0);
-                    for (var y = 0; y < height; y++)
+                    //for (var y = 0; y < height; y++)
+                    //{
+                    //    for (var x = 0; x < width; x++)
+                    //    {
+                    //        ptr[0] = (byte)(255 - ptr[0]);
+                    //        ptr[1] = (byte)(255 - ptr[1]);
+                    //        ptr[2] = (byte)(255 - ptr[2]);
+                    //        ptr += pixelSize;
+                    //    }
+                    //}
+                    var n = height * width;
+                    for (var i = 0; i < n; i++)
                     {
-                        for (var x = 0; x < width; x++)
-                        {
-                            ptr[0] = (byte)(255 - ptr[0]);
-                            ptr[1] = (byte)(255 - ptr[1]);
-                            ptr[2] = (byte)(255 - ptr[2]);
-                            ptr += pixelSize;
-                        }
+                        ptr[0] = (byte)(255 - ptr[0]);
+                        ptr[1] = (byte)(255 - ptr[1]);
+                        ptr[2] = (byte)(255 - ptr[2]);
+                        ptr += pixelSize;
                     }
                 }
 

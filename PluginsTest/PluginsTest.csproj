@@ -104,6 +104,10 @@
       <Project>{F6BD2CF5-88FA-4E75-BE66-FA165C9FA423}</Project>
       <Name>ArtDeal</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Beauty\Beauty.csproj">
+      <Project>{E1AF0DB5-6370-4E3D-862D-FCBCE5258344}</Project>
+      <Name>Beauty</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Drawing\Drawing.csproj">
       <Project>{05F4CB3F-48AD-4B98-A4DF-40709E9689EB}</Project>
       <Name>Drawing</Name>

@@ -83,16 +83,6 @@ namespace ArtDeal.Properties {
         /// <summary>
         ///   查找 System.Drawing.Bitmap 类型的本地化资源。
         /// </summary>
-        internal static System.Drawing.Bitmap BlurIcon {
-            get {
-                object obj = ResourceManager.GetObject("BlurIcon", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   查找 System.Drawing.Bitmap 类型的本地化资源。
-        /// </summary>
         internal static System.Drawing.Bitmap EnchaseIcon {
             get {
                 object obj = ResourceManager.GetObject("EnchaseIcon", resourceCulture);
@@ -123,9 +113,9 @@ namespace ArtDeal.Properties {
         /// <summary>
         ///   查找 System.Drawing.Bitmap 类型的本地化资源。
         /// </summary>
-        internal static System.Drawing.Bitmap SharpenIcon {
+        internal static System.Drawing.Bitmap SpherizeIcon {
             get {
-                object obj = ResourceManager.GetObject("SharpenIcon", resourceCulture);
+                object obj = ResourceManager.GetObject("SpherizeIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

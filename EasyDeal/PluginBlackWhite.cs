@@ -2,7 +2,7 @@
 using IPlugins;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
+
 
 namespace EasyDeal
 {
@@ -27,7 +27,6 @@ namespace EasyDeal
         {
             try
             {
-                
                 var width = bitmap.Width;
                 var height = bitmap.Height;
                 const int pixelSize = 4;
@@ -60,13 +59,19 @@ namespace EasyDeal
                 unsafe
                 {
                     var ptr = (byte*)(bmpData.Scan0);
-                    for (var y = 0; y < height; y++)
+                    //for (var y = 0; y < height; y++)
+                    //{
+                    //    for (var x = 0; x < width; x++)
+                    //    {
+                    //        ptr[0] = ptr[1] = ptr[2] = (byte)((ptr[0] + ptr[1] + ptr[2]) / 3);
+                    //        ptr += pixelSize;
+                    //    }
+                    //}
+                    var n = height*width;
+                    for (var i = 0; i < n; i++)
                     {
-                        for (var x = 0; x < width; x++)
-                        {
-                            ptr[0] = ptr[1] = ptr[2] = (byte)((ptr[0] + ptr[1] + ptr[2]) / 3);
-                            ptr += pixelSize;
-                        }
+                        ptr[0] = ptr[1] = ptr[2] = (byte)((ptr[0] + ptr[1] + ptr[2]) / 3);
+                        ptr += pixelSize;
                     }
                 }
 

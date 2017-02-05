@@ -19,7 +19,7 @@ namespace ArtDeal
     /// <summary>
     /// BinaryWindow.xaml 的交互逻辑
     /// </summary>
-    public partial class MagicMirrorWindow : IDisposable
+    public partial class SpherizeWindow : IDisposable
     {
         private bool _resize;
         private int _oldWidth;
@@ -27,21 +27,22 @@ namespace ArtDeal
 
         private readonly Bitmap _cacheBitmap;
         private Point _originPoint;
-        private int _factor;
+        private int _radius;
+        private bool _raised;
         private Bitmap _resultBitmap;
         private WriteableBitmap _writeableBitmap;
         private byte[] _bitmapBuffer;
 
         public HandleResult HandleResult { get; private set; }
 
-        public MagicMirrorWindow(Bitmap bitmap)
+        public SpherizeWindow(Bitmap bitmap)
         {
             InitializeComponent();
             _cacheBitmap = ResizeBitmap(bitmap);
 
             var screenHeight = SystemParameters.VirtualScreenHeight;
             var screenWidth = SystemParameters.VirtualScreenWidth;
-            var height = _cacheBitmap.Height + 125.0;
+            var height = _cacheBitmap.Height + 145.0;
             var width = _cacheBitmap.Width + 40.0;
             if (height < 300)
             {
@@ -64,15 +65,15 @@ namespace ArtDeal
             TargetImage.Height = _cacheBitmap.Height;
             TargetImage.Width = _cacheBitmap.Width;
 
-            _factor = 100;
+            _raised = true;
+            _radius = 100;
             _originPoint = new Point(_cacheBitmap.Width / 2.0, _cacheBitmap.Height / 2.0);
         }
 
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.All); //去除窗口指定的系统菜单
-            //TitleLbl.Content = $"哈哈镜处理: {_factor}";
-            _resultBitmap = GetHandledImage(_cacheBitmap, _originPoint, _factor);
+            _resultBitmap = GetHandledImage(_cacheBitmap, _originPoint, _radius, _raised);
             _writeableBitmap = new WriteableBitmap(Imaging.CreateBitmapSourceFromHBitmap(_resultBitmap.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions()));
             TargetImage.Source = _writeableBitmap;
         }
@@ -103,6 +104,20 @@ namespace ArtDeal
             }
         }
 
+        private void LeftRadioBtn_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_cacheBitmap == null) return;
+            _raised = true;
+            UpdateImage();
+        }
+
+        private void LeftRadioBtn_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (_cacheBitmap == null) return;
+            _raised = false;
+            UpdateImage();
+        }
+
         private void LeftBtn_Click(object sender, RoutedEventArgs e)
         {
             HandleResult = new HandleResult(null, false);
@@ -125,9 +140,7 @@ namespace ArtDeal
         {
             if (e.LeftButton != MouseButtonState.Pressed || _cacheBitmap == null) return;
             _originPoint = e.GetPosition(TargetImage);
-            _resultBitmap?.Dispose();
-            _resultBitmap = GetHandledImage(_cacheBitmap, _originPoint, _factor);
-            UpdateImage(_resultBitmap);
+            UpdateImage();
         }
 
         private void TargetImage_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
@@ -137,12 +150,12 @@ namespace ArtDeal
             var y = (int)Math.Ceiling(position.Y);
             if (x > 0) x--;
             if (y > 0) y--;
-            TitleLbl.Content = $"哈哈镜处理: ({x},{y})";
+            TitleLbl.Content = $"球面化处理: ({x},{y})";
         }
 
         private void TargetImage_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            TitleLbl.Content = "哈哈镜处理";
+            TitleLbl.Content = "球面化处理";
         }
 
         private void ExchangeBgCbx_Click(object sender, RoutedEventArgs e)
@@ -170,17 +183,23 @@ namespace ArtDeal
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (_cacheBitmap == null) return;
-            _resultBitmap?.Dispose();
-            _factor = (int)e.NewValue;
-            //TitleLbl.Content = $"哈哈镜处理: {_factor}";
-            _resultBitmap = GetHandledImage(_cacheBitmap, _originPoint, _factor);
-            UpdateImage(_resultBitmap);
+            _radius = (int)e.NewValue;
+            CenterLbl.Content = _radius;
+            UpdateImage();
         }
 
-        private Bitmap GetHandledImage(Bitmap bitmap, Point originPoint, int factor)
+        /// <summary>
+        /// 图像滤镜---球面（凹凸）化
+        /// </summary>
+        /// <param name="bitmap">待处理图片</param>
+        /// <param name="originPoint">球面化的处理原点</param>
+        /// <param name="radius">球面化半径</param>
+        /// <param name="raised">是否凸面化</param>
+        /// <returns></returns>
+        private Bitmap GetHandledImage(Bitmap bitmap, Point originPoint, int radius, bool raised)
         {
             var bmp = (Bitmap)bitmap.Clone();
-            if (factor == 0) return bmp;
+            if (radius <= 0) return bmp;
             try
             {
                 var originX = (int)Math.Ceiling(originPoint.X) - 1;
@@ -202,24 +221,34 @@ namespace ArtDeal
                 //    {
                 //        var dx = x - originX;
                 //        var dy = y - originY;
-                //        var theta = Math.Atan2(dy, dx);
-                //        var mapR = Math.Sqrt(Math.Sqrt(dx * dx + dy * dy) * factor);
-                //        dx = originX + (int)(mapR * Math.Cos(theta));
-                //        dy = originY + (int)(mapR * Math.Sin(theta));
-                //        if (dx < 0 || dx >= width || dy < 0 || dy >= height)
+                //        var distance = Math.Sqrt(dx * dx + dy * dy);
+                //        if (distance <= radius)
                 //        {
-                //            byColorInfo[y * bmpData.Stride + x * pixelSize + 3] = 0;
+                //            var theta = Math.Atan2(dy, dx);
+                //            var mapR = raised ? (2 * radius / Math.PI) * Math.Asin(distance / radius) : Math.Sin(Math.PI * distance / (2 * radius)) * radius;
+
+                //            dx = originX + (int)(mapR * Math.Cos(theta));
+                //            dy = originY + (int)(mapR * Math.Sin(theta));
+
+                //            if (dx < 0 || dx >= width || dy < 0 || dy >= height)
+                //            {
+                //                byColorInfo[y * bmpData.Stride + x * pixelSize] =
+                //                    byColorInfo[y * bmpData.Stride + x * pixelSize + 1] =
+                //                        byColorInfo[y * bmpData.Stride + x * pixelSize + 2] =
+                //                            byColorInfo[y * bmpData.Stride + x * pixelSize + 3] = 0;
+                //            }
+                //            else
+                //            {
+                //                byColorInfo[y * bmpData.Stride + x * pixelSize] = clone[dy * bmpData.Stride + dx * 4];
+                //                byColorInfo[y * bmpData.Stride + x * pixelSize + 1] = clone[dy * bmpData.Stride + dx * 4 + 1];
+                //                byColorInfo[y * bmpData.Stride + x * pixelSize + 2] = clone[dy * bmpData.Stride + dx * 4 + 2];
+                //                byColorInfo[y * bmpData.Stride + x * pixelSize + 3] = clone[dy * bmpData.Stride + dx * 4 + 3];
+                //            }
                 //        }
-                //        else
-                //        {
-                //            byColorInfo[y * bmpData.Stride + x * pixelSize] = clone[dy * bmpData.Stride + dx * 4];
-                //            byColorInfo[y * bmpData.Stride + x * pixelSize + 1] = clone[dy * bmpData.Stride + dx * 4 + 1];
-                //            byColorInfo[y * bmpData.Stride + x * pixelSize + 2] = clone[dy * bmpData.Stride + dx * 4 + 2];
-                //        }
+
                 //    }
                 //}
                 //Marshal.Copy(byColorInfo, 0, bmpData.Scan0, byColorInfo.Length);
-
 
                 #endregion
 
@@ -227,9 +256,9 @@ namespace ArtDeal
 
                 unsafe
                 {
-                   
                     fixed (byte* source = byColorInfo)
                     {
+
                         var ptr = (byte*)(bmpData.Scan0);
                         for (var y = 0; y < height; y++)
                         {
@@ -237,23 +266,29 @@ namespace ArtDeal
                             {
                                 var dx = x - originX;
                                 var dy = y - originY;
-                                var theta = Math.Atan2(dy, dx);
-                                var mapR = Math.Sqrt(Math.Sqrt(dx * dx + dy * dy) * factor);
-                                
-                                dx = originX + (int)(mapR * Math.Cos(theta));
-                                dy = originY + (int)(mapR * Math.Sin(theta));
-                                
-                                if (dx < 0 || dx >= width || dy < 0 || dy >= height)
+                                var distance = Math.Sqrt(dx * dx + dy * dy);
+                                if (distance <= radius)
                                 {
-                                    ptr[0] = ptr[1] = ptr[2] = ptr[3] = 0;
+                                    var theta = Math.Atan2(dy, dx);
+                                    var mapR = raised ? (2 * radius / Math.PI) * Math.Asin(distance / radius): Math.Sin(Math.PI * distance / (2 * radius)) * radius;
+
+                                    dx = originX + (int)(mapR * Math.Cos(theta));
+                                    dy = originY + (int)(mapR * Math.Sin(theta));
+
+                                    if (dx < 0 || dx >= width || dy < 0 || dy >= height)
+                                    {
+                                        ptr[0] = ptr[1] = ptr[2] = ptr[3] = 0;
+                                    }
+                                    else 
+                                    {
+                                        ptr[0] = source[dy * bmpData.Stride + dx * pixelSize];
+                                        ptr[1] = source[dy * bmpData.Stride + dx * pixelSize + 1];
+                                        ptr[2] = source[dy * bmpData.Stride + dx * pixelSize + 2];
+                                        ptr[3] = source[dy * bmpData.Stride + dx * pixelSize + 3];
+
+                                    }
                                 }
-                                else
-                                {
-                                    ptr[0] = source[dy * bmpData.Stride + dx * pixelSize];
-                                    ptr[1] = source[dy * bmpData.Stride + dx * pixelSize + 1];
-                                    ptr[2] = source[dy * bmpData.Stride + dx * pixelSize + 2];
-                                    ptr[3] = source[dy * bmpData.Stride + dx * pixelSize + 3];
-                                }
+
                                 ptr += pixelSize;
                             }
                         }
@@ -284,7 +319,7 @@ namespace ArtDeal
                 var screenWidth = (int)SystemParameters.VirtualScreenWidth;
                 _resize = false;
 
-                if (width < 260 && height < 175)
+                if (width < 260 && height < 155)
                 {
                     if (width > height)
                     {
@@ -294,8 +329,8 @@ namespace ArtDeal
                     }
                     else
                     {
-                        width = 175 * width / height;
-                        height = 175;
+                        width = 155 * width / height;
+                        height = 155;
                         _resize = true;
                     }
                 }
@@ -307,10 +342,10 @@ namespace ArtDeal
                     _resize = true;
                 }
 
-                if (height > screenHeight - 125)
+                if (height > screenHeight - 145)
                 {
-                    width = (screenHeight - 125) * width / height;
-                    height = screenHeight - 125;
+                    width = (screenHeight - 145) * width / height;
+                    height = screenHeight - 145;
                     _resize = true;
                 }
 
@@ -326,6 +361,14 @@ namespace ArtDeal
             {
                 return bitmap;
             }
+        }
+
+
+        private void UpdateImage()
+        {
+            _resultBitmap?.Dispose();
+            _resultBitmap = GetHandledImage(_cacheBitmap, _originPoint, _radius, _raised);
+            UpdateImage(_resultBitmap);
         }
 
         private void UpdateImage(Bitmap bitmap)
@@ -349,6 +392,6 @@ namespace ArtDeal
             _resultBitmap?.Dispose();
         }
 
-        
+       
     }
 }

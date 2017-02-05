@@ -13,7 +13,7 @@ using Brushes = System.Windows.Media.Brushes;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using PixelFormat = System.Drawing.Imaging.PixelFormat;
 
-namespace ArtDeal
+namespace Beauty
 {
     /// <summary>
     /// BinaryWindow.xaml 的交互逻辑
@@ -219,12 +219,12 @@ namespace ArtDeal
             {
                 HandleResult = new HandleResult(e);
                 Close();
-                return bmp;
+                return (Bitmap)bitmap.Clone();
             }
             
         }
 
-        public void UpdateImage(Bitmap bitmap)
+        private void UpdateImage(Bitmap bitmap)
         {
             _writeableBitmap.Lock();
             var bmpData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);

@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{F6BD2CF5-88FA-4E75-BE66-FA165C9FA423}</ProjectGuid>
+    <ProjectGuid>{E1AF0DB5-6370-4E3D-862D-FCBCE5258344}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ArtDeal</RootNamespace>
-    <AssemblyName>ArtDeal</AssemblyName>
+    <RootNamespace>Beauty</RootNamespace>
+    <AssemblyName>Beauty</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -29,7 +29,6 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="PresentationCore" />
@@ -37,7 +36,6 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
-    <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Xml.Linq" />
@@ -49,73 +47,28 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AtomizedWindow.xaml.cs">
-      <DependentUpon>AtomizedWindow.xaml</DependentUpon>
+    <Compile Include="BuffingBrightenWindow.xaml.cs">
+      <DependentUpon>BuffingBrightenWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="BinaryWindow.xaml.cs">
-      <DependentUpon>BinaryWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="EnchaseWindow.xaml.cs">
-      <DependentUpon>EnchaseWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Extentions.cs" />
-    <Compile Include="PluginSpherize.cs" />
+    <Compile Include="PluginBuffingBrighten.cs" />
+    <Compile Include="PluginSharpen.cs" />
+    <Compile Include="PluginSoften.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="SpherizeWindow.xaml.cs">
-      <DependentUpon>SpherizeWindow.xaml</DependentUpon>
+    <Compile Include="SharpenWindow.xaml.cs">
+      <DependentUpon>SharpenWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="MagicMirrorWindow.xaml.cs">
-      <DependentUpon>MagicMirrorWindow.xaml</DependentUpon>
+    <Compile Include="SoftenWindow.xaml.cs">
+      <DependentUpon>SoftenWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="MosaicWindow.xaml.cs">
-      <DependentUpon>MosaicWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="PluginAtomized.cs" />
-    <Compile Include="PluginBinary.cs" />
-    <Compile Include="PluginEnchase.cs" />
-    <Compile Include="PluginMagicMirror.cs" />
-    <Compile Include="PluginMosaic.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Win32.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\icon_atomized.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\icon_binary.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\icon_enchase.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\icon_mosaic.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Page Include="AtomizedWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="BinaryWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="EnchaseWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="SpherizeWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="MagicMirrorWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="MosaicWindow.xaml">
+    <Page Include="BuffingBrightenWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -127,6 +80,14 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="SharpenWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="SoftenWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\IPlugins\IPlugins.csproj">
@@ -135,16 +96,19 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\icon_glasses.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\icon_spherize.png" />
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\icon_beauty.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\icon_blur.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\icon_sharpen.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -3,7 +3,6 @@ using System.Drawing;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Input;
-using System.Windows.Media;
 using Brushes = System.Windows.Media.Brushes;
 using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
@@ -20,7 +19,8 @@ namespace Drawing.Resources.Controls
 
         private bool _leftSliderBlockCaptured;
         private bool _rightSliderBlockCaptured;
-
+        private double _minRightSliderValue;
+        private double _maxRightSliderValue;
 
         #endregion
 
@@ -30,9 +30,9 @@ namespace Drawing.Resources.Controls
         public DrawingInfoPicker()
         {
             InitializeComponent();
-            MinRightSliderValue = 1.0;
-            MaxRightSliderValue = 20.0;
-            CurrentFont = new Font(new System.Drawing.FontFamily("宋体"), 20);
+            _minRightSliderValue = 1.0;
+            _maxRightSliderValue = 20.0;
+            CurrentFont = new Font(new FontFamily("宋体"), 20);
             CommandBindings.Add(new CommandBinding(SelectColorCommand, SelectColorCommandExecute));
         }
 
@@ -42,13 +42,13 @@ namespace Drawing.Resources.Controls
 
         public bool SelectedMosaic => MosaicCheckBox.IsChecked.GetValueOrDefault();
 
-        public bool SelectedLeftBtn => LeftRadioButton.IsChecked.GetValueOrDefault();
+        public bool SelectedLeftRadioBtn => LeftRadioButton.IsChecked.GetValueOrDefault();
 
         public Font CurrentFont { get;private set;}
 
-        public double MinRightSliderValue { get; set; }
+        public double MinRightSliderValue => _minRightSliderValue;
 
-        public double MaxRightSliderValue { get; set; }
+        public double MaxRightSliderValue => _maxRightSliderValue;
 
         public object LeftRadioBtnContent {
             get { return LeftRadioButton.Content; }
@@ -70,7 +70,27 @@ namespace Drawing.Resources.Controls
         public double RightSliderValue
         {
             get { return (double)GetValue(RightSliderValueProperty); }
-            set { SetValue(RightSliderValueProperty, value); }
+            set
+            {
+                double moveX;
+                if (value < _minRightSliderValue)
+                {
+                    SetValue(RightSliderValueProperty, _minRightSliderValue);
+                    moveX = 0;
+                }
+                else if (value > _maxRightSliderValue)
+                {
+                    SetValue(RightSliderValueProperty, _maxRightSliderValue);
+                    moveX = RightSliderBlock.Width;
+                }
+                else
+                {
+                    SetValue(RightSliderValueProperty, Math.Round(value, 1));
+                    moveX = (value - _minRightSliderValue) * RightSliderBlock.Width / (_maxRightSliderValue - _minRightSliderValue);
+                }
+
+                RightSlider.Margin = new Thickness(moveX + RightSliderBlock.Margin.Left, RightSlider.Margin.Top, 0, 0);
+            }
         }
 
         public static DependencyProperty RightSliderValueProperty = DependencyProperty.Register("RightSliderValue", typeof(double), typeof(DrawingInfoPicker), new PropertyMetadata(1.0));
@@ -78,31 +98,33 @@ namespace Drawing.Resources.Controls
         public byte LeftSliderValue
         {
             get { return (byte)GetValue(LeftSliderValueProperty); }
-            set { SetValue(LeftSliderValueProperty, value); }
-        }
-
-        public static DependencyProperty LeftSliderValueProperty = DependencyProperty.Register("LeftSliderValue", typeof(byte), typeof(DrawingInfoPicker), new PropertyMetadata((byte)255));
-
-
-        public SolidColorBrush CurrentColor
-        {
-            get { return (SolidColorBrush)GetValue(CurrentColorProperty); }
-            set { SetValue(CurrentColorProperty, value); }
-        }
-
-        public static DependencyProperty CurrentColorProperty = DependencyProperty.Register("CurrentColor", typeof(SolidColorBrush), typeof(DrawingInfoPicker), new PropertyMetadata(Brushes.Red));
-
-        public SolidColorBrush CurrentArgbColor
-        {
-            get { return (SolidColorBrush)GetValue(CurrentArgbColorProperty); }
             set
             {
-                SetValue(CurrentArgbColorProperty, value);
+                SetValue(LeftSliderValueProperty, value);
+                SetValue(CurrentArgbColorProperty, Color.FromArgb(value, CurrentColor.R, CurrentColor.G, CurrentColor.B));
+                LeftSlider.Margin = new Thickness(value / 255.0 * LeftSliderBlock.Width + LeftSliderBlock.Margin.Left, LeftSlider.Margin.Top, 0, 0);
                 ColorChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
-        public static DependencyProperty CurrentArgbColorProperty = DependencyProperty.Register("CurrentArgbColor", typeof(SolidColorBrush), typeof(DrawingInfoPicker), new PropertyMetadata(Brushes.Red));
+        public static DependencyProperty LeftSliderValueProperty = DependencyProperty.Register("LeftSliderValue", typeof(byte), typeof(DrawingInfoPicker), new PropertyMetadata((byte)255));
+
+        public Color CurrentColor
+        {
+            get { return (Color)GetValue(CurrentColorProperty); }
+            set
+            {
+                SetValue(CurrentColorProperty, Color.FromArgb(255, value.R, value.G, value.B));
+                SetValue(CurrentArgbColorProperty, Color.FromArgb(LeftSliderValue, value.R, value.G, value.B));
+                ColorChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        public static DependencyProperty CurrentColorProperty = DependencyProperty.Register("CurrentColor", typeof(Color), typeof(DrawingInfoPicker), new PropertyMetadata(Brushes.Red.Color));
+
+        public Color CurrentArgbColor => (Color)GetValue(CurrentArgbColorProperty);
+
+        public static DependencyProperty CurrentArgbColorProperty = DependencyProperty.Register("CurrentArgbColor", typeof(Color), typeof(DrawingInfoPicker), new PropertyMetadata(Brushes.Red.Color));
 
         public static RoutedUICommand SelectColorCommand = new RoutedUICommand("SelectColorCommand", "SelectColorCommand", typeof(DrawingInfoPicker));
 
@@ -134,9 +156,19 @@ namespace Drawing.Resources.Controls
             }
         }
 
-        public void UpdateLeftSliderValue()
+        public bool SetLeftSliderRange(double minValue, double maxValue)
         {
-            SetRightSlider(new Point(RightSlider.Margin.Left - RightSliderBlock.Margin.Left, 0));
+            if (minValue < maxValue)
+            {
+                _minRightSliderValue = Math.Round(minValue, 1);
+                _maxRightSliderValue = Math.Round(maxValue, 1);
+                SetRightSlider(new Point(RightSlider.Margin.Left - RightSliderBlock.Margin.Left, 0));
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         #endregion
@@ -147,9 +179,7 @@ namespace Drawing.Resources.Controls
         {
             var convertColor = ColorConverter.ConvertFromString(e.Parameter.ToString());
             if (convertColor == null) return;
-            var color = (Color) convertColor;
-            CurrentColor = new SolidColorBrush(color);
-            CurrentArgbColor = new SolidColorBrush(Color.FromArgb(LeftSliderValue, color.R, color.G, color.B));
+            CurrentColor = (Color) convertColor;
         }
 
         private void SelectColor_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -157,8 +187,7 @@ namespace Drawing.Resources.Controls
             var dialog = new ColorDialog();
             if (dialog.ShowDialog() != DialogResult.OK) return;
             var color = dialog.Color;
-            CurrentColor = new SolidColorBrush(Color.FromArgb(color.A, color.R, color.G, color.B));
-            CurrentArgbColor = new SolidColorBrush(Color.FromArgb(LeftSliderValue, color.R, color.G, color.B));
+            CurrentColor = Color.FromArgb(255, color.R, color.G, color.B);
         }
 
         private void SelectFont_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -223,48 +252,23 @@ namespace Drawing.Resources.Controls
 
         private void SetLeftSlider(Point position)
         {
-            double moveX;
             if (position.X <= 0)
             {
                 LeftSliderValue = 0;
-                moveX = 0;
             }
             else if (position.X >= LeftSliderBlock.Width)
             {
                 LeftSliderValue = 255;
-                moveX = LeftSliderBlock.Width;
             }
             else
             {
                 LeftSliderValue = (byte)(position.X / LeftSliderBlock.Width * 255);
-                moveX = position.X;
             }
-
-            var color = CurrentArgbColor.Color;
-            CurrentArgbColor = new SolidColorBrush(Color.FromArgb(LeftSliderValue, color.R, color.G, color.B));
-            LeftSlider.Margin = new Thickness(moveX + LeftSliderBlock.Margin.Left, LeftSlider.Margin.Top, 0, 0);
         }
 
         private void SetRightSlider(Point position)
         {
-            double moveX;
-            if (position.X <= 0)
-            {
-                RightSliderValue = Math.Round(MinRightSliderValue, 1);
-                moveX = 0;
-            }
-            else if (position.X >= RightSliderBlock.Width)
-            {
-                RightSliderValue = Math.Round(MaxRightSliderValue, 1);
-                moveX = RightSliderBlock.Width;
-            }
-            else
-            {
-                RightSliderValue = Math.Round(position.X / RightSliderBlock.Width * MaxRightSliderValue, 1);
-                moveX = position.X;
-            }
-
-            RightSlider.Margin = new Thickness(moveX + RightSliderBlock.Margin.Left, RightSlider.Margin.Top, 0, 0);
+            RightSliderValue = Math.Round(position.X / RightSliderBlock.Width * (_maxRightSliderValue - _minRightSliderValue) + _minRightSliderValue, 1);
         }
 
         #endregion

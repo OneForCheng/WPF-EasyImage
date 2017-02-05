@@ -1,7 +1,7 @@
 ﻿using System.Drawing;
 using IPlugins;
 
-namespace ArtDeal
+namespace Beauty
 {
     public class PluginSharpen : IHandle
     {
@@ -25,6 +25,7 @@ namespace ArtDeal
             var window = new SharpenWindow(bitmap);
             window.ShowDialog();
             return window.HandleResult;
+
         }
     }
 }

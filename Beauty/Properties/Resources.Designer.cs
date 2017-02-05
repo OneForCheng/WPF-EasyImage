@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace EasyDeal.Properties {
+namespace Beauty.Properties {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace EasyDeal.Properties {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("EasyDeal.Properties.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Beauty.Properties.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -63,9 +63,9 @@ namespace EasyDeal.Properties {
         /// <summary>
         ///   查找 System.Drawing.Bitmap 类型的本地化资源。
         /// </summary>
-        internal static System.Drawing.Bitmap EngrayIcon {
+        internal static System.Drawing.Bitmap BeautyIcon {
             get {
-                object obj = ResourceManager.GetObject("EngrayIcon", resourceCulture);
+                object obj = ResourceManager.GetObject("BeautyIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -73,9 +73,9 @@ namespace EasyDeal.Properties {
         /// <summary>
         ///   查找 System.Drawing.Bitmap 类型的本地化资源。
         /// </summary>
-        internal static System.Drawing.Bitmap GrayIcon {
+        internal static System.Drawing.Bitmap BlurIcon {
             get {
-                object obj = ResourceManager.GetObject("GrayIcon", resourceCulture);
+                object obj = ResourceManager.GetObject("BlurIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -83,19 +83,9 @@ namespace EasyDeal.Properties {
         /// <summary>
         ///   查找 System.Drawing.Bitmap 类型的本地化资源。
         /// </summary>
-        internal static System.Drawing.Bitmap InvertIcon {
+        internal static System.Drawing.Bitmap SharpenIcon {
             get {
-                object obj = ResourceManager.GetObject("InvertIcon", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   查找 System.Drawing.Bitmap 类型的本地化资源。
-        /// </summary>
-        internal static System.Drawing.Bitmap SobeledgeIcon {
-            get {
-                object obj = ResourceManager.GetObject("SobeledgeIcon", resourceCulture);
+                object obj = ResourceManager.GetObject("SharpenIcon", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

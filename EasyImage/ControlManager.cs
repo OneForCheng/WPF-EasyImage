@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -537,8 +536,12 @@ namespace EasyImage
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
+            element.Visibility = Visibility.Hidden;
+
             var bitmapSource = ((Image)element.Content).Source as BitmapSource;
             var result = ((sender as MenuItem)?.Tag as IHandle)?.ExecHandle(bitmapSource.GetResizeBitmap((int)Math.Round(element.Width), (int)Math.Round(element.Height)).GetBitmap());
+
+            element.Visibility = Visibility.Visible;
             if (result == null)return;
             if (!result.IsSuccess)
             {

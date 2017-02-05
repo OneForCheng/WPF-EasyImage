@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
@@ -184,6 +183,7 @@ namespace DealImage.Paste
                 var html = dataObject.GetData(ImageDataFormats.Html)?.ToString();
                 if (html != null)
                 {
+                    
                     html = HttpUtility.HtmlDecode(html);
                     var reg = new Regex(RegexImgLable, RegexOptions.IgnoreCase);//正则表达式的类实例化
                     var mc = reg.Matches(html);
@@ -200,11 +200,13 @@ namespace DealImage.Paste
                             }
                             else
                             {
-                                var request = (HttpWebRequest) WebRequest.Create(source);
+                                var request = (HttpWebRequest)WebRequest.Create(source);
+                                //request.AllowAutoRedirect = false;
+                                request.Method = "GET";
                                 request.Timeout = 1000 * 5;
                                 request.ReadWriteTimeout = 1000 * 5;
                                 request.ContentType = "application/x-www-form-urlencoded";
-                                using (var response = (HttpWebResponse) request.GetResponse())
+                                using (var response = (HttpWebResponse)request.GetResponse())
                                 {
                                     using (var reader = response.GetResponseStream())
                                     {
@@ -212,15 +214,6 @@ namespace DealImage.Paste
                                         reader?.CopyTo(stream);
                                     }
                                 }
-                                
-                                //using (var webClient = new WebClient())
-                                //{
-                                //    stream = new MemoryStream();
-                                //    using (var reader = webClient.OpenRead(source))
-                                //    {
-                                //        reader?.CopyTo(stream);
-                                //    }
-                                //}
                             }
                             stream.Position = 0;
                             var bitmapImage = new BitmapImage();

@@ -333,12 +333,12 @@ namespace ArtDeal
             {
                 HandleResult = new HandleResult(e);
                 Close();
-                return bmp;
+                return (Bitmap)bitmap.Clone();
             }
             
         }
 
-        public void UpdateImage(Bitmap bitmap)
+        private void UpdateImage(Bitmap bitmap)
         {
             _writeableBitmap.Lock();
             var bmpData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);

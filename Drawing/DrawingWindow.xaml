@@ -6,7 +6,7 @@
              xmlns:controls="clr-namespace:Drawing.Resources.Controls"
              xmlns:local="clr-namespace:Drawing"
              mc:Ignorable="d" 
-             Height="370" Width="370" MinHeight="370" MinWidth="370" ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" ShowInTaskbar="False" Topmost="True" Loaded="WindowLoaded" KeyDown="WindowKeyDown" >
+             Height="370" Width="370"  MinHeight="370" MinWidth="370" ResizeMode="CanResize" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" ShowInTaskbar="False" Loaded="WindowLoaded" KeyDown="WindowKeyDown" >
     <Window.Resources>
         <ResourceDictionary>
             <!-- 引用资源字典 -->
@@ -33,7 +33,7 @@
                 <Grid Margin="10">
                     <Border x:Name="ImageBorder" BorderThickness="0.1" BorderBrush="Gray" HorizontalAlignment="Center" VerticalAlignment="Center" >
                         <Grid x:Name="ImageVisulGrid" Background="Transparent">
-                            <Image x:Name="TargetImage" Stretch="Uniform" MouseLeftButtonDown="TargetImage_MouseLeftButtonDown" MouseLeftButtonUp="TargetImage_MouseLeftButtonUp"  Cursor="Cross" HorizontalAlignment="Center" VerticalAlignment="Center" MouseMove="TargetImage_MouseMove" MouseLeave="TargetImage_MouseLeave" />
+                            <Image x:Name="TargetImage" Stretch="Uniform" MouseLeftButtonDown="TargetImage_MouseLeftButtonDown" MouseLeftButtonUp="TargetImage_MouseLeftButtonUp"  Cursor="Cross"  HorizontalAlignment="Center" VerticalAlignment="Center" MouseMove="TargetImage_MouseMove" MouseLeave="TargetImage_MouseLeave" />
                             <TextBox x:Name="ImageTextBox" Focusable="True" BorderThickness="1" TextWrapping="Wrap" AcceptsTab="True" AcceptsReturn="true" BorderBrush="#FF6A96E4" MinWidth="20" MinHeight="17"  Background="Transparent" Visibility="Hidden"  VerticalAlignment="Top" HorizontalAlignment="Left"  LostFocus="ImageTextBox_LostFocus"></TextBox>
                         </Grid>
                     </Border>

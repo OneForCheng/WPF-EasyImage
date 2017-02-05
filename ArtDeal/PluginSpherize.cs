@@ -3,16 +3,16 @@ using IPlugins;
 
 namespace ArtDeal
 {
-    public class PluginSoften : IHandle
+    public class PluginSpherize : IHandle
     {
         public string GetPluginName()
         {
-            return "柔化处理";
+            return "球面化处理";
         }
 
         public Bitmap GetPluginIcon()
         {
-            return Properties.Resources.BlurIcon;
+            return Properties.Resources.SpherizeIcon;
         }
 
         public void InitPlugin(string appStartupPath)
@@ -22,7 +22,7 @@ namespace ArtDeal
 
         public HandleResult ExecHandle(Bitmap bitmap)
         {
-            var window = new SoftenWindow(bitmap);
+            var window = new SpherizeWindow(bitmap);
             window.ShowDialog();
             return window.HandleResult;
 

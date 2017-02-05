@@ -1,27 +1,16 @@
-﻿using ArtDeal;
+﻿using Beauty;
 using Drawing;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using System.Windows.Interop;
+using ArtDeal;
 
 namespace PluginsTest
 {
     /// <summary>
     /// MainWindow.xaml 的交互逻辑
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow
     {
         public MainWindow()
         {
@@ -30,8 +19,7 @@ namespace PluginsTest
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-
-            var window = new DrawingWindow(Properties.Resources.TestImage);
+            var window = new SoftenWindow(Properties.Resources.TestImage);
             window.ShowDialog();
         }
     }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -72,7 +73,7 @@ namespace Drawing
 
             var data = bmp.LockBits
              (
-                 new Rectangle(System.Drawing.Point.Empty, bmp.Size),
+                 new Rectangle(Point.Empty, bmp.Size),
                  ImageLockMode.WriteOnly,
                  PixelFormat.Format32bppArgb
              );
@@ -88,6 +89,19 @@ namespace Drawing
             bmp.UnlockBits(data);
 
             return bmp;
+        }
+
+        public static Bitmap ResizeBitmap(this Bitmap bitmap, int width, int height)
+        {
+            var resizeBitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+            using (var bmpGraphics = Graphics.FromImage(resizeBitmap))
+            {
+                bmpGraphics.SmoothingMode = SmoothingMode.HighQuality;
+                bmpGraphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                bmpGraphics.CompositingQuality = CompositingQuality.GammaCorrected;
+                bmpGraphics.DrawImage(bitmap, 0, 0, width, height);
+            }
+            return resizeBitmap;
         }
 
         public static void CopyImageToClipboard(this Bitmap bitmap)
@@ -182,6 +196,70 @@ namespace Drawing
                 Trace.WriteLine(ex.ToString());
                 return bmp;
             }
+        }
+
+        public static Bitmap ZoomBitmap(this Bitmap bitmap , double scale)
+        {
+            if (scale <= 0)
+            {
+                throw new ArgumentException("scale must be more than zero");
+            }
+            var bmp = new Bitmap((int)Math.Ceiling(bitmap.Width * scale), (int)Math.Ceiling(bitmap.Height * scale));
+            var height = bmp.Height;
+            var width = bmp.Width;
+            const int pixelSize = 4;
+            var bmpDataNew = bmp.LockBits(new Rectangle(Point.Empty, bmp.Size), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+            var bmpDataOld = bitmap.LockBits(new Rectangle(Point.Empty, bitmap.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+
+            #region Safe
+            var byColorNew = new byte[bmpDataNew.Height * bmpDataNew.Stride];
+            var byColorOld = new byte[bmpDataOld.Height * bmpDataOld.Stride];
+            Marshal.Copy(bmpDataOld.Scan0, byColorOld, 0, byColorOld.Length);
+            for (var x = 0; x < width; x++)
+            {
+                var offsetX = (int)(x / scale) * pixelSize;
+                for (var y = 0; y < height; y++)
+                {
+                    var offsetOld = (int)(y / scale) * bmpDataOld.Stride + offsetX;
+                    var offsetNew = y * bmpDataNew.Stride + x * pixelSize;
+                    byColorNew[offsetNew] = byColorOld[offsetOld];
+                    byColorNew[offsetNew + 1] = byColorOld[offsetOld + 1];
+                    byColorNew[offsetNew + 2] = byColorOld[offsetOld + 2];
+                    byColorNew[offsetNew + 3] = byColorOld[offsetOld + 3];
+                }
+            }
+            Marshal.Copy(byColorNew, 0, bmpDataNew.Scan0, byColorNew.Length);
+
+            #endregion
+
+            #region Unsafe
+
+            unsafe
+            {
+                var ptrNew = (byte*)bmpDataNew.Scan0;
+                var ptrOld = (byte*)bmpDataOld.Scan0;
+                for  (var y = 0; y < height; y++)
+                {
+                    var offsetY = (int)(y / scale) * bmpDataOld.Stride;
+                    for (var x = 0; x < width; x++)
+                    {
+                        var offsetOld = (int)(x / scale) * pixelSize + offsetY;
+                        ptrNew[0] = ptrOld[offsetOld];
+                        ptrNew[1] = ptrOld[offsetOld + 1];
+                        ptrNew[2] = ptrOld[offsetOld + 2];
+                        ptrNew[3] = ptrOld[offsetOld + 3];
+                        ptrNew += pixelSize;
+                    }
+                }
+            }
+
+            #endregion
+
+
+            bitmap.UnlockBits(bmpDataOld);
+            bmp.UnlockBits(bmpDataNew);
+
+            return bmp;
         }
 
         public static void FillFloodColor(this Bitmap bitmap, Point location, Color fillColor, double threshold)

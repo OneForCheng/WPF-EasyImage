@@ -48,8 +48,7 @@ namespace DealImage.Crop
                         {
                             if (row1[x * pixelSize + 3] == 0)
                             {
-                                output[0] = output[1] = output[2] = 255;
-                                output[3] = 0;
+                                output[0] = output[1] = output[2] = output[3] = 0;
                             }
                             else
                             {
@@ -61,8 +60,7 @@ namespace DealImage.Crop
                         }
                         else
                         {
-                            output[0] = output[1] = output[2] = 255;
-                            output[3] = 0;
+                            output[0] = output[1] = output[2] = output[3] = 0;
                         }
                         output += pixelSize;
                     }
@@ -111,8 +109,7 @@ namespace DealImage.Crop
                             }
                             else
                             {
-                                output[0] = output[1] = output[2] = 255;
-                                output[3] = 0;
+                                output[0] = output[1] = output[2] = output[3] = 0;
                             }
                         }
                         else
@@ -161,8 +158,7 @@ namespace DealImage.Crop
                         }
                         else
                         {
-                            output[0] = output[1] = output[2] = 255;
-                            output[3] = 0;
+                            output[0] = output[1] = output[2] = output[3] = 0;
                         }
                         output += pixelSize;
                     }
