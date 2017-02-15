@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
             mc:Ignorable="d" 
-            Title="MessageWindow" Height="130" Width="240" ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True" WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Topmost="True" Loaded="MessageWin_Loaded" >
+            Title="MessageWindow" Height="130" Width="240" ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True" WindowStartupLocation="CenterOwner" ShowInTaskbar="False" Topmost="True" Loaded="MessageWin_Loaded" KeyDown="MessageWin_KeyDown" >
     <Window.Resources>
         <ResourceDictionary>
             <!-- 引用资源字典 -->
@@ -21,17 +21,17 @@
                 <RowDefinition Height="47*"/>
                 <RowDefinition Height="37*"/>
             </Grid.RowDefinitions>
-            <TextBox x:Name="MessageTbx" BorderBrush="White" BorderThickness="1" Background="#FF6A96E4" Foreground="White" TextWrapping="Wrap" Text="消息提示!" Grid.Row="0" AutoWordSelection="True" Padding="5,10,5,5" UseLayoutRounding="True" TextAlignment="Center" FontSize="14"/>
-            <Grid  x:Name="SingleMode" Visibility="Hidden" Grid.Row="1">
-                <Button x:Name="SingleModeBtn" Content="确定" Margin="79,10" Style="{StaticResource NormalBtnStyle}" Click="MiddleBtn_Click"/>
+            <TextBox x:Name="MessageTbx" IsHitTestVisible="False"  BorderBrush="White" BorderThickness="1" Background="#FF6A96E4" Foreground="White" TextWrapping="Wrap" Text="消息提示!" Grid.Row="0" AutoWordSelection="True" Padding="5,10,5,5" UseLayoutRounding="True" TextAlignment="Center" FontSize="14"/>
+            <Grid x:Name="SingleMode" Visibility="Hidden" Grid.Row="1">
+                <Button x:Name="SingleModeBtn" Content="确定(Y)" Margin="79,10" Style="{StaticResource NormalBtnStyle}" Click="MiddleBtn_Click"/>
             </Grid>
             <Grid x:Name="DoubleMode" Visibility="Hidden" Grid.Row="1">
-                <Button x:Name="DoubleModeLeftBtn" Content="是" Margin="40,10,118,10" Style="{StaticResource NormalBtnStyle}" Click="LeftBtn_Click"/>
-                <Button x:Name="DoubleModeRightBtn" Content="否" Margin="118,10,40,10" Style="{StaticResource NormalBtnStyle}" Click="RightBtn_Click"/>
+                <Button x:Name="DoubleModeLeftBtn" Content="是(Y)" Margin="40,10,118,10" Style="{StaticResource NormalBtnStyle}" Click="LeftBtn_Click"/>
+                <Button x:Name="DoubleModeRightBtn" Content="否(N)" Margin="118,10,40,10" Style="{StaticResource NormalBtnStyle}" Click="RightBtn_Click"/>
             </Grid>
             <Grid x:Name="ThreeMode" Visibility="Hidden"  Grid.Row="1">
-                <Button x:Name="ThreeModeLeftBtn" Content="是" Margin="17,10,146,10" Style="{StaticResource NormalBtnStyle}" Click="LeftBtn_Click"/>
-                <Button x:Name="ThreeModeMiddleBtn" Content="否" Margin="81,10" Style="{StaticResource NormalBtnStyle}" Click="MiddleBtn_Click"/>
+                <Button x:Name="ThreeModeLeftBtn" Content="是(Y)" Margin="17,10,146,10" Style="{StaticResource NormalBtnStyle}" Click="LeftBtn_Click"/>
+                <Button x:Name="ThreeModeMiddleBtn" Content="否(N)" Margin="81,10" Style="{StaticResource NormalBtnStyle}" Click="MiddleBtn_Click"/>
                 <Button x:Name="ThreeModeRightBtn" Content="取消" Margin="146,10,17,10" Style="{StaticResource NormalBtnStyle}" Click="RightBtn_Click"/>
             </Grid>
         </Grid>

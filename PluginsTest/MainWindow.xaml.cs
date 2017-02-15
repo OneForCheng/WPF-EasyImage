@@ -4,6 +4,7 @@ using System;
 using System.Windows;
 using System.Windows.Interop;
 using ArtDeal;
+using Property;
 
 namespace PluginsTest
 {
@@ -19,7 +20,7 @@ namespace PluginsTest
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            var window = new SoftenWindow(Properties.Resources.TestImage);
+            var window = new PropertiesWindow(Properties.Resources.TestImage);
             window.ShowDialog();
         }
     }

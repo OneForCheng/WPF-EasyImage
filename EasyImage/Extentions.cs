@@ -69,7 +69,7 @@ namespace EasyImage
             var msgWin = new MessageWindow(new Message(content, MessageBoxMode.SingleMode))
             {
                 //Owner = Owner,
-                MiddleBtnContent = "确定",
+                MiddleBtnContent = "确定(Y)",
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
             };
             msgWin.SetOpacityAnimation(new DoubleAnimation(1, 0.1, new Duration(TimeSpan.FromSeconds(10))), msgWin.Close);

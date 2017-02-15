@@ -7,12 +7,18 @@ namespace EasyImage.Actioins
     {
 
         private readonly RotateTransform _rotateTransform;
-        private readonly double _angle;
+        private readonly double _oldAngle;
+        private readonly double _newAngle;
 
         public DragRotateAction(RotateTransform rotateTransform, double angle)
         {
             _rotateTransform = rotateTransform;
-            _angle = angle;
+            _oldAngle = rotateTransform.Angle;
+            _newAngle = (_oldAngle + angle) % 360;
+            if (_newAngle < 0)
+            {
+                _newAngle += 360;
+            }
         }
 
         /// <summary>
@@ -20,7 +26,7 @@ namespace EasyImage.Actioins
         /// </summary>
         protected override void ExecuteCore()
         {
-            _rotateTransform.Angle += _angle;
+            _rotateTransform.Angle = _newAngle;
         }
 
         /// <summary>
@@ -28,7 +34,7 @@ namespace EasyImage.Actioins
         /// </summary>
         protected override void UnExecuteCore()
         {
-            _rotateTransform.Angle -= _angle;
+            _rotateTransform.Angle = _oldAngle;
         }
 
     }

@@ -112,6 +112,10 @@
       <Project>{05F4CB3F-48AD-4B98-A4DF-40709E9689EB}</Project>
       <Name>Drawing</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Property\Property.csproj">
+      <Project>{DECBBA75-7127-47F4-87D6-57E515ECD759}</Project>
+      <Name>Property</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

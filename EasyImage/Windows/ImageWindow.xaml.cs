@@ -1,18 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using DealImage.Paste;
 using EasyImage.Behaviors;
 using EasyImage.Config;
-using System.Collections.Generic;
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Windows.Interop;
-using DealImage.Paste;
 using EasyImage.Controls;
 using NHotkey;
 using NHotkey.Wpf;
@@ -27,7 +27,7 @@ using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using Panel = System.Windows.Controls.Panel;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
-namespace EasyImage
+namespace EasyImage.Windows
 {
 
     /// <summary>
@@ -434,9 +434,9 @@ namespace EasyImage
 
         }
 
-        private void CaptureScreen(object sender, RoutedEventArgs e)
+        private void SettingWindow(object sender, RoutedEventArgs e)
         {
-           
+            ShowSettingWindow();
         }
 
         #endregion
@@ -460,6 +460,12 @@ namespace EasyImage
             {
                 _autoHideBehavior.Show();
             }
+        }
+
+        public void ShowSettingWindow()
+        {
+            var window = new SettingWindow(_userConfigution, _mainMenu, _autoHideBehavior.IsHide);
+            window.ShowDialog();
         }
 
         #endregion
@@ -533,8 +539,8 @@ namespace EasyImage
             item.Click += PasteImagesFromClipboard;
             contextMenu.Items.Add(item);
 
-            item = new MenuItem { Header = "截屏", Tag = "CaptureScreen"};
-            item.Click += CaptureScreen;
+            item = new MenuItem { Header = "设置", Tag = "Setting" };
+            item.Click += SettingWindow;
             contextMenu.Items.Add(item);
 
             contextMenu.Items.Add(new Separator());//分割线
@@ -568,6 +574,7 @@ namespace EasyImage
                 if (!File.Exists(path))
                 {
                     animatedImage = (AnimatedImage.AnimatedImage)Resources["MainMenuIcon"];
+                    animatedImage.Stretch = Stretch.Fill;
                     return animatedImage;
                 }
             }
@@ -583,6 +590,7 @@ namespace EasyImage
             {
                 App.Log.Error(ex.ToString());
                 animatedImage = (AnimatedImage.AnimatedImage)Resources["MainMenuIcon"];
+                animatedImage.Stretch = Stretch.Fill;
             }
 
             return animatedImage;
@@ -667,8 +675,8 @@ namespace EasyImage
             var msg = new Message($"是否保存对 {filePath} 的更改？", MessageBoxMode.ThreeMode);
             var msgWin = new MessageWindow(msg)
             {
-                LeftBtnContent = "保存",
-                MiddleBtnContent = "不保存",
+                LeftBtnContent = "保存(Y)",
+                MiddleBtnContent = "不保存(N)",
                 RightBtnContent = "取消",
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
             };
@@ -714,8 +722,8 @@ namespace EasyImage
             var imageControl = new ImageControl(_controlManager)
             {
                 IsLockAspect = false,
-                Width = imageSource.Width,
-                Height = imageSource.Height,
+                Width = Math.Round(imageSource.Width),
+                Height = Math.Round(imageSource.Height),
                 Content = animatedImage,
                 Template = (ControlTemplate)Resources["MoveResizeRotateTemplate"],
             };

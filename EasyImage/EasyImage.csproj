@@ -93,6 +93,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Actioins\SetPropertyAction.cs" />
     <Compile Include="Actioins\ExchangeImageAction.cs" />
     <Compile Include="Actioins\ExchangeZIndexAction.cs" />
     <Compile Include="Actioins\ReviseRotateCenterAction.cs" />
@@ -109,8 +110,15 @@
     <Compile Include="Controls\DealImageToolbar.xaml.cs">
       <DependentUpon>DealImageToolbar.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Enum\TextboxFlag.cs" />
     <Compile Include="Enum\ThumbFlag.cs" />
     <Compile Include="Controls\ImageControl.cs" />
+    <Compile Include="Windows\SettingWindow.xaml.cs">
+      <DependentUpon>SettingWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\ImageSettingWindow.xaml.cs">
+      <DependentUpon>ImageSettingWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Thumbs\MoveScaleThumb.cs" />
     <Compile Include="Thumbs\ResizeThumb.cs" />
     <Compile Include="Thumbs\RotateThumb.cs" />
@@ -118,11 +126,19 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="ImageWindow.xaml">
+    <Page Include="Windows\SettingWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Windows\ImageSettingWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="MainWindow.xaml">
+    <Page Include="Windows\ImageWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Windows\MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -132,13 +148,17 @@
     </Compile>
     <Compile Include="Enum\ZIndex.cs" />
     <Compile Include="Extentions.cs" />
-    <Compile Include="ImageWindow.xaml.cs">
+    <Compile Include="Windows\ImageWindow.xaml.cs">
       <DependentUpon>ImageWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="MainWindow.xaml.cs">
+    <Compile Include="Windows\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Resources\Styles\ButtonStyle.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Resources\Styles\MoveResizeRotateStyle.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

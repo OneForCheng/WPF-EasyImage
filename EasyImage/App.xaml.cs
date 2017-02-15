@@ -1,6 +1,8 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Threading;
 using log4net;
 using UnmanagedToolkit;
 
@@ -29,12 +31,18 @@ namespace EasyImage
 
         private void App_OnStartup(object sender, StartupEventArgs e)
         {
+            #region Unhandled Exceptions
+
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            
+            #endregion
+
             bool createNew;//返回是否赋予了使用线程的互斥体初始所属权
             _instance = new Mutex(true, "WingStudio.ForCheng.EasyImage", out createNew);//同步基元变量
-   
+
             if (createNew)//控制程序只启动一次
             {
-                var mainWindow = new MainWindow();
+                var mainWindow = new Windows.MainWindow();
                 if (e.Args.Length > 0)
                 {
                     var filePath = e.Args.First();
@@ -61,5 +69,39 @@ namespace EasyImage
                 Current.Shutdown(0);
             }
         }
+
+        #region Exception Handling
+
+        private void App_OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            Log.Error(e.Exception.ToString());
+            try
+            {
+                Extentions.ShowMessageBox("Generic error - unknown");
+            }
+            catch (Exception)
+            {
+                //..
+            }
+            e.Handled = true;
+
+        }
+
+        private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            var exception = e.ExceptionObject as Exception;
+            if (exception == null) return;
+            Log.Error(exception.ToString());
+            try
+            {
+                Extentions.ShowMessageBox("Generic error - unhandled");
+            }
+            catch (Exception)
+            {
+                //..
+            }
+        }
+
+        #endregion
     }
 }

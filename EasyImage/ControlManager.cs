@@ -604,31 +604,25 @@ namespace EasyImage
 
             var menuItems = element.ContextMenu?.Items?.OfType<MenuItem>().ToArray();
             if (menuItems == null) return;
-            var menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "CaptureImage");
-            if (menuItem != null)
-            {
-                menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
-            }
-            menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "CutImage");
-            if (menuItem != null)
-            {
-                menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
-            }
-            menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "Exchange");
-            if (menuItem != null)
-            {
-                menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
-            }
-            menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "Combine");
-            if (menuItem != null)
-            {
-                menuItem.IsEnabled = count > 1;
-            }
-            menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "Plugin");
-            if (menuItem != null)
-            {
-                menuItem.IsEnabled = count == 1;
-            }
+
+            var menuItem = menuItems.Single(m => m.Tag.ToString() == "CaptureImage");
+            menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+
+            menuItem = menuItems.Single(m => m.Tag.ToString() == "CutImage");
+            menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+
+            menuItem = menuItems.Single(m => m.Tag.ToString() == "Exchange");
+            menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+
+            menuItem = menuItems.Single(m => m.Tag.ToString() == "Combine");
+            menuItem.IsEnabled = count > 1;
+
+            menuItem = menuItems.Single(m => m.Tag.ToString() == "Plugin");
+            menuItem.IsEnabled = count == 1;
+
+            menuItem = menuItems.Single(m => m.Tag.ToString() == "Setting");
+            menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+
         }
 
         private void MenuItem_SubmenuOpened(object sender, RoutedEventArgs e)
@@ -955,6 +949,17 @@ namespace EasyImage
             ClipSelected();
         }
 
+        private void Menu_Setting(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var window = new Windows.ImageSettingWindow(SelectedElements.First());
+            window.ShowDialog();
+            if (window.IsModified)
+            {
+                _actionManager.Execute(window.SetPropertyAction);
+            }
+        }
+
         #endregion Properties and Events
 
         #region Private methods
@@ -1227,7 +1232,8 @@ namespace EasyImage
             #region 设置
             contextMenu.Items.Add(new Separator());//分割线
 
-            item = new MenuItem { Header = "设置", Tag = "Config" };
+            item = new MenuItem { Header = "设置", Tag = "Setting" };
+            item.Click += Menu_Setting;
             contextMenu.Items.Add(item);
             #endregion
 

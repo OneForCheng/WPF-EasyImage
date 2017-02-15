@@ -64,6 +64,9 @@ namespace EasyImage.Controls
     {
         public string Id { get; }
 
+        /// <summary>
+        /// 保持纵横比
+        /// </summary>
         public bool IsLockAspect { get; set; }
 
         public ControlManager ControlManager { get; }
@@ -102,12 +105,6 @@ namespace EasyImage.Controls
         }
     }
 
-    public class CropImageControl : ImageControl
-    {
-        public CropImageControl(ControlManager controlManager) : base(controlManager)
-        {
-
-        }
-    }
+    
 
 }

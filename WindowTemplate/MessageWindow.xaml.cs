@@ -124,6 +124,32 @@ namespace WindowTemplate
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.All); //去除窗口指定的系统菜单
         }
 
+        private void MessageWin_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Y)
+            {
+                if (SingleMode.Visibility == Visibility.Visible)
+                {
+                    MiddleBtn_Click(null, null);
+                }
+                else
+                {
+                    LeftBtn_Click(null, null);
+                }
+            }
+            else if (e.Key == Key.N)
+            {
+                if (DoubleMode.Visibility == Visibility.Visible)
+                {
+                    RightBtn_Click(null, null);
+                }
+                else if (ThreeMode.Visibility == Visibility.Visible)
+                {
+                    MiddleBtn_Click(null, null);
+                }
+            }
+        }
+
         private void TitleLbl_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
@@ -219,5 +245,6 @@ namespace WindowTemplate
 
         #endregion
 
+       
     }
 }

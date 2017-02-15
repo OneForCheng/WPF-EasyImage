@@ -56,7 +56,7 @@ namespace EasyImage.Thumbs
             if (_isRotate)
             {
                 _isRotate = false;
-                _imageControl.ControlManager.DragRotateSelected(_angle, true, _transaction);
+                _imageControl.ControlManager.DragRotateSelected(_angle % 360, true, _transaction);
             }
             _imageControl = null;
         }

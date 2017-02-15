@@ -80,18 +80,19 @@ namespace ArtDeal
 
         private void WindowKeyDown(object sender, KeyEventArgs e)
         {
+            var value = (int)Slider.Value;
             if (e.Key == Key.Left)
             {
-                if (Slider.Value >= 1)
+                if (value >= 1)
                 {
-                    Slider.Value--;
+                    Slider.Value = value - 1;
                 }
             }
             else if (e.Key == Key.Right)
             {
-                if (Slider.Value <= 999)
+                if (value <= 99)
                 {
-                    Slider.Value++;
+                    Slider.Value = value + 1;
                 }
             }
         }

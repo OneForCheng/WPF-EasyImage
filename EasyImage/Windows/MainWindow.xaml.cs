@@ -2,7 +2,7 @@
 using System.Windows;
 using EasyImage.Config;
 
-namespace EasyImage
+namespace EasyImage.Windows
 {
     /// <summary>
     /// MainWindow.xaml 的交互逻辑
@@ -68,12 +68,13 @@ namespace EasyImage
 
             var conntextMenu = new System.Windows.Forms.ContextMenuStrip();
 
-            var item = new System.Windows.Forms.ToolStripMenuItem("显示日志");
-            item.Click += (sender, e) => {};
-            conntextMenu.Items.Add(item);
-
-            item = new System.Windows.Forms.ToolStripMenuItem("设置");
-            item.Click += (sender, e) => {};
+            var item = new System.Windows.Forms.ToolStripMenuItem("设置");
+            item.Click += (sender, e) =>
+            {
+                _imgWin.Visibility = Visibility.Visible;
+                _imgWin.Activate();
+                _imgWin.ShowSettingWindow();
+            };
             conntextMenu.Items.Add(item);
 
             conntextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());

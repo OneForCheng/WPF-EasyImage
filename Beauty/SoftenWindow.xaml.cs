@@ -74,19 +74,19 @@ namespace Beauty
 
         private void WindowKeyDown(object sender, KeyEventArgs e)
         {
+            var value = (int)Slider.Value;
             if (e.Key == Key.Left)
             {
-                if (RadiusSlider.Value >= 1)
+                if (value >= 1)
                 {
-                    RadiusSlider.Value--;
+                    Slider.Value = value - 1;
                 }
-
             }
             else if (e.Key == Key.Right)
             {
-                if (RadiusSlider.Value <= 99)
+                if (value <= 99)
                 {
-                    RadiusSlider.Value++;
+                    Slider.Value = value + 1;
                 }
             }
         }
@@ -139,7 +139,7 @@ namespace Beauty
             ImageViewGrid.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B));
         }
 
-        private void RadiusSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (_cacheBitmap == null) return;
             //_lockRadiusSlider = true;

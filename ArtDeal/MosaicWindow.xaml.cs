@@ -67,18 +67,20 @@ namespace ArtDeal
 
         private void WindowKeyDown(object sender, KeyEventArgs e)
         {
+           
+            var value = (int)Slider.Value;
             if (e.Key == Key.Left)
             {
-                if (Slider.Value >= 2)
+                if (value >= 2)
                 {
-                    Slider.Value--;
+                    Slider.Value = value - 1;
                 }
             }
             else if (e.Key == Key.Right)
             {
-                if (Slider.Value <= 99)
+                if (value <= 99)
                 {
-                    Slider.Value++;
+                    Slider.Value = value + 1;
                 }
             }
         }

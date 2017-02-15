@@ -5,15 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:ai="clr-namespace:AnimatedImage;assembly=AnimatedImage"
         x:Name="ImageWin" 
-        x:Class="EasyImage.ImageWindow"
+        x:Class="EasyImage.Windows.ImageWindow"
     mc:Ignorable="d"
         Title="WingStudio.ForCheng.EasyImage" Top="0" Left="0"  Height="300" Width="600" Background="Transparent" WindowStyle="None" AllowsTransparency="True" Topmost="True" ShowInTaskbar="False" AllowDrop="True"  Loaded="WindowLoaded" KeyDown="WindowKeyDown" KeyUp="WindowKeyUp" Closing="WindowClosing"  Drop="WindowDrop" DragEnter="WindowDragEnter">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="Resources/Styles/MoveResizeRotateStyle.xaml"/>
+                <ResourceDictionary Source="../Resources/Styles/MoveResizeRotateStyle.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-            <ai:AnimatedImage x:Key="MainMenuIcon" Source="Resources/Images/MainIcon.png"/>
+            <ai:AnimatedImage x:Key="MainMenuIcon" Source="../Resources/Images/MainIcon.png"/>
             <RoutedCommand x:Key="Hidden" />
         </ResourceDictionary>
     </Window.Resources>

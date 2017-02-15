@@ -86,16 +86,17 @@ namespace Beauty
             {
                 if (_selectFirst)
                 {
-                    if (FirstSlider.Value >= 1)
+
+                    if ((int)FirstSlider.Value >= 1)
                     {
-                        FirstSlider.Value--;
+                        FirstSlider.Value = (int)FirstSlider.Value - 1;
                     }
                 }
                 else
                 {
-                    if (SecondSlider.Value >= -9)
+                    if ((int)SecondSlider.Value >= -9)
                     {
-                        SecondSlider.Value--;
+                        SecondSlider.Value = (int)SecondSlider.Value - 1;
                     }
                 }
                 
@@ -104,16 +105,16 @@ namespace Beauty
             {
                 if (_selectFirst)
                 {
-                    if (FirstSlider.Value <= 9)
+                    if ((int)FirstSlider.Value <= 10)
                     {
-                        FirstSlider.Value++;
+                        FirstSlider.Value = (int)FirstSlider.Value + 1;
                     }
                 }
                 else
                 {
-                    if (SecondSlider.Value <= 9)
+                    if ((int)SecondSlider.Value <= 10)
                     {
-                        SecondSlider.Value++;
+                        SecondSlider.Value = (int)SecondSlider.Value + 1;
                     }
                 }
                    
@@ -222,7 +223,7 @@ namespace Beauty
         private Bitmap GetHandledImage(Bitmap bitmap, int denoiseLevel, int brightLevel)
         {
             var bmp = (Bitmap)bitmap.Clone();
-            if (denoiseLevel <= 0 && brightLevel <= 0) return bmp;
+            if (denoiseLevel <= 0 && brightLevel == 0) return bmp;
             try
             {
                 var width = bmp.Width;
@@ -470,7 +471,6 @@ namespace Beauty
                                 }
 
                             }
-
 
                             //美白
                             if (brightLevel != 0)
