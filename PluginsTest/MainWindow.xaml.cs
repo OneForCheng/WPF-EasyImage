@@ -20,7 +20,7 @@ namespace PluginsTest
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            var window = new PropertiesWindow(Properties.Resources.TestImage);
+            var window = new DrawingWindow(Properties.Resources.TestImage);
             window.ShowDialog();
         }
     }

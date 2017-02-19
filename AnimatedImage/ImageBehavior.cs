@@ -28,29 +28,29 @@ namespace AnimatedImage
               "AnimatedSource",
               typeof(ImageSource),
               typeof(ImageBehavior),
-              new UIPropertyMetadata(null,AnimatedSourceChanged));
+              new UIPropertyMetadata(null, AnimatedSourceChanged));
 
         private static void AnimatedSourceChanged(DependencyObject o, DependencyPropertyChangedEventArgs e)
         {
-            var imageControl = o as Image;
-            if (imageControl == null)return;
+            var image = o as Image;
+            if (image == null) return;
 
             var oldValue = e.OldValue as ImageSource;
             var newValue = e.NewValue as ImageSource;
             if (oldValue != null)
             {
-                imageControl.BeginAnimation(Image.SourceProperty, null);
+                image.BeginAnimation(Image.SourceProperty, null);
             }
             if (newValue != null)
             {
-                imageControl.DoWhenLoaded(InitAnimationOrImage);
+                image.DoWhenLoaded(InitAnimationOrImage);
             }
         }
 
-        private static void InitAnimationOrImage(Image imageControl)
+        private static void InitAnimationOrImage(Image image)
         {
-            var source = GetAnimatedSource(imageControl) as BitmapSource;
-            if(source == null)return;
+            var source = GetAnimatedSource(image) as BitmapSource;
+            if (source == null) return;
             var decoder = GetDecoder(source) as GifBitmapDecoder;
             if (decoder != null && decoder.Frames.Count > 1)
             {
@@ -88,13 +88,15 @@ namespace AnimatedImage
                 animation.RepeatBehavior = (repeatCount == 0) ? RepeatBehavior.Forever : new RepeatBehavior(repeatCount);
 
                 if (animation.KeyFrames.Count > 0)
-                    imageControl.Source = (ImageSource)animation.KeyFrames[0].Value;
+                    image.Source = (ImageSource)animation.KeyFrames[0].Value;
                 else
-                    imageControl.Source = decoder.Frames[0];
-                imageControl.BeginAnimation(Image.SourceProperty, animation);
+                    image.Source = decoder.Frames[0];
+                image.BeginAnimation(Image.SourceProperty, animation);
+                image.Tag = animation;
+
                 return;
             }
-            imageControl.Source = source;
+            image.Source = source;
         }
 
         private static bool IsFullFrame(FrameInfo info, Int32Size fullSize)
@@ -206,12 +208,13 @@ namespace AnimatedImage
             return null;
         }
 
-        private static BitmapSource MakeFrame(Int32Size fullSize,BitmapSource rawFrame, FrameInfo frameInfo, BitmapSource previousFrame)
+        private static BitmapSource MakeFrame(Int32Size fullSize, BitmapSource rawFrame, FrameInfo frameInfo, BitmapSource previousFrame)
         {
-            if (previousFrame == null && IsFullFrame(frameInfo, fullSize))
-            {
-                return rawFrame;
-            }
+
+            //if (previousFrame == null && IsFullFrame(frameInfo, fullSize))
+            //{
+            //    return rawFrame;
+            //}
 
             var visual = new DrawingVisual();
             using (var context = visual.RenderOpen())
@@ -251,8 +254,8 @@ namespace AnimatedImage
                 Height = height;
             }
 
-            public int Width { get; private set; }
-            public int Height { get; private set; }
+            public int Width { get;  }
+            public int Height { get; }
         }
 
         private class FrameInfo

@@ -32,6 +32,7 @@ namespace Property
         private readonly byte[] _brightRgbMapTable;
         private readonly byte[] _averageBrights;
         private readonly byte[][] _contrastRgbMapTable;
+        private readonly byte[][] _hueRgbMapTable;
 
         public HandleResult HandleResult { get; private set; }
 
@@ -71,6 +72,13 @@ namespace Property
             _contrastRgbMapTable[0] = new byte[256];
             _contrastRgbMapTable[1] = new byte[256];
             _contrastRgbMapTable[2] = new byte[256];
+
+            _hueRgbMapTable = new byte[3][];
+            _hueRgbMapTable[0] = new byte[256];
+            _hueRgbMapTable[1] = new byte[256];
+            _hueRgbMapTable[2] = new byte[256];
+
+            
 
             _selectSlider = FirstSlider;
             InitAverageBrights(_cacheBitmap);
@@ -209,6 +217,7 @@ namespace Property
                     break;
                 case SliderFlag.Warmth:
                     ThirdSliderValue.Content = newValue;
+                    SetHueRgbMapTable(newValue);
                     break;
                 case SliderFlag.Sharpness:
                     ForthSliderValue.Content = newValue;
@@ -314,7 +323,9 @@ namespace Property
                             //改变冷暖度
                             if (warmthLevel != 0)
                             {
-                                //..
+                                ptr[0] = _hueRgbMapTable[0][ptr[0]];
+                                ptr[1] = _hueRgbMapTable[1][ptr[1]];
+                                ptr[2] = _hueRgbMapTable[2][ptr[2]];
                             }
 
                             //改变对比度
@@ -372,24 +383,49 @@ namespace Property
 
         }
 
+        private void SetHueRgbMapTable(int hueLevel)
+        {
+            if (hueLevel > 0)
+            {
+                hueLevel++;
+                for (var i = 0; i < 256; i++)
+                {
+
+                    _hueRgbMapTable[0][i] = 
+                    _hueRgbMapTable[1][i] = (byte)Math.Round((Math.Pow(hueLevel, i / 255.0) - 1) / (hueLevel - 1) * 255);
+                    _hueRgbMapTable[2][i] = (byte)Math.Round(Math.Log(i / 255.0 * (hueLevel - 1) + 1, hueLevel) * 255);
+                }
+            }
+            else if (hueLevel < 0)
+            {
+                hueLevel = -hueLevel + 1;
+                for (var i = 0; i < 256; i++)
+                {
+                    _hueRgbMapTable[0][i] = (byte)Math.Round(Math.Log(i / 255.0 * (hueLevel - 1) + 1, hueLevel) * 255);
+                    _hueRgbMapTable[1][i] = 
+                    _hueRgbMapTable[2][i] = (byte)Math.Round((Math.Pow(hueLevel, i / 255.0) - 1) / (hueLevel - 1) * 255);
+                }
+            }
+        }
+
         private void SetContrastRgbMapTable(int contrastLevel)
         {
             if (contrastLevel == 0) return;
-            var delta = contrastLevel/100.0 + 1;
+            var delta = contrastLevel / 100.0 + 1;
             for (var i = 0; i < 256; i++)
             {
-                var byB = _averageBrights[0] + (i - _averageBrights[0])*delta;
-                var byG = _averageBrights[1] + (i - _averageBrights[1])*delta;
-                var byR = _averageBrights[2] + (i - _averageBrights[2])*delta;
+                var byB = _averageBrights[0] + (i - _averageBrights[0]) * delta;
+                var byG = _averageBrights[1] + (i - _averageBrights[1]) * delta;
+                var byR = _averageBrights[2] + (i - _averageBrights[2]) * delta;
                 if (byB > 255) byB = 255;
                 else if (byB < 0) byB = 0;
                 if (byG > 255) byG = 255;
                 else if (byG < 0) byG = 0;
                 if (byR > 255) byR = 255;
                 else if (byR < 0) byR = 0;
-                _contrastRgbMapTable[0][i] = (byte) byB;
-                _contrastRgbMapTable[1][i] = (byte) byG;
-                _contrastRgbMapTable[2][i] = (byte) byR;
+                _contrastRgbMapTable[0][i] = (byte)byB;
+                _contrastRgbMapTable[1][i] = (byte)byG;
+                _contrastRgbMapTable[2][i] = (byte)byR;
             }
         }
 
@@ -419,8 +455,8 @@ namespace Property
                         ptr += pixelSize;
                     }
                     _averageBrights[0] = (byte)(byB / n);
-                    _averageBrights[0] = (byte)(byB / n);
-                    _averageBrights[0] = (byte)(byB / n);
+                    _averageBrights[0] = (byte)(byG / n);
+                    _averageBrights[0] = (byte)(byR / n);
                 }
 
                 #endregion

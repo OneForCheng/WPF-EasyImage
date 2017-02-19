@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows;
@@ -264,6 +263,22 @@ namespace Drawing
         {
             HandleResult = new HandleResult(null, false);
             Close();
+        }
+
+        private void ToggleLbl_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (ToggleLbl.Content.ToString() == "︿")
+            {
+                ToggleLbl.Content = "﹀";
+                ToggleLbl.ToolTip = "显示";
+                DrawingMainGrid.RowDefinitions[1].Height = new GridLength(105, GridUnitType.Pixel);
+            }
+            else
+            {
+                ToggleLbl.Content = "︿";
+                ToggleLbl.ToolTip = "隐藏";
+                DrawingMainGrid.RowDefinitions[1].Height = new GridLength(155, GridUnitType.Pixel);
+            }
         }
 
         private void DrawingInfo_ColorChanged(object sender, EventArgs e)
@@ -780,5 +795,6 @@ namespace Drawing
 
         #endregion
 
+       
     }
 }

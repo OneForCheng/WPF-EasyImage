@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -102,10 +103,18 @@ namespace EasyImage
         /// <param name="pluginsDir">插件目录</param>
         public void LoadPlugins(string pluginsDir)
         {
+            if (pluginsDir == null)
+            {
+                pluginsDir = "Plugins";
+            }
             if (!Directory.Exists(pluginsDir))
             {
                 pluginsDir = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, pluginsDir);
-                if(!Directory.Exists(pluginsDir)) return;
+                if (!Directory.Exists(pluginsDir))
+                {
+                    Directory.CreateDirectory(pluginsDir);
+                    return;
+                }
             }
             _cachePlugins = new Dictionary<string, List<IHandle>>();
             foreach (var filePath in Directory.GetFiles(pluginsDir, "*.dll"))
@@ -617,8 +626,14 @@ namespace EasyImage
             menuItem = menuItems.Single(m => m.Tag.ToString() == "Combine");
             menuItem.IsEnabled = count > 1;
 
-            menuItem = menuItems.Single(m => m.Tag.ToString() == "Plugin");
-            menuItem.IsEnabled = count == 1;
+            menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "Plugin");
+            if (menuItem != null)
+            {
+                menuItem.IsEnabled = count == 1;
+            }
+
+            menuItem = menuItems.Single(m => m.Tag.ToString() == "GifSplit");
+            menuItem.Visibility = ((AnimatedImage.AnimatedImage)element.Content).Animatable && count == 1 ? Visibility.Visible : Visibility.Collapsed;
 
             menuItem = menuItems.Single(m => m.Tag.ToString() == "Setting");
             menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
@@ -710,12 +725,50 @@ namespace EasyImage
 
         }
 
-        private void MenuItem_CaptureImageFromScreen(object sender, RoutedEventArgs e)
+        private void Element_CaptureImageFromScreen(object sender, RoutedEventArgs e)
+        {
+            if (!SelectedElements.Any()) return;
+
+            foreach (var element in SelectedElements)
+            {
+                element.Visibility = Visibility.Hidden;
+                element.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                {
+                    var scaleTransform = element.GetTransform<ScaleTransform>();
+                    var imageSource = ScreenCropper.CropScreen(new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
+
+                    if (imageSource != null)
+                    {
+                        _actionManager.Execute(new ExchangeImageAction(element,
+                            new AnimatedImage.AnimatedImage
+                            {
+                                Source = imageSource.GetBitmapImage(),
+                                Stretch = Stretch.Fill
+                            }));
+                    }
+                    else
+                    {
+                        Extentions.ShowMessageBox("不合法的截屏操作!");
+                    }
+                }));
+            }
+
+            foreach (var element in SelectedElements)
+            {
+                element.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                {
+                    element.Visibility = Visibility.Visible;
+                }));
+            }
+
+        }
+
+        private  void MenuItem_CaptureImageFromScreen(object sender, RoutedEventArgs e)
         {
             ExchangeImageFromScreen(CropStyle.Default);
         }
 
-        private void MenuItem_ShadowCaptureImageFromScreen(object sender, RoutedEventArgs e)
+        private  void MenuItem_ShadowCaptureImageFromScreen(object sender, RoutedEventArgs e)
         {
             ExchangeImageFromScreen(CropStyle.Shadow);
         }
@@ -949,6 +1002,32 @@ namespace EasyImage
             ClipSelected();
         }
 
+        private void Menu_GifSplit(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            if(animatedImage.BitmapFrames.Count == 0)return;
+
+            var transactions = new TransactionAction();
+            
+            foreach (var imageControl in animatedImage.BitmapFrames.Select(item => new ImageControl(this)
+            {
+                Width = element.Width,
+                Height = element.Height,
+                Content = new AnimatedImage.AnimatedImage { Source = item, Stretch = Stretch.Fill },
+                Template = element.Template,
+                RenderTransform = element.RenderTransform.Clone(),
+            }))
+            {
+                AttachProperty(imageControl);
+                Selector.SetIsSelected(imageControl, false);
+                transactions.Add(new AddItemAction<ImageControl>(m => _panelContainer.Children.Add(m), _panelContainer.Children.Remove, imageControl));
+            }
+            transactions.Add(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m), element));
+            _actionManager.Execute(transactions);
+        }
+
         private void Menu_Setting(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
@@ -1177,6 +1256,14 @@ namespace EasyImage
 
             #endregion
 
+            #region Gif分离
+
+            item = new MenuItem { Header = "Gif分离", Tag = "GifSplit" };
+            item.Click += Menu_GifSplit;
+            contextMenu.Items.Add(item);
+
+            #endregion
+
             #region 插件
 
             if (_cachePlugins != null && _cachePlugins.Count > 0)
@@ -1242,7 +1329,7 @@ namespace EasyImage
 
             #region 添加事件
             element.PreviewMouseDown += Element_PreviewMouseDown;
-            element.MouseDoubleClick += MenuItem_CaptureImageFromScreen;
+            element.MouseDoubleClick += Element_CaptureImageFromScreen;
             element.ContextMenuOpening += Menu_ContextMenuOpening;
             element.SizeChanged += Element_SizeChanged;
 
@@ -1321,37 +1408,46 @@ namespace EasyImage
         private async void ExchangeImageFromScreen(CropStyle cropStyle)
         {
             if (!SelectedElements.Any()) return;
-            var elements = SelectedElements.ToList();
-            elements.ForEach(m => m.Visibility = Visibility.Hidden);
+            await Task.Delay(150);//保证上下文菜单已消失
 
-            await Task.Delay(300);
-
-            foreach (var element in elements)
+            foreach (var element in SelectedElements)
             {
-                var scaleTransform = element.GetTransform<ScaleTransform>();
-                var imageSource = ScreenCropper.CropScreen(new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
-                if (imageSource != null && cropStyle != CropStyle.Default)
+                element.Visibility = Visibility.Hidden;
+                await element.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
                 {
-                    imageSource = ImageCropper.CropBitmapSource(imageSource,
-                        ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth,
-                            imageSource.PixelHeight), cropStyle);
-                }
+                    var scaleTransform = element.GetTransform<ScaleTransform>();
+                    var imageSource = ScreenCropper.CropScreen(new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
+                    if (imageSource != null && cropStyle != CropStyle.Default)
+                    {
+                        imageSource = ImageCropper.CropBitmapSource(imageSource,
+                            ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth,
+                                imageSource.PixelHeight), cropStyle);
+                    }
 
-                if (imageSource != null)
-                {
-                    _actionManager.Execute(new ExchangeImageAction(element,
-                        new AnimatedImage.AnimatedImage
-                        {
-                            Source = imageSource.GetBitmapImage(),
-                            Stretch = Stretch.Fill
-                        }));
-                }
-                else
-                {
-                    Extentions.ShowMessageBox("不合法的截屏操作!");
-                }
+                    if (imageSource != null)
+                    {
+                        _actionManager.Execute(new ExchangeImageAction(element,
+                            new AnimatedImage.AnimatedImage
+                            {
+                                Source = imageSource.GetBitmapImage(),
+                                Stretch = Stretch.Fill
+                            }));
+                    }
+                    else
+                    {
+                        Extentions.ShowMessageBox("不合法的截屏操作!");
+                    }
+                }));
             }
-            elements.ForEach(m => m.Visibility = Visibility.Visible);
+
+            foreach (var element in SelectedElements)
+            {
+                await element.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                {
+                    element.Visibility = Visibility.Visible;
+                }));
+            }
+
         }
 
         private void CropImageFromInternal(CropStyle cropStyle)

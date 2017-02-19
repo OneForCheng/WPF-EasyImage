@@ -1,4 +1,7 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using EasyImage.Config;
 
@@ -68,7 +71,22 @@ namespace EasyImage.Windows
 
             var conntextMenu = new System.Windows.Forms.ContextMenuStrip();
 
-            var item = new System.Windows.Forms.ToolStripMenuItem("设置");
+            var item = new System.Windows.Forms.ToolStripMenuItem("查看日志");
+            item.Click += (sender, e) =>
+            {
+                var path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, @"Log\EasyImageLog.xml");
+                if (File.Exists(path))
+                {
+                    Process.Start("notepad.exe", path);
+                }
+                else
+                {
+                    Extentions.ShowMessageBox("找不到日志文件!");
+                }
+            };
+            conntextMenu.Items.Add(item);
+
+            item = new System.Windows.Forms.ToolStripMenuItem("设置");
             item.Click += (sender, e) =>
             {
                 _imgWin.Visibility = Visibility.Visible;

@@ -34,7 +34,7 @@ namespace EasyImage
             #region Unhandled Exceptions
 
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-            
+
             #endregion
 
             bool createNew;//返回是否赋予了使用线程的互斥体初始所属权
@@ -103,5 +103,6 @@ namespace EasyImage
         }
 
         #endregion
+
     }
 }
