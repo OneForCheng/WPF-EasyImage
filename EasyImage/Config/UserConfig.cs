@@ -16,11 +16,13 @@ namespace EasyImage.Config
             _imageSetting = new ImageSetting();
             _windowState = new WindowState();
             _appSetting = new AppSetting();
+            _shortcutSetting = new ShortcutSetting();
         }
 
         private WindowState _windowState;
         private ImageSetting _imageSetting;
         private AppSetting _appSetting;
+        private ShortcutSetting _shortcutSetting;
 
         public ImageSetting ImageSetting
         {
@@ -46,6 +48,12 @@ namespace EasyImage.Config
             set { _appSetting = value; }
         }
 
+        public ShortcutSetting ShortcutSetting
+        {
+            get { return _shortcutSetting; }
+            set { _shortcutSetting = value; }
+        }
+
         public void LoadConfigFromXml(string path)
         {
             if (!File.Exists(path))
@@ -62,6 +70,7 @@ namespace EasyImage.Config
                     _imageSetting = userConfg._imageSetting;
                     _windowState = userConfg._windowState;
                     _appSetting = userConfg.AppSetting;
+                    _shortcutSetting = userConfg.ShortcutSetting;
                 }
             }
             catch (Exception ex)

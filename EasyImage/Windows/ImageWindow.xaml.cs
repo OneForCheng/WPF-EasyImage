@@ -81,10 +81,41 @@ namespace EasyImage.Windows
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.All); //去除窗口指定的系统菜单
             try
             {
-                HotkeyManager.Current.AddOrReplace("GlobalPasteFromClipboard", Key.V,
-                    ModifierKeys.Control | ModifierKeys.Alt, GlobalPasteFromClipboard);
-                HotkeyManager.Current.AddOrReplace("GlobalAddCanvas", Key.N,
-                    ModifierKeys.Control | ModifierKeys.Alt, GlobalAddCanvas);
+                var modifierKeys = ModifierKeys.None;
+                var globelAddShortcut = _userConfigution.ShortcutSetting.GlobelAddShortcut;
+                if (globelAddShortcut.IsCtrl)
+                {
+                    modifierKeys = modifierKeys | ModifierKeys.Control;
+                }
+                if (globelAddShortcut.IsAlt)
+                {
+                    modifierKeys = modifierKeys | ModifierKeys.Alt;
+                }
+                if (globelAddShortcut.IsShift)
+                {
+                    modifierKeys = modifierKeys | ModifierKeys.Shift;
+                }
+                HotkeyManager.Current.AddOrReplace("GlobalAddCanvas", globelAddShortcut.Key,
+                   modifierKeys, GlobalAddCanvas);
+
+                modifierKeys = ModifierKeys.None;
+                var globelPasteShortcut = _userConfigution.ShortcutSetting.GlobelPasteShortcut;
+                if (globelPasteShortcut.IsCtrl)
+                {
+                    modifierKeys = modifierKeys | ModifierKeys.Control;
+                }
+                if (globelPasteShortcut.IsAlt)
+                {
+                    modifierKeys = modifierKeys | ModifierKeys.Alt;
+                }
+                if (globelPasteShortcut.IsShift)
+                {
+                    modifierKeys = modifierKeys | ModifierKeys.Shift;
+                }
+                HotkeyManager.Current.AddOrReplace("GlobalPasteFromClipboard", globelPasteShortcut.Key,
+                    modifierKeys, GlobalPasteFromClipboard);
+
+
             }
             catch(Exception ex)
             {

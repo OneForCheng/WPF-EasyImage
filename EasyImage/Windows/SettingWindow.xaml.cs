@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Windows;
@@ -21,12 +22,13 @@ namespace EasyImage.Windows
         private readonly UserControl _imageControl;
         private readonly TranslateTransform _translateTransform;
         private AnimatedImage.AnimatedImage _oldAnimatedImage;
+        private Shortcut _oldGlobelAddShortcut, _oldGlobelPasteShortcut;
         private string _oldPath;
         private double _oldWidth, _oldHeight, _oldTranslateX, _oldTranslateY, _oldInitMaxImgSize;
         private bool _textChanged;
         private bool _canTextChange;
         private TextboxFlag _textboxFlag;
-       
+        
         public SettingWindow(UserConfig userConfig, UserControl imageControl, bool isHide)
         {
             InitializeComponent();
@@ -41,6 +43,7 @@ namespace EasyImage.Windows
                             LocationYTbx.IsEnabled = false;
             }
             _textChanged = false;
+            
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -54,12 +57,24 @@ namespace EasyImage.Windows
             _oldInitMaxImgSize = Math.Round(_userConfig.ImageSetting.InitMaxImgSize);
             _oldAnimatedImage = (AnimatedImage.AnimatedImage)_imageControl.Content;
             _oldPath = _userConfig.ImageSetting.MainMenuInfo.Path;
+            _oldGlobelAddShortcut = (Shortcut)_userConfig.ShortcutSetting.GlobelAddShortcut.Clone();
+            _oldGlobelPasteShortcut = (Shortcut)_userConfig.ShortcutSetting.GlobelPasteShortcut.Clone();
 
             HeightTbx.Text = _oldHeight.ToString(CultureInfo.InvariantCulture);
             WidthTbx.Text = _oldWidth.ToString(CultureInfo.InvariantCulture);
             LocationXTbx.Text = _oldTranslateX.ToString(CultureInfo.InvariantCulture);
             LocationYTbx.Text = _oldTranslateY.ToString(CultureInfo.InvariantCulture);
             MaxSizeTbx.Text = _oldInitMaxImgSize.ToString(CultureInfo.InvariantCulture);
+
+            CtrlCbx1.IsChecked = _oldGlobelAddShortcut.IsCtrl;
+            AltCbx1.IsChecked = _oldGlobelAddShortcut.IsAlt;
+            ShiftCbx1.IsChecked = _oldGlobelAddShortcut.IsShift;
+            KeyTbx1.Text = _oldGlobelAddShortcut.Key.ToString();
+
+            CtrlCbx2.IsChecked = _oldGlobelPasteShortcut.IsCtrl;
+            AltCbx2.IsChecked = _oldGlobelPasteShortcut.IsAlt;
+            ShiftCbx2.IsChecked = _oldGlobelPasteShortcut.IsShift;
+            KeyTbx2.Text = _oldGlobelPasteShortcut.Key.ToString();
 
             _canTextChange = true;
         }
@@ -82,6 +97,8 @@ namespace EasyImage.Windows
             _translateTransform.Y = _oldTranslateY;
             _userConfig.ImageSetting.InitMaxImgSize = _oldInitMaxImgSize;
             _userConfig.ImageSetting.MainMenuInfo.Path = _oldPath;
+            _userConfig.ShortcutSetting.GlobelAddShortcut = (Shortcut)_oldGlobelAddShortcut.Clone();
+            _userConfig.ShortcutSetting.GlobelPasteShortcut = (Shortcut)_oldGlobelPasteShortcut.Clone();
 
             _imageControl.Content = _oldAnimatedImage;
             HeightTbx.Text = _oldHeight.ToString(CultureInfo.InvariantCulture);
@@ -89,6 +106,16 @@ namespace EasyImage.Windows
             LocationXTbx.Text = _oldTranslateX.ToString(CultureInfo.InvariantCulture);
             LocationYTbx.Text = _oldTranslateY.ToString(CultureInfo.InvariantCulture);
             MaxSizeTbx.Text = _oldInitMaxImgSize.ToString(CultureInfo.InvariantCulture);
+
+            CtrlCbx1.IsChecked = _oldGlobelAddShortcut.IsCtrl;
+            AltCbx1.IsChecked = _oldGlobelAddShortcut.IsAlt;
+            ShiftCbx1.IsChecked = _oldGlobelAddShortcut.IsShift;
+            KeyTbx1.Text = _oldGlobelAddShortcut.Key.ToString();
+
+            CtrlCbx2.IsChecked = _oldGlobelPasteShortcut.IsCtrl;
+            AltCbx2.IsChecked = _oldGlobelPasteShortcut.IsAlt;
+            ShiftCbx2.IsChecked = _oldGlobelPasteShortcut.IsShift;
+            KeyTbx2.Text = _oldGlobelPasteShortcut.Key.ToString();
 
             _canTextChange = true;
         }
@@ -233,6 +260,60 @@ namespace EasyImage.Windows
             _canTextChange = true;
         }
 
+        private void Checkbox_Click(object sender, RoutedEventArgs e)
+        {
+            var checkbox = sender as CheckBox;
+            if(checkbox == null)return;
+            var flag = (int) checkbox.Tag;
+            var isCheck = checkbox.IsChecked.GetValueOrDefault();
+            switch (flag)
+            {
+                case 0:
+                    _userConfig.ShortcutSetting.GlobelAddShortcut.IsCtrl = isCheck;
+                    break;
+                case 1:
+                    _userConfig.ShortcutSetting.GlobelAddShortcut.IsAlt = isCheck;
+                    break;
+                case 2:
+                    _userConfig.ShortcutSetting.GlobelAddShortcut.IsShift = isCheck;
+                    break;
+                case 3:
+                    _userConfig.ShortcutSetting.GlobelPasteShortcut.IsCtrl = isCheck;
+                    break;
+                case 4:
+                    _userConfig.ShortcutSetting.GlobelPasteShortcut.IsAlt = isCheck;
+                    break;
+                case 5:
+                    _userConfig.ShortcutSetting.GlobelPasteShortcut.IsShift = isCheck;
+                    break;
+            }
+        }
+
+        private void KeyTbx_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            var textbox = sender as TextBox;
+            if (textbox == null) return;
+            e.Handled = true;
+            if (e.KeyboardDevice.Modifiers != ModifierKeys.None)
+            {
+                Extentions.ShowMessageBox("不能有[Ctrl,Alt,Shift]等按键");
+                return;
+            }
+
+            var flag = (int)textbox.Tag;
+            switch (flag)
+            {
+                case 0:
+                    _userConfig.ShortcutSetting.GlobelAddShortcut.Key = e.ImeProcessedKey;
+                    KeyTbx1.Text = e.ImeProcessedKey.ToString();
+                    break;
+                case 1:
+                    _userConfig.ShortcutSetting.GlobelPasteShortcut.Key = e.ImeProcessedKey;
+                    KeyTbx2.Text = e.ImeProcessedKey.ToString();
+                    break;
+            }
+        }
+
         private void SetWidthValue()
         {
            
@@ -296,6 +377,19 @@ namespace EasyImage.Windows
             MaxSizeTbx.Text = _userConfig.ImageSetting.InitMaxImgSize.ToString(CultureInfo.InvariantCulture);
             _canTextChange = true;
         }
-       
+
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (NormalTbm.IsSelected)
+            {
+                NormalGrid.Visibility = Visibility.Visible;
+                ShortcutGrid.Visibility = Visibility.Hidden;
+            }
+            else
+            {
+                ShortcutGrid.Visibility = Visibility.Visible;
+                NormalGrid.Visibility = Visibility.Hidden;
+            }
+        }
     }
 }

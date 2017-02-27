@@ -6,7 +6,7 @@
              xmlns:controls="clr-namespace:Drawing.Resources.Controls"
              xmlns:local="clr-namespace:Drawing"
              mc:Ignorable="d" 
-             Height="370" Width="370"  MinHeight="370" MinWidth="370" ResizeMode="CanResize" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" ShowInTaskbar="False" Loaded="WindowLoaded" KeyDown="WindowKeyDown" >
+             Height="370" Width="370"  MinHeight="370" MinWidth="370" ResizeMode="CanResize" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" ShowInTaskbar="False" Topmost="True" Loaded="WindowLoaded" KeyDown="WindowKeyDown" >
     <Window.Resources>
         <ResourceDictionary>
             <!-- 引用资源字典 -->
