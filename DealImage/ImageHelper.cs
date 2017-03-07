@@ -66,7 +66,6 @@ namespace DealImage
             );
 
             bmp.UnlockBits(data);
-
             return bmp;
         }
 
@@ -130,7 +129,6 @@ namespace DealImage
             return false;
         }
 
-
         public static BitmapSource GetMinContainBitmap(this IDictionary<FrameworkElement, FrameworkElement> dictionary, SolidColorBrush backgrand = null)
         {
             var rect = dictionary.Values.GetMinContainRect();
@@ -169,6 +167,50 @@ namespace DealImage
             return renderBitmap;
         }
 
+        public static BitmapSource GetMinContainBitmap(this BitmapSource bitmapSource, int width, int height, double angle, double scaleX, double scaleY, int visualWidth, int visualHeight)
+        {
+            var originWidth = (int)Math.Round(bitmapSource.Width);
+            var originHeight = (int)Math.Round(bitmapSource.Height);
+
+            if (originHeight != height || originWidth != width)
+            {
+                var drawingVisual = new DrawingVisual();
+                using (var context = drawingVisual.RenderOpen())
+                {
+                    var brush = new ImageBrush(bitmapSource);
+                    context.DrawRectangle(brush, null, new Rect(0, 0, width, height));
+                }
+                var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                renderBitmap.Render(drawingVisual);
+                bitmapSource = renderBitmap;
+            }
+
+            if (!(angle.Equals(0) && scaleX.Equals(1) && scaleY.Equals(1)))
+            {
+                var transformGroup = new TransformGroup();
+                transformGroup.Children.Add(new ScaleTransform(scaleX, scaleY, 0.5, 0.5));
+                transformGroup.Children.Add(new RotateTransform(angle, 0.5, 0.5));
+
+                var bevelSideLength = Math.Sqrt(width * width + height * height);
+
+                var drawingVisual = new DrawingVisual();
+                using (var context = drawingVisual.RenderOpen())
+                {
+                    var brush = new ImageBrush(bitmapSource)
+                    {
+                        Stretch = Stretch.None,
+                        RelativeTransform = transformGroup,
+                    };
+                    context.DrawRectangle(brush, null, new Rect(0, 0, bevelSideLength, bevelSideLength));
+                }
+                var renderBitmap = new RenderTargetBitmap((int)Math.Round(bevelSideLength), (int)Math.Round(bevelSideLength), 96, 96, PixelFormats.Pbgra32);
+                renderBitmap.Render(drawingVisual);
+                bitmapSource = new CroppedBitmap(renderBitmap, new Int32Rect((int)Math.Round((bevelSideLength - visualWidth) / 2), (int)Math.Round((bevelSideLength - visualHeight) / 2), visualWidth, visualHeight));
+            }
+            
+            return bitmapSource;
+        }
+        
         public static Rect GetMinContainRect(this FrameworkElement element)
         {
             double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;

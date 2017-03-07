@@ -86,7 +86,7 @@ namespace AnimatedImage
 
                 var repeatCount = GetRepeatCount(decoder);
                 animation.RepeatBehavior = (repeatCount == 0) ? RepeatBehavior.Forever : new RepeatBehavior(repeatCount);
-
+                
                 if (animation.KeyFrames.Count > 0)
                     image.Source = (ImageSource)animation.KeyFrames[0].Value;
                 else
@@ -198,7 +198,7 @@ namespace AnimatedImage
                 var bytes = extension.GetQueryOrNull<byte[]>("/Application");
                 if (bytes != null)
                 {
-                    var extApplication = Encoding.ASCII.GetString(bytes);
+                    var extApplication =  System.Text.Encoding.ASCII.GetString(bytes);
                     if (extApplication == application)
                         return extension;
                 }

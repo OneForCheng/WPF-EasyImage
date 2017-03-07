@@ -76,8 +76,8 @@ namespace Drawing
             }
             Height = height;
             Width = width;
-            ImageVisulGrid.Height = resizeBitmap.Height;
-            ImageVisulGrid.Width = resizeBitmap.Width;
+            ImageBorder.Height = ImageVisulGrid.Height = resizeBitmap.Height;
+            ImageBorder.Width =  ImageVisulGrid.Width = resizeBitmap.Width;
 
             _linePoints = new List<Point>();
             _drawingChanged = false;

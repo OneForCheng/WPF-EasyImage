@@ -40,7 +40,6 @@ namespace EasyImage.Windows
         private UserConfig _userConfigution;
         private ControlManager _controlManager;
         private ClipboardMonitor _clipboardMonitor;
-        private BitmapImage _cacheInternalBitmapSource;
         private UserControl _mainMenu;
         private AutoHideElementBehavior<UserControl> _autoHideBehavior;
         private int _addInternalImgCount;
@@ -360,41 +359,12 @@ namespace EasyImage.Windows
 
         private void AddImageFromInternal(object sender, RoutedEventArgs e)
         {
-            var size = (int)_userConfigution.ImageSetting.InitMaxImgSize / 2;
-            if (size < 1 || size > SystemParameters.VirtualScreenHeight)
-            {
-                size = (int)SystemParameters.VirtualScreenHeight / 2;
-            }
-            if (_cacheInternalBitmapSource == null || size != (int)_cacheInternalBitmapSource.Width)
-            {
-                var drawingVisual = new DrawingVisual();
-                using (var context = drawingVisual.RenderOpen())
-                {
-                    context.DrawRectangle(Brushes.White, null, new Rect(0, 0, size, size));
-                }
-                drawingVisual.Opacity = 0.1;
-                var renderBitmap = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
-                renderBitmap.Render(drawingVisual);
-
-                var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(renderBitmap));
-                var stream = new MemoryStream();
-                encoder.Save(stream);
-                if (_cacheInternalBitmapSource == null)
-                {
-                    _cacheInternalBitmapSource = new BitmapImage();
-                    _cacheInternalBitmapSource.BeginInit();
-                    _cacheInternalBitmapSource.StreamSource = stream;
-                    _cacheInternalBitmapSource.EndInit();
-                }
-                else
-                {
-                    _cacheInternalBitmapSource.StreamSource = stream;
-                }
-            }
+            var menuItem = sender as MenuItem;
+            var flag = menuItem?.Tag.ToString() ?? "Square";
+            var bitmapSource = (BitmapImage)Resources[flag];
             _controlManager.SelectNone();
             _addInternalImgCount++;
-            _controlManager.AddElement(PackageBitmapSourceToControl(_cacheInternalBitmapSource));
+            _controlManager.AddElement(PackageBitmapSourceToControl(bitmapSource));
         }
 
         private void SaveEasyImageToFile(object sender, RoutedEventArgs e)
@@ -548,7 +518,50 @@ namespace EasyImage.Windows
             #region 添加上下文菜单
             var contextMenu = new ContextMenu();
             var item = new MenuItem {Header = "新建", Tag = "New"};
-            item.Click += AddImageFromInternal;
+
+            #region 二级菜单
+            var subItem = new MenuItem
+            {
+                Header = "矩形",
+                Tag = "Square"
+            };
+            subItem.Click += AddImageFromInternal;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem
+            {
+                Header = "圆形",
+                Tag = "Circle"
+            };
+            subItem.Click += AddImageFromInternal;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem
+            {
+                Header = "三角形",
+                Tag = "Triangle"
+            };
+            subItem.Click += AddImageFromInternal;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem
+            {
+                Header = "五角星",
+                Tag = "FiveStar"
+            };
+            subItem.Click += AddImageFromInternal;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem
+            {
+                Header = "圆环",
+                Tag = "Torus"
+            };
+            subItem.Click += AddImageFromInternal;
+            item.Items.Add(subItem);
+
+            #endregion
+
             contextMenu.Items.Add(item);
 
             item = new MenuItem { Header = "打开", Tag = "Open"};

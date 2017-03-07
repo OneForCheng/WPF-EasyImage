@@ -55,6 +55,7 @@ namespace DealImage.Save
             {
                 case "GIF":
                     encoder = new GifBitmapEncoder();
+                    
                     break;
                 case "JPG":
                 case "JPEG":

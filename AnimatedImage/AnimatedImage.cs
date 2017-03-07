@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -42,12 +43,45 @@ namespace AnimatedImage
                 else
                 {
                     bitmapSources.AddRange((from ObjectKeyFrame item in animation.KeyFrames select item.Value).OfType<BitmapSource>());
-                    if (bitmapSources.Count > 1)
-                    {
-                        bitmapSources.Reverse();
-                    }
                 }
                 return bitmapSources;
+            }
+        }
+
+        /// <summary>
+        /// 获取动态图的重复次数
+        /// </summary>
+        public int RepeatCount
+        {
+            get
+            {
+                var animation = Tag as ObjectAnimationUsingKeyFrames;
+                if (animation == null) return -1;
+                if (animation.RepeatBehavior == RepeatBehavior.Forever)
+                {
+                    return 0;
+                }
+                return (int)animation.RepeatBehavior.Count;
+            }
+        }
+
+        /// <summary>
+        /// 获取每一帧图像的间隔延迟时间的集合
+        /// </summary>
+        public List<TimeSpan> Delays
+        {
+            get
+            {
+                var animation = Tag as ObjectAnimationUsingKeyFrames;
+                var delays = new List<TimeSpan>();
+                if (animation == null) return delays;
+                var lastDuration = TimeSpan.Zero;
+                foreach (ObjectKeyFrame item in animation.KeyFrames)
+                {
+                    delays.Add(item.KeyTime.TimeSpan - lastDuration);
+                    lastDuration = item.KeyTime.TimeSpan;
+                }
+                return delays;
             }
         }
 

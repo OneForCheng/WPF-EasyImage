@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,6 +12,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using AnimatedImage.Encoding;
 using Microsoft.Win32;
 using DealImage;
 using DealImage.Copy;
@@ -24,7 +26,10 @@ using IconMaker;
 using UndoFramework;
 using UndoFramework.Actions;
 using IPlugins;
+using Brushes = System.Windows.Media.Brushes;
 using Color = System.Drawing.Color;
+using Image = System.Windows.Controls.Image;
+using Point = System.Windows.Point;
 
 
 namespace EasyImage
@@ -631,8 +636,8 @@ namespace EasyImage
                 menuItem.IsEnabled = count == 1;
             }
 
-            menuItem = menuItems.Single(m => m.Tag.ToString() == "GifSplit");
-            menuItem.Visibility = ((AnimatedImage.AnimatedImage)element.Content).Animatable && count == 1 ? Visibility.Visible : Visibility.Collapsed;
+            menuItem = menuItems.Single(m => m.Tag.ToString() == "GifDeal");
+            menuItem.Visibility = count == 1 && ((AnimatedImage.AnimatedImage)element.Content).Animatable ? Visibility.Visible : Visibility.Collapsed;
 
             menuItem = menuItems.Single(m => m.Tag.ToString() == "Setting");
             menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
@@ -963,16 +968,126 @@ namespace EasyImage
             ClipSelected();
         }
 
+        private void Menu_GifCopy(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            var bitmapFrames = animatedImage.BitmapFrames;
+            if (bitmapFrames.Count < 2) return;
+
+            var width = (int)Math.Round(element.Width);
+            var height = (int)Math.Round(element.Height);
+            var angle = element.GetTransform<RotateTransform>().Angle;
+            var scaleTransform = element.GetTransform<ScaleTransform>();
+            var scaleX = scaleTransform.ScaleX;
+            var scaleY = scaleTransform.ScaleY;
+
+            var rect = ((Image)(element.Content)).GetMinContainRect();
+            var visualWidth = (int) Math.Round(rect.Width);
+            var visualHeight = (int) Math.Round(rect.Height);
+
+            using (var stream = new MemoryStream())
+            {
+                using (var encoder = new GifEncoder(stream, visualWidth, visualHeight, animatedImage.RepeatCount))
+                {
+                    var delays = animatedImage.Delays;
+                    for (var i = 0; i < bitmapFrames.Count; i++)
+                    {
+                        using (var bitmap = bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight).GetBitmap())
+                        {
+                            encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
+                        }
+                    }
+                }
+                stream.Position = 0;
+
+                var tempFilePath = Path.GetTempFileName();
+                using (var fs = File.OpenWrite(tempFilePath))
+                {
+                    var data = stream.ToArray();
+                    fs.Write(data, 0, data.Length);
+                }
+                var byteData = Encoding.UTF8.GetBytes("<QQRichEditFormat><Info version=\"1001\"></Info><EditElement type=\"1\" filepath=\"" + tempFilePath + "\" shortcut=\"\"></EditElement><EditElement type=\"0\"><![CDATA[]]></EditElement></QQRichEditFormat>");
+                var dataObject = new DataObject();
+                dataObject.SetData(ImageDataFormats.QqUnicodeRichEditFormat, new MemoryStream(byteData), true);
+                dataObject.SetData(ImageDataFormats.QqRichEditFormat, new MemoryStream(byteData), true);
+                dataObject.SetData(ImageDataFormats.FileDrop, new[] { tempFilePath }, true);
+                dataObject.SetData(ImageDataFormats.FileNameW, new[] { tempFilePath }, true);
+                dataObject.SetData(ImageDataFormats.FileName, new[] { tempFilePath }, true);
+
+                Clipboard.Clear();
+                Clipboard.SetDataObject(dataObject, true);
+
+            }
+
+        }
+
+        private void Menu_GifSave(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            var bitmapFrames = animatedImage.BitmapFrames;
+            if (bitmapFrames.Count < 2) return;
+
+            var dialog = new SaveFileDialog
+            {
+                CheckPathExists = true,
+                AddExtension = true,
+                FileName = "图形1",
+                Filter = "GIF 可交换的图形格式 (*.gif)|*.gif",
+                ValidateNames = true,
+            };
+
+            var showDialog = dialog.ShowDialog().GetValueOrDefault();
+            if (!showDialog) return;
+            var filePath = dialog.FileName;
+
+            var width = (int)Math.Round(element.Width);
+            var height = (int)Math.Round(element.Height);
+            var angle = element.GetTransform<RotateTransform>().Angle;
+            var scaleTransform = element.GetTransform<ScaleTransform>();
+            var scaleX = scaleTransform.ScaleX;
+            var scaleY = scaleTransform.ScaleY;
+
+            var rect = ((Image)(element.Content)).GetMinContainRect();
+            var visualWidth = (int) Math.Round(rect.Width);
+            var visualHeight = (int) Math.Round(rect.Height);
+
+            using (var stream = new MemoryStream())
+            {
+                using (var encoder = new GifEncoder(stream, visualWidth, visualHeight, animatedImage.RepeatCount))
+                {
+                    var delays = animatedImage.Delays;
+                    for (var i = 0; i < bitmapFrames.Count; i++)
+                    {
+                        using (var bitmap = bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight).GetBitmap())
+                        {
+                            encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
+                        }
+                    }
+                }
+                stream.Position = 0;
+                using (var file = File.Create(filePath))
+                {
+                    stream.WriteTo(file);
+                }
+            }
+
+        }
+
         private void Menu_GifSplit(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
             var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
-            if(animatedImage.BitmapFrames.Count == 0)return;
+            var bitmapFrames = animatedImage.BitmapFrames;
+            if (bitmapFrames.Count < 2)return;
+            bitmapFrames.Reverse();//反置
 
             var transactions = new TransactionAction();
-            
-            foreach (var imageControl in animatedImage.BitmapFrames.Select(item => new ImageControl(this)
+            foreach (var imageControl in bitmapFrames.Select(item => new ImageControl(this)
             {
                 Width = element.Width,
                 Height = element.Height,
@@ -985,6 +1100,47 @@ namespace EasyImage
                 Selector.SetIsSelected(imageControl, false);
                 transactions.Add(new AddItemAction<ImageControl>(m => _panelContainer.Children.Add(m), _panelContainer.Children.Remove, imageControl));
             }
+            transactions.Add(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m), element));
+            _actionManager.Execute(transactions);
+        }
+
+        private void Menu_GifReverse(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            var bitmapFrames = animatedImage.BitmapFrames;
+            if (bitmapFrames.Count < 2) return;
+
+            var stream = new MemoryStream();
+            using (var encoder = new GifEncoder(stream, bitmapFrames.First().PixelWidth, bitmapFrames.First().PixelHeight, animatedImage.RepeatCount))
+            {
+                var delays = animatedImage.Delays;
+                for (var i = bitmapFrames.Count - 1; i >= 0; i--)
+                {
+                    using (var bitmap = bitmapFrames[i].GetBitmap())
+                    {
+                        encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
+                    }
+                }
+            }
+            stream.Position = 0;
+            var bitmapImage = new BitmapImage();
+            bitmapImage.BeginInit();
+            bitmapImage.StreamSource = stream;
+            bitmapImage.EndInit();
+
+            var transactions = new TransactionAction();
+            var imageControl = new ImageControl(this)
+            {
+                Width = element.Width,
+                Height = element.Height,
+                Content = new AnimatedImage.AnimatedImage {Source = bitmapImage, Stretch = Stretch.Fill},
+                Template = element.Template,
+                RenderTransform = element.RenderTransform.Clone(),
+            };
+            AttachProperty(imageControl);
+            transactions.Add(new AddItemAction<ImageControl>(m => _panelContainer.Children.Add(m), _panelContainer.Children.Remove, imageControl));
             transactions.Add(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m), element));
             _actionManager.Execute(transactions);
         }
@@ -1254,15 +1410,55 @@ namespace EasyImage
 
             #endregion
 
-            #region Gif分离
+            #region Gif处理
 
             item = new MenuItem
+            {
+                Header = "Gif处理",
+                Tag = "GifDeal",
+                ToolTip = "处理GIF动态图"
+            };
+
+            #region 二级菜单
+
+            subItem = new MenuItem
+            {
+                Header = "Gif复制",
+                Tag = "GifCopy",
+                ToolTip = "复制当前GIF动态图"
+            };
+            subItem.Click += Menu_GifCopy;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem
+            {
+                Header = "Gif保存",
+                Tag = "GifSave",
+                ToolTip = "保存当前GIF动态图"
+            };
+            subItem.Click += Menu_GifSave;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem
             {
                 Header = "Gif分离",
                 Tag = "GifSplit",
                 ToolTip = "将GIF动态图分解成多张图像"
             };
-            item.Click += Menu_GifSplit;
+            subItem.Click += Menu_GifSplit;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem
+            {
+                Header = "Gif反转",
+                Tag = "GifReverse",
+                ToolTip = "将GIF动态图播放顺序反转"
+            };
+            subItem.Click += Menu_GifReverse;
+            item.Items.Add(subItem);
+
+            #endregion
+
             contextMenu.Items.Add(item);
 
             #endregion
@@ -1454,7 +1650,7 @@ namespace EasyImage
             var element = SelectedElements.First();
             element.Visibility = Visibility.Hidden;
 
-             element.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            element.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
                 var renderBitmap = new RenderTargetBitmap((int)SystemParameters.VirtualScreenWidth, (int)SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
                 renderBitmap.Render(_panelContainer);

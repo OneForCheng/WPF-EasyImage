@@ -76,11 +76,13 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\AnimatedImage\bin\Release\AnimatedImage.dll</HintPath>
     </Reference>
-    <Reference Include="DealImage">
-      <HintPath>..\DealImage\bin\Debug\DealImage.dll</HintPath>
+    <Reference Include="DealImage, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\DealImage\bin\Release\DealImage.dll</HintPath>
     </Reference>
-    <Reference Include="IconMaker">
-      <HintPath>..\IconMaker\bin\Debug\IconMaker.dll</HintPath>
+    <Reference Include="IconMaker, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\IconMaker\bin\Release\IconMaker.dll</HintPath>
     </Reference>
     <Reference Include="log4net, Version=2.0.7.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <HintPath>..\packages\log4net.2.0.7\lib\net45-full\log4net.dll</HintPath>
@@ -111,17 +113,20 @@
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
-    <Reference Include="UndoFramework">
-      <HintPath>..\UndoFramework\bin\Debug\UndoFramework.dll</HintPath>
+    <Reference Include="UndoFramework, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\UndoFramework\bin\Release\UndoFramework.dll</HintPath>
     </Reference>
-    <Reference Include="UnmanagedToolkit">
-      <HintPath>..\UnmanagedToolkit\bin\Debug\UnmanagedToolkit.dll</HintPath>
+    <Reference Include="UnmanagedToolkit, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\UnmanagedToolkit\bin\Release\UnmanagedToolkit.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-    <Reference Include="WindowTemplate">
-      <HintPath>..\WindowTemplate\bin\Debug\WindowTemplate.dll</HintPath>
+    <Reference Include="WindowTemplate, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\WindowTemplate\bin\Release\WindowTemplate.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -231,7 +236,9 @@
     <AppDesigner Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\Images\Rotate.png" />
@@ -276,6 +283,11 @@
     <Content Include="Plugins\Property.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Resource Include="Resources\Images\new_circle.png" />
+    <Resource Include="Resources\Images\new_fivestar.png" />
+    <Resource Include="Resources\Images\new_square.png" />
+    <Resource Include="Resources\Images\new_torus.png" />
+    <Resource Include="Resources\Images\new_triangle.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

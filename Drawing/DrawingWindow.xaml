@@ -32,11 +32,13 @@
             </Grid.RowDefinitions>
             <Grid Grid.Row="0" x:Name="ImageViewGrid" Background="White">
                 <Grid Margin="10">
-                    <Border x:Name="ImageBorder" BorderThickness="0.1" BorderBrush="Gray" HorizontalAlignment="Center" VerticalAlignment="Center" >
-                        <Grid x:Name="ImageVisulGrid" Background="Transparent">
-                            <Image x:Name="TargetImage" Stretch="Uniform" MouseLeftButtonDown="TargetImage_MouseLeftButtonDown" MouseLeftButtonUp="TargetImage_MouseLeftButtonUp"  Cursor="Cross"  HorizontalAlignment="Center" VerticalAlignment="Center" MouseMove="TargetImage_MouseMove" MouseLeave="TargetImage_MouseLeave" />
-                            <TextBox x:Name="ImageTextBox" Focusable="True" BorderThickness="1" TextWrapping="Wrap" AcceptsTab="True" AcceptsReturn="true" BorderBrush="#FF6A96E4" MinWidth="20" MinHeight="17"  Background="Transparent" Visibility="Hidden"  VerticalAlignment="Top" HorizontalAlignment="Left"  LostFocus="ImageTextBox_LostFocus"></TextBox>
-                        </Grid>
+                    <Border  BorderThickness="1" BorderBrush="Gray"  HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border x:Name="ImageBorder" BorderThickness="0" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Grid  x:Name="ImageVisulGrid"  Background="Transparent">
+                                <Image x:Name="TargetImage" Stretch="Uniform" MouseLeftButtonDown="TargetImage_MouseLeftButtonDown" MouseLeftButtonUp="TargetImage_MouseLeftButtonUp"  Cursor="Cross"  HorizontalAlignment="Center" VerticalAlignment="Center" MouseMove="TargetImage_MouseMove" MouseLeave="TargetImage_MouseLeave" />
+                                <TextBox x:Name="ImageTextBox" Focusable="True" BorderThickness="1" TextWrapping="Wrap" AcceptsTab="True" AcceptsReturn="true" BorderBrush="#FF6A96E4" MinWidth="20" MinHeight="17"  Background="Transparent" Visibility="Hidden"  VerticalAlignment="Top" HorizontalAlignment="Left"  LostFocus="ImageTextBox_LostFocus"></TextBox>
+                            </Grid>
+                        </Border>
                     </Border>
                 </Grid>
             </Grid>

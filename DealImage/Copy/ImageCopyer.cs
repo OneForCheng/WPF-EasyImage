@@ -47,8 +47,6 @@ namespace DealImage.Copy
                 dataObject.SetData(ImageDataFormats.FileNameW, new[] { tempFilePath }, true);
                 dataObject.SetData(ImageDataFormats.FileName, new[] { tempFilePath }, true);
 
-                
-                
                 Clipboard.Clear();
                 Clipboard.SetDataObject(dataObject, true);
             }
