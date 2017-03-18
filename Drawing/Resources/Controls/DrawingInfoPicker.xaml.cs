@@ -11,7 +11,7 @@ using Point = System.Windows.Point;
 namespace Drawing.Resources.Controls
 {
     /// <summary>
-    /// ColorPicker.xaml 的交互逻辑
+    /// DrawingInfoPicker.xaml 的交互逻辑
     /// </summary>
     public partial class DrawingInfoPicker
     {

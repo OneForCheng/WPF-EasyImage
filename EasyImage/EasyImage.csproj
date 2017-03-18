@@ -25,7 +25,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>9</ApplicationRevision>
+    <ApplicationRevision>11</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -155,6 +155,9 @@
     <Compile Include="Enum\TextboxFlag.cs" />
     <Compile Include="Enum\ThumbFlag.cs" />
     <Compile Include="Controls\ImageControl.cs" />
+    <Compile Include="Windows\GifCropWindow.xaml.cs">
+      <DependentUpon>GifCropWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Windows\SettingWindow.xaml.cs">
       <DependentUpon>SettingWindow.xaml</DependentUpon>
     </Compile>
@@ -167,6 +170,10 @@
     <Page Include="Controls\DealImageToolbar.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Windows\GifCropWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
     <Page Include="Windows\SettingWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -247,6 +254,10 @@
     <Resource Include="Icon.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\GifDrawing\GifDrawing.csproj">
+      <Project>{A6A52FB7-7FB2-4725-AEFA-3CE0769580FB}</Project>
+      <Name>GifDrawing</Name>
+    </ProjectReference>
     <ProjectReference Include="..\IPlugins\IPlugins.csproj">
       <Project>{A58D0620-D745-4670-BD0E-EAF5D852B5F6}</Project>
       <Name>IPlugins</Name>

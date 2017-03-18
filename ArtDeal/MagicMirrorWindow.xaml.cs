@@ -17,13 +17,10 @@ using Point = System.Windows.Point;
 namespace ArtDeal
 {
     /// <summary>
-    /// BinaryWindow.xaml 的交互逻辑
+    /// MagicMirrorWindow.xaml 的交互逻辑
     /// </summary>
     public partial class MagicMirrorWindow : IDisposable
     {
-        private bool _resize;
-        private int _oldWidth;
-        private int _oldHeight;
 
         private readonly Bitmap _cacheBitmap;
         private Point _originPoint;
@@ -32,12 +29,119 @@ namespace ArtDeal
         private WriteableBitmap _writeableBitmap;
         private byte[] _bitmapBuffer;
 
+        #region Protect methods
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            var hwndSource = PresentationSource.FromVisual(this) as HwndSource;
+            hwndSource?.AddHook(WndProc);
+        }
+
+        protected const int WmNchittest = 0x0084;
+        protected const int AgWidth = 12;
+        protected const int BThickness = 4;
+
+        protected virtual IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            switch (msg)
+            {
+                case WmNchittest:
+                    var mousePoint = new System.Drawing.Point(lParam.ToInt32() & 0xFFFF, lParam.ToInt32() >> 16);
+                    if (mousePoint.Y - Top <= AgWidth
+                       && mousePoint.X - Left <= AgWidth)
+                    {
+                        handled = true;
+                        return new IntPtr((int)HitTest.Httopleft);
+                    }
+                    else if (ActualHeight + Top - mousePoint.Y <= AgWidth
+                       && mousePoint.X - Left <= AgWidth)
+                    {
+                        handled = true;
+                        return new IntPtr((int)HitTest.Htbottomleft);
+                    }
+                    else if (mousePoint.Y - Top <= AgWidth
+                       && ActualWidth + Left - mousePoint.X <= AgWidth)
+                    {
+                        handled = true;
+                        return new IntPtr((int)HitTest.Httopright);
+                    }
+                    else if (ActualWidth + Left - mousePoint.X <= AgWidth
+                       && ActualHeight + Top - mousePoint.Y <= AgWidth)
+                    {
+                        handled = true;
+                        return new IntPtr((int)HitTest.Htbottomright);
+                    }
+                    else if (mousePoint.X - Left <= BThickness)
+                    {
+                        handled = true;
+                        return new IntPtr((int)HitTest.Htleft);
+                    }
+                    else if (ActualWidth + Left - mousePoint.X <= BThickness)
+                    {
+                        handled = true;
+                        return new IntPtr((int)HitTest.Htright);
+                    }
+                    else if (mousePoint.Y - Top <= BThickness)
+                    {
+                        handled = true;
+                        return new IntPtr((int)HitTest.Httop);
+                    }
+                    else if (ActualHeight + Top - mousePoint.Y <= BThickness)
+                    {
+                        handled = true;
+                        return new IntPtr((int)HitTest.Htbottom);
+                    }
+                    else
+                    {
+                        handled = false;
+                        return IntPtr.Zero;
+                    }
+            }
+            return IntPtr.Zero;
+        }
+
+        protected enum HitTest
+        {
+            Hterror = -2,
+            Httransparent = -1,
+            Htnowhere = 0,
+            Htclient = 1,
+            Htcaption = 2,
+            Htsysmenu = 3,
+            Htgrowbox = 4,
+            Htsize = Htgrowbox,
+            Htmenu = 5,
+            Hthscroll = 6,
+            Htvscroll = 7,
+            Htminbutton = 8,
+            Htmaxbutton = 9,
+            Htleft = 10,
+            Htright = 11,
+            Httop = 12,
+            Httopleft = 13,
+            Httopright = 14,
+            Htbottom = 15,
+            Htbottomleft = 16,
+            Htbottomright = 17,
+            Htborder = 18,
+            Htreduce = Htminbutton,
+            Htzoom = Htmaxbutton,
+            Htsizefirst = Htleft,
+            Htsizelast = Htbottomright,
+            Htobject = 19,
+            Htclose = 20,
+            Hthelp = 21,
+        }
+
+        #endregion
+
         public HandleResult HandleResult { get; private set; }
 
         public MagicMirrorWindow(Bitmap bitmap)
         {
             InitializeComponent();
-            _cacheBitmap = ResizeBitmap(bitmap);
+            _cacheBitmap = (Bitmap)bitmap.Clone();
 
             var screenHeight = SystemParameters.VirtualScreenHeight;
             var screenWidth = SystemParameters.VirtualScreenWidth;
@@ -61,8 +165,6 @@ namespace ArtDeal
             }
             Height = height;
             Width = width;
-            TargetImage.Height = _cacheBitmap.Height;
-            TargetImage.Width = _cacheBitmap.Width;
 
             _factor = 100;
             _originPoint = new Point(_cacheBitmap.Width / 2.0, _cacheBitmap.Height / 2.0);
@@ -70,7 +172,8 @@ namespace ArtDeal
 
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {
-            this.RemoveSystemMenuItems(Win32.SystemMenuItems.All); //去除窗口指定的系统菜单
+            this.DisableMaxmize(true); //禁用窗口最大化功能
+            this.RemoveSystemMenuItems(Win32.SystemMenuItems.Restore | Win32.SystemMenuItems.Minimize | Win32.SystemMenuItems.Maximize | Win32.SystemMenuItems.SpliteLine); //去除窗口指定的系统菜单
             //TitleLbl.Content = $"哈哈镜处理: {_factor}";
             _resultBitmap = GetHandledImage(_cacheBitmap, _originPoint, _factor);
             _writeableBitmap = new WriteableBitmap(Imaging.CreateBitmapSourceFromHBitmap(_resultBitmap.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions()));
@@ -112,7 +215,7 @@ namespace ArtDeal
 
         private void RightBtn_Click(object sender, RoutedEventArgs e)
         {
-            HandleResult = new HandleResult(_resize? _resultBitmap.ResizeBitmap(_oldWidth, _oldHeight) : (Bitmap)_resultBitmap.Clone(), true);
+            HandleResult = new HandleResult((Bitmap)_resultBitmap.Clone(), true);
             Close();
         }
 
@@ -273,60 +376,6 @@ namespace ArtDeal
                 return (Bitmap)bitmap.Clone();
             }
             
-        }
-
-        private Bitmap ResizeBitmap(Bitmap bitmap)
-        {
-            try
-            {
-                var width = _oldWidth = bitmap.Width;
-                var height = _oldHeight = bitmap.Height;
-                var screenHeight = (int)SystemParameters.VirtualScreenHeight;
-                var screenWidth = (int)SystemParameters.VirtualScreenWidth;
-                _resize = false;
-
-                if (width < 260 && height < 175)
-                {
-                    if (width > height)
-                    {
-                        height = 260 * height / width;
-                        width = 260;
-                        _resize = true;
-                    }
-                    else
-                    {
-                        width = 175 * width / height;
-                        height = 175;
-                        _resize = true;
-                    }
-                }
-               
-                if (width > screenWidth - 40)
-                {
-                    height = (screenWidth - 40) * height / width;
-                    width = screenWidth - 40;
-                    _resize = true;
-                }
-
-                if (height > screenHeight - 125)
-                {
-                    width = (screenHeight - 125) * width / height;
-                    height = screenHeight - 125;
-                    _resize = true;
-                }
-
-                if (!_resize)
-                {
-                    return bitmap;
-                }
-                var resizeBitmap = bitmap.ResizeBitmap(width, height);
-                bitmap.Dispose();
-                return resizeBitmap;
-            }
-            catch
-            {
-                return bitmap;
-            }
         }
 
         private void UpdateImage(Bitmap bitmap)

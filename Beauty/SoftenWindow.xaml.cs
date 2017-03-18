@@ -16,7 +16,7 @@ using PixelFormat = System.Drawing.Imaging.PixelFormat;
 namespace Beauty
 {
     /// <summary>
-    /// BinaryWindow.xaml 的交互逻辑
+    /// SoftenWindow.xaml 的交互逻辑
     /// </summary>
     public partial class SoftenWindow : IDisposable
     {

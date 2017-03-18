@@ -22,6 +22,8 @@ using DealImage.Save;
 using EasyImage.Actioins;
 using EasyImage.Controls;
 using EasyImage.Enum;
+using EasyImage.Windows;
+using GifDrawing;
 using IconMaker;
 using UndoFramework;
 using UndoFramework.Actions;
@@ -29,8 +31,8 @@ using IPlugins;
 using Brushes = System.Windows.Media.Brushes;
 using Color = System.Drawing.Color;
 using Image = System.Windows.Controls.Image;
+using ImageDataFormats = DealImage.ImageDataFormats;
 using Point = System.Windows.Point;
-
 
 namespace EasyImage
 {
@@ -552,7 +554,7 @@ namespace EasyImage
             element.Visibility = Visibility.Hidden;
 
             var bitmapSource = ((Image)element.Content).Source as BitmapSource;
-            var result = ((sender as MenuItem)?.Tag as IHandle)?.ExecHandle(bitmapSource.GetResizeBitmap((int)Math.Round(element.Width), (int)Math.Round(element.Height)).GetBitmap());
+            var result = ((sender as MenuItem)?.Tag as IHandle)?.ExecHandle(ImageHelper.GetBitmap(bitmapSource.GetResizeBitmap((int)Math.Round(element.Width), (int)Math.Round(element.Height))));
 
             element.Visibility = Visibility.Visible;
             if (result == null)return;
@@ -968,7 +970,14 @@ namespace EasyImage
             ClipSelected();
         }
 
-        private void Menu_GifCopy(object sender, RoutedEventArgs e)
+        private void MenuItem_GifClip(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            MenuItem_GifCopy(null, null);
+            _actionManager.Execute(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m), SelectedElements.First()));
+        }
+
+        private void MenuItem_GifCopy(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
@@ -994,7 +1003,7 @@ namespace EasyImage
                     var delays = animatedImage.Delays;
                     for (var i = 0; i < bitmapFrames.Count; i++)
                     {
-                        using (var bitmap = bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight).GetBitmap())
+                        using (var bitmap = ImageHelper.GetBitmap(bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight)))
                         {
                             encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
                         }
@@ -1023,7 +1032,7 @@ namespace EasyImage
 
         }
 
-        private void Menu_GifSave(object sender, RoutedEventArgs e)
+        private void MenuItem_GifSave(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
@@ -1062,7 +1071,7 @@ namespace EasyImage
                     var delays = animatedImage.Delays;
                     for (var i = 0; i < bitmapFrames.Count; i++)
                     {
-                        using (var bitmap = bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight).GetBitmap())
+                        using (var bitmap = ImageHelper.GetBitmap(bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight)))
                         {
                             encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
                         }
@@ -1077,7 +1086,7 @@ namespace EasyImage
 
         }
 
-        private void Menu_GifSplit(object sender, RoutedEventArgs e)
+        private void MenuItem_GifSplit(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
@@ -1104,7 +1113,7 @@ namespace EasyImage
             _actionManager.Execute(transactions);
         }
 
-        private void Menu_GifReverse(object sender, RoutedEventArgs e)
+        private void MenuItem_GifReverse(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
@@ -1118,7 +1127,7 @@ namespace EasyImage
                 var delays = animatedImage.Delays;
                 for (var i = bitmapFrames.Count - 1; i >= 0; i--)
                 {
-                    using (var bitmap = bitmapFrames[i].GetBitmap())
+                    using (var bitmap = ImageHelper.GetBitmap(bitmapFrames[i]))
                     {
                         encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
                     }
@@ -1145,10 +1154,44 @@ namespace EasyImage
             _actionManager.Execute(transactions);
         }
 
+        private void MenuItem_GifDrawing(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            var bitmapFrames = animatedImage.BitmapFrames;
+            if (bitmapFrames.Count < 2) return;
+            element.Visibility = Visibility.Hidden;
+            var window = new GifDrawingWindow(animatedImage);
+            window.ShowDialog();
+            if (window.NewAnimatedImage != null)
+            {
+                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), window.NewAnimatedImage));
+            }
+            element.Visibility = Visibility.Visible;
+        }
+
+        private void MenuItem_GifCrop(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            var bitmapFrames = animatedImage.BitmapFrames;
+            if (bitmapFrames.Count < 2) return;
+            element.Visibility = Visibility.Hidden;
+            var window = new GifCropWindow(animatedImage);
+            window.ShowDialog();
+            if (window.NewAnimatedImage != null)
+            {
+                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), window.NewAnimatedImage));
+            }
+            element.Visibility = Visibility.Visible;
+        }
+
         private void Menu_Setting(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
-            var window = new Windows.ImageSettingWindow(SelectedElements.First());
+            var window = new ImageSettingWindow(SelectedElements.First());
             window.ShowDialog();
             if (window.IsModified)
             {
@@ -1423,40 +1466,66 @@ namespace EasyImage
 
             subItem = new MenuItem
             {
-                Header = "Gif复制",
+                Header = "剪贴",
+                Tag = "GifClip",
+                ToolTip = "剪贴当前GIF动态图"
+            };
+            subItem.Click += MenuItem_GifClip;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem
+            {
+                Header = "复制",
                 Tag = "GifCopy",
                 ToolTip = "复制当前GIF动态图"
             };
-            subItem.Click += Menu_GifCopy;
+            subItem.Click += MenuItem_GifCopy;
             item.Items.Add(subItem);
 
             subItem = new MenuItem
             {
-                Header = "Gif保存",
+                Header = "保存",
                 Tag = "GifSave",
                 ToolTip = "保存当前GIF动态图"
             };
-            subItem.Click += Menu_GifSave;
+            subItem.Click += MenuItem_GifSave;
             item.Items.Add(subItem);
 
             subItem = new MenuItem
             {
-                Header = "Gif分离",
+                Header = "分离",
                 Tag = "GifSplit",
                 ToolTip = "将GIF动态图分解成多张图像"
             };
-            subItem.Click += Menu_GifSplit;
+            subItem.Click += MenuItem_GifSplit;
             item.Items.Add(subItem);
 
             subItem = new MenuItem
             {
-                Header = "Gif反转",
+                Header = "反转",
                 Tag = "GifReverse",
                 ToolTip = "将GIF动态图播放顺序反转"
             };
-            subItem.Click += Menu_GifReverse;
+            subItem.Click += MenuItem_GifReverse;
             item.Items.Add(subItem);
 
+            subItem = new MenuItem
+            {
+                Header = "涂鸦",
+                Tag = "GifDrawing",
+                ToolTip = "在GIF动态图上涂鸦"
+            };
+            subItem.Click += MenuItem_GifDrawing;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem
+            {
+                Header = "裁剪",
+                Tag = "GifCrop",
+                ToolTip = "裁剪GIF动态图"
+            };
+            subItem.Click += MenuItem_GifCrop;
+            item.Items.Add(subItem);
             #endregion
 
             contextMenu.Items.Add(item);
@@ -1777,7 +1846,7 @@ namespace EasyImage
                 return renderBitmap;
             } 
             var resizeBitmap = bitmapSource.GetResizeBitmap(width, height);
-            return cropStyle == CropStyle.Shadow ? resizeBitmap : resizeBitmap.GetBitmap().ShadowSwapTransparent(Color.White).GetBitmapSource();
+            return cropStyle == CropStyle.Shadow ? resizeBitmap : ImageHelper.GetBitmap(resizeBitmap).ShadowSwapTransparent(Color.White).GetBitmapSource();
         }
 
         #endregion Private methods

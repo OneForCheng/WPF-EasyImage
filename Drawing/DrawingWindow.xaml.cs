@@ -25,16 +25,13 @@ using Size = System.Drawing.Size;
 namespace Drawing
 {
     /// <summary>
-    /// BinaryWindow.xaml 的交互逻辑
+    /// DrawingWindow.xaml 的交互逻辑
     /// </summary>
     public partial class DrawingWindow
     {
         #region Private fields
 
-        private bool _resize;
-        private int _oldWidth;
-        private int _oldHeight;
-
+        private bool _isSave;
         private readonly DrawingManager _drawingManager;
         private Button _selectedButton;
         private DrawingTool _drawingTool;
@@ -52,12 +49,12 @@ namespace Drawing
         public DrawingWindow(Bitmap bitmap)
         {
             InitializeComponent();
-            var resizeBitmap = ResizeBitmap(bitmap);
             var screenHeight = SystemParameters.VirtualScreenHeight;
             var screenWidth = SystemParameters.VirtualScreenWidth;
             
-            var height = resizeBitmap.Height + 210.0;
-            var width = resizeBitmap.Width + 40.0;
+            var height = bitmap.Height + 210.0;
+            var width = bitmap.Width + 40.0;
+
             if (height < 370)
             {
                 height = 370;
@@ -76,15 +73,14 @@ namespace Drawing
             }
             Height = height;
             Width = width;
-            ImageBorder.Height = ImageVisulGrid.Height = resizeBitmap.Height;
-            ImageBorder.Width =  ImageVisulGrid.Width = resizeBitmap.Width;
-
+           
             _linePoints = new List<Point>();
+            _isSave = false;
             _drawingChanged = false;
             _selectedButton = PenToolBtn;
             _drawingTool = DrawingTool.PenTool;
             _pickedColor = Color.Transparent;
-            _drawingManager = new DrawingManager(TargetImage, resizeBitmap)
+            _drawingManager = new DrawingManager(TargetImage, bitmap)
             {
                 RedoButtuon =  RedoButton,
                 UndoButton =  UndoButton,
@@ -210,9 +206,18 @@ namespace Drawing
 
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {
+            this.DisableMaxmize(true); //禁用窗口最大化功能
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.Restore | Win32.SystemMenuItems.Minimize | Win32.SystemMenuItems.Maximize | Win32.SystemMenuItems.SpliteLine); //去除窗口指定的系统菜单
             DrawingInfo_ColorChanged(null, null);
             DrawingInfo_FontChanged(null, null);
+        }
+
+        private void WindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (_isSave)
+            {
+                HandleResult = new HandleResult((Bitmap)_drawingManager.LastRecordedBitmap.Clone(), true);
+            }
         }
 
         private void WindowKeyDown(object sender, KeyEventArgs e)
@@ -244,13 +249,14 @@ namespace Drawing
 
         private void LeftBtn_Click(object sender, RoutedEventArgs e)
         {
-            HandleResult = new HandleResult(null, false);
+            _isSave = false;
             Close();
         }
 
         private void RightBtn_Click(object sender, RoutedEventArgs e)
         {
-            HandleResult = new HandleResult(_resize ? _drawingManager.LastRecordedBitmap.ResizeBitmap(_oldWidth, _oldHeight) : (Bitmap)_drawingManager.LastRecordedBitmap.Clone(), true);
+            
+            _isSave = true;
             Close();
         }
 
@@ -261,7 +267,7 @@ namespace Drawing
 
         private void CloseBtn_Click(object sender, RoutedEventArgs e)
         {
-            HandleResult = new HandleResult(null, false);
+            _isSave = false;
             Close();
         }
 
@@ -469,61 +475,7 @@ namespace Drawing
         #endregion
 
         #region Private methods
-
-        private Bitmap ResizeBitmap(Bitmap bitmap)
-        {
-            try
-            {
-                var width = _oldWidth = bitmap.Width;
-                var height =  _oldHeight = bitmap.Height;
-                var screenHeight = (int)SystemParameters.VirtualScreenHeight;
-                var screenWidth = (int)SystemParameters.VirtualScreenWidth;
-                _resize = false;
-
-                if (width < 330 && height < 160)
-                {
-                    if (width > height)
-                    {
-                        height = 330 * height / width;
-                        width = 330;
-                        _resize = true;
-                    }
-                    else
-                    {
-                        width = 160 * width / height;
-                        height = 160;
-                        _resize = true;
-                    }
-                }
-
-                if (width > screenWidth - 40)
-                {
-                    height = (screenWidth - 40) * height / width;
-                    width = screenWidth - 40;
-                    _resize = true;
-                }
-
-                if (height > screenHeight - 210)
-                {
-                    width = (screenHeight - 210) * width / height;
-                    height = screenHeight - 210;
-                    _resize = true;
-                }
-
-                if (!_resize)
-                {
-                    return bitmap;
-                }
-                var resizeBitmap = bitmap.ResizeBitmap(width, height);
-                bitmap.Dispose();
-                return resizeBitmap;
-            }
-            catch
-            {
-                return bitmap;
-            }
-        }
-
+       
         private void SetDrawingTool(Button selectButton, DrawingTool drawingTool)
         {
             if (_drawingTool == drawingTool) return;
@@ -793,8 +745,9 @@ namespace Drawing
             }
         }
 
+
         #endregion
 
-       
+        
     }
 }

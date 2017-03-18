@@ -53,8 +53,6 @@
         </Border>
     </ControlTemplate>
 
-    
-    
     <!-- MoveResizeRotate Template -->
     <ControlTemplate x:Key="MoveResizeRotateTemplate" TargetType="Control">
         <Grid DataContext="{Binding RelativeSource={RelativeSource TemplatedParent}}">

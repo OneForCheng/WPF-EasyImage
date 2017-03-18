@@ -33,43 +33,43 @@
                     <TabItem x:Name="NormalTbm" Header="常规" Background="#FF6A96E4">
                         <Grid x:Name="NormalGrid" Background="Transparent">
                             <Grid Background="#FF6A96E4" MouseDown="Grid_MouseDown">
-                                <Label x:Name="SizeLbl" Padding="1" FontSize="15" Foreground="White" Content="主菜单:" HorizontalAlignment="Left" Height="22" Margin="5,32,0,0" VerticalAlignment="Top" Width="55"/>
+                                <Label x:Name="SizeLbl" Padding="1" FontSize="15" Foreground="White" Content="主菜单:" HorizontalAlignment="Left" Height="22" Margin="10,10,0,0" VerticalAlignment="Top" Width="55"/>
 
-                                <Label x:Name="HeightLbl" Padding="1" FontSize="13" Foreground="White" Content="高度:" HorizontalAlignment="Left" Height="18" Margin="40,60,0,0" VerticalAlignment="Top" Width="40"/>
-                                <TextBox x:Name="HeightTbx" MaxLength="16" TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="110,60,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus"  TextChanged="TextBox_TextChanged"  >
+                                <Label x:Name="HeightLbl" Padding="1" FontSize="13" Foreground="White" Content="高度:" HorizontalAlignment="Left" Height="18" Margin="45,38,0,0" VerticalAlignment="Top" Width="40"/>
+                                <TextBox x:Name="HeightTbx" MaxLength="16" TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="115,38,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus"  TextChanged="TextBox_TextChanged"  >
                                     <TextBox.Tag>
                                         <x:Static Member="local:TextboxFlag.First"></x:Static>
                                     </TextBox.Tag>
                                 </TextBox>
 
 
-                                <Label x:Name="WidthLbl" Padding="1" FontSize="13" Foreground="White" Content="宽度:" HorizontalAlignment="Left" Height="18" Margin="40,83,0,0" VerticalAlignment="Top" Width="40"/>
-                                <TextBox x:Name="WidthTbx" MaxLength="16"  HorizontalAlignment="Left" Height="18" Margin="110,84,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
+                                <Label x:Name="WidthLbl" Padding="1" FontSize="13" Foreground="White" Content="宽度:" HorizontalAlignment="Left" Height="18" Margin="45,61,0,0" VerticalAlignment="Top" Width="40"/>
+                                <TextBox x:Name="WidthTbx" MaxLength="16"  HorizontalAlignment="Left" Height="18" Margin="115,62,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
                                     <TextBox.Tag>
                                         <x:Static Member="local:TextboxFlag.Second"></x:Static>
                                     </TextBox.Tag>
                                 </TextBox>
 
-                                <Label x:Name="LocationXLbl" Padding="1" FontSize="13" Foreground="White" Content="水平位置:" HorizontalAlignment="Left" Height="18" Margin="40,107,0,0" VerticalAlignment="Top" Width="60"/>
-                                <TextBox x:Name="LocationXTbx" MaxLength="16" TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="110,107,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus"  TextChanged="TextBox_TextChanged"  >
+                                <Label x:Name="LocationXLbl" Padding="1" FontSize="13" Foreground="White" Content="水平位置:" HorizontalAlignment="Left" Height="18" Margin="45,85,0,0" VerticalAlignment="Top" Width="60"/>
+                                <TextBox x:Name="LocationXTbx" MaxLength="16" TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="115,85,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus"  TextChanged="TextBox_TextChanged"  >
                                     <TextBox.Tag>
                                         <x:Static Member="local:TextboxFlag.Third"></x:Static>
                                     </TextBox.Tag>
                                 </TextBox>
 
 
-                                <Label x:Name="LocationYLbl" Padding="1" FontSize="13" Foreground="White" Content="垂直位置:" HorizontalAlignment="Left" Height="18" Margin="40,131,0,0" VerticalAlignment="Top" Width="60"/>
-                                <TextBox x:Name="LocationYTbx" MaxLength="16"  HorizontalAlignment="Left" Height="18" Margin="110,131,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
+                                <Label x:Name="LocationYLbl" Padding="1" FontSize="13" Foreground="White" Content="垂直位置:" HorizontalAlignment="Left" Height="18" Margin="45,109,0,0" VerticalAlignment="Top" Width="60"/>
+                                <TextBox x:Name="LocationYTbx" MaxLength="16"  HorizontalAlignment="Left" Height="18" Margin="115,109,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
                                     <TextBox.Tag>
                                         <x:Static Member="local:TextboxFlag.Forth"></x:Static>
                                     </TextBox.Tag>
                                 </TextBox>
 
-                                <Button x:Name="ReplaceBtn" Content="更改图片..." FontSize="13" Margin="40,156,0,0" Style="{StaticResource NormalBtnStyle}" Click="ReplaceBtn_Click" Height="18" VerticalAlignment="Top" HorizontalAlignment="Left" Width="80"/>
+                                <Button x:Name="ReplaceBtn" Content="更改图片..." FontSize="13" Margin="45,134,0,0" Style="{StaticResource NormalBtnStyle}" Click="ReplaceBtn_Click" Height="18" VerticalAlignment="Top" HorizontalAlignment="Left" Width="80"/>
 
-                                <Label x:Name="ImageLbl" Padding="1" FontSize="15" Foreground="White" Content="图像:" HorizontalAlignment="Left" Height="22" Margin="5,183,0,0" VerticalAlignment="Top" Width="40"/>
-                                <Label x:Name="MaxSizeLbl" Padding="1" FontSize="13" Foreground="White" Content="初始最大宽/高:" HorizontalAlignment="Left" Height="18" Margin="40,209,0,0" VerticalAlignment="Top" Width="95"/>
-                                <TextBox x:Name="MaxSizeTbx" MaxLength="16"  TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="140,209,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
+                                <Label x:Name="ImageLbl" Padding="1" FontSize="15" Foreground="White" Content="图像:" HorizontalAlignment="Left" Height="22" Margin="10,161,0,0" VerticalAlignment="Top" Width="40"/>
+                                <Label x:Name="MaxSizeLbl" Padding="1" FontSize="13" Foreground="White" Content="初始最大宽/高:" HorizontalAlignment="Left" Height="18" Margin="45,187,0,0" VerticalAlignment="Top" Width="95"/>
+                                <TextBox x:Name="MaxSizeTbx" MaxLength="16"  TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="145,187,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
                                     <TextBox.Tag>
                                         <x:Static Member="local:TextboxFlag.Fifth"></x:Static>
                                     </TextBox.Tag>
@@ -105,7 +105,7 @@
                                         </TextBox.Tag>
                                     </TextBox>
                                 </Grid>
-                                
+
                                 <Grid Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="354" Margin="0,90,0,0">
                                     <Label  x:Name="GlobelPasteLbl" Padding="0" Content="黏贴图像:" Foreground="White" HorizontalAlignment="Left" Height="20" Margin="15,7,0,0" VerticalAlignment="Top" Width="60"></Label>
                                     <CheckBox x:Name="CtrlCbx2" Content="Ctrl" IsChecked="True" Foreground="White" HorizontalAlignment="Left" Height="20" Margin="93,8,0,0" VerticalAlignment="Top" Width="50"  Click="Checkbox_Click">

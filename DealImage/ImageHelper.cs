@@ -191,7 +191,7 @@ namespace DealImage
                 transformGroup.Children.Add(new ScaleTransform(scaleX, scaleY, 0.5, 0.5));
                 transformGroup.Children.Add(new RotateTransform(angle, 0.5, 0.5));
 
-                var bevelSideLength = Math.Sqrt(width * width + height * height);
+                var bevelSideLength = (int)Math.Ceiling(Math.Sqrt(width * width + height * height));
 
                 var drawingVisual = new DrawingVisual();
                 using (var context = drawingVisual.RenderOpen())
@@ -203,9 +203,12 @@ namespace DealImage
                     };
                     context.DrawRectangle(brush, null, new Rect(0, 0, bevelSideLength, bevelSideLength));
                 }
-                var renderBitmap = new RenderTargetBitmap((int)Math.Round(bevelSideLength), (int)Math.Round(bevelSideLength), 96, 96, PixelFormats.Pbgra32);
+
+                var renderBitmap = new RenderTargetBitmap(bevelSideLength, bevelSideLength, 96, 96, PixelFormats.Pbgra32);
                 renderBitmap.Render(drawingVisual);
-                bitmapSource = new CroppedBitmap(renderBitmap, new Int32Rect((int)Math.Round((bevelSideLength - visualWidth) / 2), (int)Math.Round((bevelSideLength - visualHeight) / 2), visualWidth, visualHeight));
+
+                bitmapSource = new CroppedBitmap(renderBitmap, new Int32Rect((bevelSideLength - visualWidth) / 2, (bevelSideLength - visualHeight) / 2, visualWidth, visualHeight));
+
             }
             
             return bitmapSource;

@@ -108,5 +108,41 @@ namespace Drawing
         [DllImport("User32.dll")]
         internal static extern int DrawMenuBar(IntPtr hWnd);
 
+        #region 禁止最大化
+        //禁用窗口最大化功能
+        public static void DisableMaxmize(this Window window, bool isDisable)
+        {
+            var gwlStyle = -16;
+            var wsMaximizebox = 0x00010000;
+            var swpNosize = 0x0001;
+            var swpNomove = 0x0002;
+            var swpFramechanged = 0x0020;
+
+            var handle = new WindowInteropHelper(window).Handle;
+
+            var nStyle = GetWindowLong(handle, gwlStyle);
+            if (isDisable)
+            {
+                nStyle &= ~(wsMaximizebox);
+            }
+            else
+            {
+                nStyle |= wsMaximizebox;
+            }
+
+            SetWindowLong(handle, gwlStyle, nStyle);
+            SetWindowPos(handle, IntPtr.Zero, 0, 0, 0, 0, swpNosize | swpNomove | swpFramechanged);
+        }
+
+        //禁用窗口最大化功能
+        [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
+        public static extern int GetWindowLong(IntPtr hwnd, int nIndex);
+        [DllImport("user32.dll", EntryPoint = "SetWindowLong")]
+        public static extern int SetWindowLong(IntPtr hMenu, int nIndex, int dwNewLong);
+        [DllImport("user32.dll")]
+        private static extern int SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, int uFlags);
+
+        #endregion
+
     }
 }

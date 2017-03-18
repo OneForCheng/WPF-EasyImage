@@ -14,7 +14,7 @@ using UnmanagedToolkit;
 namespace EasyImage.Windows
 {
     /// <summary>
-    /// ImageSettingWindow.xaml 的交互逻辑
+    /// SettingWindow.xaml 的交互逻辑
     /// </summary>
     public partial class SettingWindow
     {

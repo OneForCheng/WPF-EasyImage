@@ -16,7 +16,7 @@ using PixelFormat = System.Drawing.Imaging.PixelFormat;
 namespace ArtDeal
 {
     /// <summary>
-    /// BinaryWindow.xaml 的交互逻辑
+    /// AtomizedWindow.xaml 的交互逻辑
     /// </summary>
     public partial class AtomizedWindow : IDisposable
     {

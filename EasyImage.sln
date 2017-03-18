@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Beauty", "Beauty\Beauty.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Property", "Property\Property.csproj", "{DECBBA75-7127-47F4-87D6-57E515ECD759}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GifDrawing", "GifDrawing\GifDrawing.csproj", "{A6A52FB7-7FB2-4725-AEFA-3CE0769580FB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -95,6 +97,10 @@ Global
 		{DECBBA75-7127-47F4-87D6-57E515ECD759}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DECBBA75-7127-47F4-87D6-57E515ECD759}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DECBBA75-7127-47F4-87D6-57E515ECD759}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6A52FB7-7FB2-4725-AEFA-3CE0769580FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6A52FB7-7FB2-4725-AEFA-3CE0769580FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6A52FB7-7FB2-4725-AEFA-3CE0769580FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6A52FB7-7FB2-4725-AEFA-3CE0769580FB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
