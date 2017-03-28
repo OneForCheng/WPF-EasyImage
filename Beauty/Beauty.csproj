@@ -48,6 +48,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BeautyPlugins.cs" />
     <Compile Include="BuffingBrightenWindow.xaml.cs">
       <DependentUpon>BuffingBrightenWindow.xaml</DependentUpon>
     </Compile>

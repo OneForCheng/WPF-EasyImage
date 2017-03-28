@@ -25,48 +25,53 @@ namespace EasyImage.Windows
         private readonly AnimatedImage.AnimatedImage _animatedImage;
         private readonly int _imageViewWidth;
         private readonly int _imageViewHeight;
+        private readonly int _imageWidth;
+        private readonly int _imageHeight;
         private readonly int _pixelWidth;
         private readonly int _pixelHeight;
 
         public AnimatedImage.AnimatedImage NewAnimatedImage { get; private set; }
 
-        public GifCropWindow(AnimatedImage.AnimatedImage animatedImage)
+        public GifCropWindow(AnimatedImage.AnimatedImage animatedImage, int width, int height)
         {
             InitializeComponent();
             var screenHeight = (int)SystemParameters.VirtualScreenHeight;
             var screenWidth = (int)SystemParameters.VirtualScreenWidth;
 
             _animatedImage = animatedImage;
-            _imageViewWidth = _pixelWidth = _animatedImage.BitmapFrames.First().PixelWidth;
-            _imageViewHeight = _pixelHeight = _animatedImage.BitmapFrames.First().PixelHeight;
-           
+            _imageViewWidth = _imageWidth = width;
+            _imageViewHeight = _imageHeight = height;
+            _pixelWidth = _animatedImage.BitmapFrames.First().PixelWidth;
+            _pixelHeight = _animatedImage.BitmapFrames.First().PixelHeight;
+
             if (_imageViewWidth > screenWidth - 40)
             {
                 _imageViewHeight = (screenWidth - 40) * _imageViewHeight / _imageViewWidth;
                 _imageViewWidth = screenWidth - 40;
             }
 
-            if (_imageViewHeight > screenHeight - 105)
+            if (_imageViewHeight > screenHeight - 125)
             {
-                _imageViewWidth = (screenHeight - 105) * _imageViewWidth / _imageViewHeight;
-                _imageViewHeight = screenHeight - 105;
+                _imageViewWidth = (screenHeight - 125) * _imageViewWidth / _imageViewHeight;
+                _imageViewHeight = screenHeight - 125;
             }
-            var height = _imageViewHeight + 105.0;
-            var width = _imageViewWidth + 40.0;
+            var winHeight = _imageViewHeight + 125.0;
+            var winWidth = _imageViewWidth + 40.0;
 
-            if (height < 300)
+            if (winHeight < 300)
             {
-                height = 300;
+                winHeight = 300;
             }
-            if (width < 300)
+            if (winWidth < 300)
             {
-                width = 300;
+                winWidth = 300;
             }
-            Height = height;
-            Width = width;
+            Height = winHeight;
+            Width = winWidth;
             TargetImage.Source = _animatedImage.Source;
             ImageVisulGrid.Height = _imageViewHeight;
             ImageVisulGrid.Width = _imageViewWidth;
+            
 
             _isSave = false;
             _isMousePressed = false;
@@ -79,7 +84,7 @@ namespace EasyImage.Windows
 
         private void WindowClosing(object sender, CancelEventArgs e)
         {
-            var isChanged = CropRect.Width > 1 && CropRect.Height > 1 &&
+            var isChanged = CropRect.Width >= 1 && CropRect.Height >= 1 &&
                 (CropRect.Width < _imageViewWidth || CropRect.Height < _imageViewHeight);
             if (_isSave && isChanged)
             {
@@ -87,31 +92,45 @@ namespace EasyImage.Windows
                 var top = (int)(CropRect.Margin.Top/ _imageViewHeight * _pixelHeight);
                 var width = (int)(CropRect.Width / _imageViewWidth * _pixelWidth);
                 var height = (int)(CropRect.Height / _imageViewHeight * _pixelHeight);
-                if (width == 0 || height == 0)
+                var realWidth = (int)(CropRect.Width / _imageViewWidth * _imageWidth);
+                var realHeight = (int)(CropRect.Height / _imageViewHeight * _imageHeight);
+                if (width == 0 || height == 0 || realWidth == 0 || realHeight == 0)
                 {
                     return;
                 }
                 var croppedBox = new Int32Rect(left, top, width, height);
-                var bitmapFrames = _animatedImage.BitmapFrames;
-                var stream = new MemoryStream();
-                using (var encoder = new GifEncoder(stream, width, height, _animatedImage.RepeatCount))
+                
+                BitmapSource bitmapSource;
+                if (_animatedImage.Animatable)
                 {
-                    var delays = _animatedImage.Delays;
-                    for (var i = 0; i < bitmapFrames.Count; i++)
+                    var bitmapFrames = _animatedImage.BitmapFrames;
+                    var stream = new MemoryStream();
+                    using (var encoder = new GifEncoder(stream, realWidth, realHeight, _animatedImage.RepeatCount))
                     {
-                        using (var bitmap = new CroppedBitmap(bitmapFrames[i], croppedBox).GetBitmap())
+                        var delays = _animatedImage.Delays;
+                        for (var i = 0; i < bitmapFrames.Count; i++)
                         {
-                            encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
+                            using (var bitmap = new CroppedBitmap(bitmapFrames[i], croppedBox).GetResizeBitmap(realWidth, realHeight).GetBitmap())
+                            {
+                                encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
+                            }
                         }
                     }
+                    stream.Position = 0;
+                    var bitmapImage = new BitmapImage();
+                    bitmapImage.BeginInit();
+                    bitmapImage.StreamSource = stream;
+                    bitmapImage.EndInit();
+                    bitmapSource = bitmapImage;
                 }
-                stream.Position = 0;
-                var bitmapImage = new BitmapImage();
-                bitmapImage.BeginInit();
-                bitmapImage.StreamSource = stream;
-                bitmapImage.EndInit();
-
-                NewAnimatedImage = new AnimatedImage.AnimatedImage() { Source = bitmapImage, Stretch = Stretch.Fill };
+                else
+                {
+                    bitmapSource = _animatedImage.Source as BitmapSource;
+                    if(bitmapSource == null)return;
+                    bitmapSource = new CroppedBitmap(bitmapSource, croppedBox).GetResizeBitmap(realWidth, realHeight).GetBitmapImage();
+                }
+               
+                NewAnimatedImage = new AnimatedImage.AnimatedImage() { Source = bitmapSource, Stretch = Stretch.Fill };
             }
         }
 
@@ -151,6 +170,12 @@ namespace EasyImage.Windows
             _startPoint.Y = y;
             CropRect.Width = 0;
             CropRect.Height = 0;
+
+            TopValueLbl.Content = 0;
+            LeftValueLbl.Content = 0;
+            WidthValueLbl.Content = 0;
+            HeightValueLbl.Content = 0;
+
             TargetImage.CaptureMouse();
             _isMousePressed = true;
         }
@@ -211,6 +236,11 @@ namespace EasyImage.Windows
                 CropRect.Margin = new Thickness(minX, minY, 0, 0);
                 CropRect.Width = maxX - minX;
                 CropRect.Height = maxY - minY;
+
+                TopValueLbl.Content = minX;
+                LeftValueLbl.Content = minY;
+                WidthValueLbl.Content = CropRect.Width;
+                HeightValueLbl.Content = CropRect.Height;
             }
         }
 

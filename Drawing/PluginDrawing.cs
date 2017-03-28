@@ -7,7 +7,7 @@ namespace Drawing
     {
         public string GetPluginName()
         {
-            return "Drawing";
+            return "涂鸦";
         }
 
         public Bitmap GetPluginIcon()

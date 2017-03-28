@@ -47,6 +47,7 @@
   <ItemGroup>
     <Compile Include="HandleResult.cs" />
     <Compile Include="IHandle.cs" />
+    <Compile Include="IHandleList.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

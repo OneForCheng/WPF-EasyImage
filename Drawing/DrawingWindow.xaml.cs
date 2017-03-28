@@ -458,7 +458,7 @@ namespace Drawing
             ImageTextBox.BorderThickness = new Thickness(0);
             if (ImageTextBox.Text.Trim() == string.Empty)
             {
-                ImageTextBox.Visibility = Visibility.Hidden;
+                ImageTextBox.Visibility = Visibility.Collapsed;
                 return;
             }
             ImageTextBox.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
@@ -468,7 +468,7 @@ namespace Drawing
                    var renderBitmap = new RenderTargetBitmap(_drawingManager.LastRecordedBitmap.Width, _drawingManager.LastRecordedBitmap.Height, 96, 96, PixelFormats.Pbgra32);
                    renderBitmap.Render(ImageVisulGrid);
                    _drawingManager.Drawing(renderBitmap.GetBitmap());
-                   ImageTextBox.Visibility = Visibility.Hidden;
+                   ImageTextBox.Visibility = Visibility.Collapsed;
                }));
         }
 
@@ -510,7 +510,7 @@ namespace Drawing
 
         private void InsertTextToImage()
         {
-            if (ImageTextBox.Visibility == Visibility.Hidden)
+            if (ImageTextBox.Visibility != Visibility.Visible)
             {
                 ImageTextBox.BorderThickness = new Thickness(1);
                 ImageTextBox.Text = string.Empty;

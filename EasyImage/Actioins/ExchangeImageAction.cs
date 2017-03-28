@@ -25,19 +25,20 @@ namespace EasyImage.Actioins
             _image = image;
             var oldHeight = contentControl.Height;
             var oldWidth = contentControl.Width;
-            var width = image.Source.Width;
-            
-            var ratio = image.Source.Height / image.Source.Width;
-            width = width < oldWidth ? width : oldWidth;
+            var imageWidth = image.Source.Width;
+            var imageHeight = image.Source.Height;
 
-            _deltaX = (width - oldWidth) /oldWidth;
-            _deltaY = (width * ratio - oldHeight)/oldHeight;
+            var ratio = imageHeight / imageWidth;
+            imageWidth = imageWidth < oldWidth ? imageWidth : oldWidth;
+
+            _deltaX = (imageWidth - oldWidth) /oldWidth;
+            _deltaY = (imageWidth * ratio - oldHeight)/oldHeight;
 
             var scalePoint = new Point(oldWidth / 2, oldHeight / 2);
             var scaleTransform = contentControl.GetTransform<ScaleTransform>();
             var radian = contentControl.GetTransform<RotateTransform>().Angle / 180 * Math.PI;
-            _moveX = -scalePoint.X * Math.Cos(radian) * scaleTransform.ScaleX * _deltaX + scalePoint.Y * Math.Sin(radian) * scaleTransform.ScaleY * _deltaY;
-            _moveY = -scalePoint.X * Math.Sin(radian) * scaleTransform.ScaleX * _deltaX - scalePoint.Y * Math.Cos(radian) * scaleTransform.ScaleY * _deltaY;
+            _moveX = Math.Round(-scalePoint.X * Math.Cos(radian) * scaleTransform.ScaleX * _deltaX + scalePoint.Y * Math.Sin(radian) * scaleTransform.ScaleY * _deltaY);
+            _moveY = Math.Round(-scalePoint.X * Math.Sin(radian) * scaleTransform.ScaleX * _deltaX - scalePoint.Y * Math.Cos(radian) * scaleTransform.ScaleY * _deltaY);
         }
 
         /// <summary>

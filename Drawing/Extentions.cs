@@ -93,6 +93,10 @@ namespace Drawing
 
         public static Bitmap ResizeBitmap(this Bitmap bitmap, int width, int height)
         {
+            if (bitmap.Width == width && bitmap.Height == height)
+            {
+                return (Bitmap)bitmap.Clone();
+            }
             var resizeBitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             using (var bmpGraphics = Graphics.FromImage(resizeBitmap))
             {

@@ -47,6 +47,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EasyDealPlugins.cs" />
     <Compile Include="PluginEnBlackWhite.cs" />
     <Compile Include="PluginBlackWhite.cs" />
     <Compile Include="PluginSobelEdge.cs" />

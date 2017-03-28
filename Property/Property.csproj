@@ -58,6 +58,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="PropertyPlugins.cs" />
     <Compile Include="SliderFlag.cs" />
     <Compile Include="Win32.cs" />
   </ItemGroup>

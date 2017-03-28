@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -23,7 +25,6 @@ using EasyImage.Actioins;
 using EasyImage.Controls;
 using EasyImage.Enum;
 using EasyImage.Windows;
-using GifDrawing;
 using IconMaker;
 using UndoFramework;
 using UndoFramework.Actions;
@@ -38,6 +39,7 @@ namespace EasyImage
 {
     public class ControlManager
     {
+
         #region Constructors
         public ControlManager(Panel container)
         {
@@ -46,7 +48,7 @@ namespace EasyImage
             MoveSpeed = 1.0;
             _actionManager = new ActionManager { MaxBufferCount = 20 };
             _statusCode = _actionManager.StatusCode;
-            
+
         }
 
         #endregion Constructors
@@ -54,7 +56,7 @@ namespace EasyImage
         #region Private fields
         private readonly Panel _panelContainer;
         private readonly ActionManager _actionManager;
-        private Dictionary<string, List<IHandle>> _cachePlugins;
+        private List<Tuple<string, Bitmap, List<IHandle>>> _cachePlugins;
         private ImageControl[] _cacheSelectedElements;
         private int _statusCode;
         private int _maxControlZIndex;
@@ -122,7 +124,7 @@ namespace EasyImage
                     return;
                 }
             }
-            _cachePlugins = new Dictionary<string, List<IHandle>>();
+            _cachePlugins = new List<Tuple<string, Bitmap, List<IHandle>>>();
             foreach (var filePath in Directory.GetFiles(pluginsDir, "*.dll"))
             {
                 var fileName = Path.GetFileNameWithoutExtension(filePath) ?? string.Empty;
@@ -131,7 +133,7 @@ namespace EasyImage
                     var list = GetPluginIhandle(filePath);
                     if (list != null && list.Count != 0)
                     {
-                        _cachePlugins.Add(fileName, list);
+                        list.ForEach(m=> _cachePlugins.Add(new Tuple<string, Bitmap, List<IHandle>>(m.GetPluginName(), m.GetPluginIcon(), m.GetIHandleList())));
                     }
                 }
                 catch (Exception ex)
@@ -176,7 +178,7 @@ namespace EasyImage
             foreach (var element in enumerable)
             {
                 AttachProperty(element);
-                Selector.SetIsSelected(element,false);
+                Selector.SetIsSelected(element, false);
                 _panelContainer.Children.Add(element);
             }
         }
@@ -354,7 +356,7 @@ namespace EasyImage
                     translateTransform.X -= moveX;
                     translateTransform.Y -= moveY;
                 }
-                
+
                 _actionManager.Execute(transactions);
             }
             else
@@ -554,10 +556,10 @@ namespace EasyImage
             element.Visibility = Visibility.Hidden;
 
             var bitmapSource = ((Image)element.Content).Source as BitmapSource;
-            var result = ((sender as MenuItem)?.Tag as IHandle)?.ExecHandle(ImageHelper.GetBitmap(bitmapSource.GetResizeBitmap((int)Math.Round(element.Width), (int)Math.Round(element.Height))));
+            var result = ((sender as MenuItem)?.Tag as IHandle)?.ExecHandle(bitmapSource.GetResizeBitmap((int)Math.Round(element.Width), (int)Math.Round(element.Height)).GetBitmap());
 
             element.Visibility = Visibility.Visible;
-            if (result == null)return;
+            if (result == null) return;
             if (!result.IsSuccess)
             {
                 App.Log.Error(result.Exception.ToString());
@@ -620,7 +622,10 @@ namespace EasyImage
             var menuItems = element.ContextMenu?.Items?.OfType<MenuItem>().ToArray();
             if (menuItems == null) return;
 
-            var menuItem = menuItems.Single(m => m.Tag.ToString() == "CaptureImage");
+            var menuItem = menuItems.Single(m => m.Tag.ToString() == "TrimSelf");
+            menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+
+            menuItem = menuItems.Single(m => m.Tag.ToString() == "CaptureImage");
             menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
 
             menuItem = menuItems.Single(m => m.Tag.ToString() == "CutImage");
@@ -629,13 +634,16 @@ namespace EasyImage
             menuItem = menuItems.Single(m => m.Tag.ToString() == "Exchange");
             menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
 
+            menuItem = menuItems.Single(m => m.Tag.ToString() == "SetBackground");
+            menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
+
             menuItem = menuItems.Single(m => m.Tag.ToString() == "Combine");
             menuItem.IsEnabled = count > 1;
 
             menuItem = menuItems.SingleOrDefault(m => m.Tag.ToString() == "Plugin");
             if (menuItem != null)
             {
-                menuItem.IsEnabled = count == 1;
+                menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
             }
 
             menuItem = menuItems.Single(m => m.Tag.ToString() == "GifDeal");
@@ -655,6 +663,37 @@ namespace EasyImage
                 menuItem.IsEnabled = ImagePaster.CanPasteImageFromClipboard();
             }
         }
+
+        private void Menu_CopyImage(object sender, RoutedEventArgs e)
+        {
+            CopySelected();
+        }
+
+        private void Menu_CopyRemoveImage(object sender, RoutedEventArgs e)
+        {
+            ClipSelected();
+        }
+
+        private void MenuItem_CropImage(object sender, RoutedEventArgs e)
+        {
+            if (SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            var width = (int)Math.Round(element.Width);
+            var height = (int)Math.Round(element.Height);
+            if (width == 0 || height == 0)
+            {
+                return;
+            }
+            element.Visibility = Visibility.Hidden;
+            var window = new GifCropWindow((AnimatedImage.AnimatedImage)element.Content, width, height);
+            window.ShowDialog();
+            if (window.NewAnimatedImage != null)
+            {
+                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), window.NewAnimatedImage));
+            }
+            element.Visibility = Visibility.Visible;
+        }
+
 
         private void Menu_ZIndexTop(object sender, RoutedEventArgs e)
         {
@@ -736,7 +775,7 @@ namespace EasyImage
             ExchangeImageFromScreen(CropStyle.Default);
         }
 
-        private  void MenuItem_ShadowCaptureImageFromScreen(object sender, RoutedEventArgs e)
+        private void MenuItem_ShadowCaptureImageFromScreen(object sender, RoutedEventArgs e)
         {
             ExchangeImageFromScreen(CropStyle.Shadow);
         }
@@ -779,7 +818,7 @@ namespace EasyImage
         private void Menu_ExchangeImageFromClipboard(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
-            var imageSource = ImagePaster.GetPasteImagesFromClipboard().First();
+            var imageSource = ImagePaster.GetPasteImagesFromClipboard().FirstOrDefault();
             if (imageSource != null)
             {
                 _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }));
@@ -801,6 +840,107 @@ namespace EasyImage
             var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
             renderBitmap.Render(drawingVisual);
             _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedImage.AnimatedImage { Source = renderBitmap.GetBitmapImage(), Stretch = Stretch.Fill }));
+
+        }
+
+        private void Menu_SetPngImageBackground(object sender, RoutedEventArgs e)
+        {
+            var menuItem = sender as MenuItem;
+            if (menuItem == null || SelectedElements.Count() != 1) return;
+            var element = SelectedElements.First();
+            var tag = menuItem.Tag.ToString();
+
+            BitmapSource bitmapSource;
+            if (tag == "Default")
+            {
+                var drawingVisual = new DrawingVisual();
+                using (var context = drawingVisual.RenderOpen())
+                {
+                    context.DrawRectangle(Brushes.White, null, new Rect(0, 0, 10, 10));
+                }
+                var renderBitmap = new RenderTargetBitmap(10, 10, 96, 96, PixelFormats.Pbgra32);
+                renderBitmap.Render(drawingVisual);
+                bitmapSource = renderBitmap;
+            }
+            else if (tag == "Clipboard")
+            {
+                bitmapSource = ImagePaster.GetPasteImagesFromClipboard().FirstOrDefault() as BitmapSource;
+                if (bitmapSource == null) return;
+            }
+            else
+            {
+                var dialog = new OpenFileDialog
+                {
+                    CheckPathExists = true,
+                    Filter = "所有图片 (*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle)|*.ico;*.gif;*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.tif;*.tiff;*.bmp;*.dib;*.rle"
+              + "|ICO 图标格式 (*.ico)|*.ico"
+              + "|GIF 可交换的图形格式 (*.gif)|*.gif"
+              + "|JPEG 文件交换格式 (*.jpg;*.jpeg;*.jfif;*.jpe)|*.jpg;*.jpeg;*.jfif;*.jpe"
+              + "|PNG 可移植网络图形格式 (*.png)|*.png"
+              + "|TIFF Tag 图像文件格式 (*.tif;*.tiff)|*.tif;*.tiff"
+              + "|设备无关位图 (*.bmp;*.dib;*.rle)|*.bmp;*.dib;*.rle"
+                };
+                var showDialog = dialog.ShowDialog().GetValueOrDefault();
+                if (!showDialog) return;
+                bitmapSource = Extentions.GetBitmapImage(dialog.FileName);
+            }
+            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            if (animatedImage.Animatable)
+            {
+                var bitmapFrames = animatedImage.BitmapFrames;
+                var pixelWidth = bitmapFrames.First().PixelWidth;
+                var pixelHeight = bitmapFrames.First().PixelHeight;
+                var rect = new Rectangle(0, 0, pixelWidth, pixelHeight);
+
+                var stream = new MemoryStream();
+                using (var bitmapLayer = bitmapSource.GetResizeBitmap(pixelWidth, pixelHeight).GetBitmap())
+                {
+                    using (var clone = (Bitmap)bitmapLayer.Clone())
+                    {
+                        using (var encoder = new GifEncoder(stream, pixelWidth, pixelHeight, animatedImage.RepeatCount))
+                        {
+                            var delays = animatedImage.Delays;
+                            using (var g = Graphics.FromImage(bitmapLayer))
+                            {
+                                g.SmoothingMode = SmoothingMode.HighQuality;
+                                for (var i = 0; i < bitmapFrames.Count; i++)
+                                {
+                                    g.Clear(Color.Transparent);
+                                    using (var bitmap = bitmapFrames[i].GetBitmap())
+                                    {
+                                        g.DrawImageUnscaled(clone, rect);
+                                        g.DrawImageUnscaled(bitmap, rect);
+                                        encoder.AppendFrame(bitmapLayer, (int)delays[i].TotalMilliseconds);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stream.Position = 0;
+                var bitmapImage = new BitmapImage();
+                bitmapImage.BeginInit();
+                bitmapImage.StreamSource = stream;
+                bitmapImage.EndInit();
+                bitmapSource = bitmapImage;
+            }
+            else
+            {
+                var bitmapImage = (BitmapImage)animatedImage.Source;
+                var rect = new Rect(0, 0, bitmapImage.PixelWidth, bitmapImage.PixelHeight);
+                var drawingVisual = new DrawingVisual();
+                using (var context = drawingVisual.RenderOpen())
+                {
+                    context.DrawImage(bitmapSource, rect);
+                    context.DrawImage(bitmapImage, rect);
+                }
+                var renderBitmap = new RenderTargetBitmap(bitmapImage.PixelWidth, bitmapImage.PixelHeight, 96, 96, PixelFormats.Pbgra32);
+                renderBitmap.Render(drawingVisual);
+                bitmapSource = renderBitmap.GetBitmapImage();
+            }
+
+            _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = bitmapSource, Stretch = Stretch.Fill }));
 
         }
 
@@ -960,16 +1100,6 @@ namespace EasyImage
             }
         }
 
-        private void Menu_CopyImage(object sender, RoutedEventArgs e)
-        {
-            CopySelected();
-        }
-
-        private void Menu_ClipImage(object sender, RoutedEventArgs e)
-        {
-            ClipSelected();
-        }
-
         private void MenuItem_GifClip(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
@@ -993,8 +1123,8 @@ namespace EasyImage
             var scaleY = scaleTransform.ScaleY;
 
             var rect = ((Image)(element.Content)).GetMinContainRect();
-            var visualWidth = (int) Math.Round(rect.Width);
-            var visualHeight = (int) Math.Round(rect.Height);
+            var visualWidth = (int)Math.Round(rect.Width);
+            var visualHeight = (int)Math.Round(rect.Height);
 
             using (var stream = new MemoryStream())
             {
@@ -1003,7 +1133,7 @@ namespace EasyImage
                     var delays = animatedImage.Delays;
                     for (var i = 0; i < bitmapFrames.Count; i++)
                     {
-                        using (var bitmap = ImageHelper.GetBitmap(bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight)))
+                        using (var bitmap = bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight).GetBitmap())
                         {
                             encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
                         }
@@ -1061,8 +1191,8 @@ namespace EasyImage
             var scaleY = scaleTransform.ScaleY;
 
             var rect = ((Image)(element.Content)).GetMinContainRect();
-            var visualWidth = (int) Math.Round(rect.Width);
-            var visualHeight = (int) Math.Round(rect.Height);
+            var visualWidth = (int)Math.Round(rect.Width);
+            var visualHeight = (int)Math.Round(rect.Height);
 
             using (var stream = new MemoryStream())
             {
@@ -1071,7 +1201,7 @@ namespace EasyImage
                     var delays = animatedImage.Delays;
                     for (var i = 0; i < bitmapFrames.Count; i++)
                     {
-                        using (var bitmap = ImageHelper.GetBitmap(bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight)))
+                        using (var bitmap = bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight).GetBitmap())
                         {
                             encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
                         }
@@ -1092,7 +1222,7 @@ namespace EasyImage
             var element = SelectedElements.First();
             var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
             var bitmapFrames = animatedImage.BitmapFrames;
-            if (bitmapFrames.Count < 2)return;
+            if (bitmapFrames.Count < 2) return;
             bitmapFrames.Reverse();//反置
 
             var transactions = new TransactionAction();
@@ -1127,7 +1257,7 @@ namespace EasyImage
                 var delays = animatedImage.Delays;
                 for (var i = bitmapFrames.Count - 1; i >= 0; i--)
                 {
-                    using (var bitmap = ImageHelper.GetBitmap(bitmapFrames[i]))
+                    using (var bitmap = bitmapFrames[i].GetBitmap())
                     {
                         encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
                     }
@@ -1144,7 +1274,7 @@ namespace EasyImage
             {
                 Width = element.Width,
                 Height = element.Height,
-                Content = new AnimatedImage.AnimatedImage {Source = bitmapImage, Stretch = Stretch.Fill},
+                Content = new AnimatedImage.AnimatedImage { Source = bitmapImage, Stretch = Stretch.Fill },
                 Template = element.Template,
                 RenderTransform = element.RenderTransform.Clone(),
             };
@@ -1158,11 +1288,18 @@ namespace EasyImage
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
+            var width = (int) Math.Round(element.Width);
+            var height = (int) Math.Round(element.Height);
+            if (width == 0 || height == 0)
+            {
+                return;
+            }
             var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
             var bitmapFrames = animatedImage.BitmapFrames;
             if (bitmapFrames.Count < 2) return;
             element.Visibility = Visibility.Hidden;
-            var window = new GifDrawingWindow(animatedImage);
+
+            var window = new GifDrawing.GifDrawingWindow(animatedImage, width, height);
             window.ShowDialog();
             if (window.NewAnimatedImage != null)
             {
@@ -1171,22 +1308,6 @@ namespace EasyImage
             element.Visibility = Visibility.Visible;
         }
 
-        private void MenuItem_GifCrop(object sender, RoutedEventArgs e)
-        {
-            if (SelectedElements.Count() != 1) return;
-            var element = SelectedElements.First();
-            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
-            var bitmapFrames = animatedImage.BitmapFrames;
-            if (bitmapFrames.Count < 2) return;
-            element.Visibility = Visibility.Hidden;
-            var window = new GifCropWindow(animatedImage);
-            window.ShowDialog();
-            if (window.NewAnimatedImage != null)
-            {
-                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), window.NewAnimatedImage));
-            }
-            element.Visibility = Visibility.Visible;
-        }
 
         private void Menu_Setting(object sender, RoutedEventArgs e)
         {
@@ -1215,8 +1336,8 @@ namespace EasyImage
             var contextMenu = new ContextMenu();
 
             #region 剪切
-            var item = new MenuItem { Header = "剪切", Tag = "Clip" };
-            item.Click += Menu_ClipImage;
+            var item = new MenuItem { Header = "剪切", Tag = "CopyRemove" };
+            item.Click += Menu_CopyRemoveImage;
             contextMenu.Items.Add(item);
 
             #endregion
@@ -1224,6 +1345,13 @@ namespace EasyImage
             #region 复制
             item = new MenuItem { Header = "复制", Tag = "Copy" };
             item.Click += Menu_CopyImage;
+            contextMenu.Items.Add(item);
+
+            #endregion
+
+            #region 裁剪
+            item = new MenuItem { Header = "裁剪", Tag = "TrimSelf" };
+            item.Click += MenuItem_CropImage;
             contextMenu.Items.Add(item);
 
             #endregion
@@ -1340,17 +1468,40 @@ namespace EasyImage
             item.SubmenuOpened += MenuItem_SubmenuOpened;
             #region 二级菜单
 
-            subItem = new MenuItem { Header = "来自文件..." };
-            subItem.Click += Menu_ExchangeImageFromFile;
+            subItem = new MenuItem { Header = "默认图片" };
+            subItem.Click += Menu_ExchangeImageFromInternal;
             item.Items.Add(subItem);
 
-            subItem = new MenuItem { Header = "自剪贴板..." };
+            subItem = new MenuItem { Header = "自剪贴板" };
             subItem.Click += Menu_ExchangeImageFromClipboard;
             item.Items.Add(subItem);
 
-            subItem = new MenuItem { Header = "默认图片..." };
-            subItem.Click += Menu_ExchangeImageFromInternal;
+            subItem = new MenuItem { Header = "来自文件..." };
+            subItem.Click += Menu_ExchangeImageFromFile;
             item.Items.Add(subItem);
+            #endregion
+
+            contextMenu.Items.Add(item);
+            #endregion
+
+            #region 设置背景
+
+            item = new MenuItem { Header = "设置背景", Tag = "SetBackground", ToolTip = "给透明图设置背景" };
+            item.SubmenuOpened += MenuItem_SubmenuOpened;
+            #region 二级菜单
+
+            subItem = new MenuItem { Header = "默认背景", Tag = "Default" };
+            subItem.Click += Menu_SetPngImageBackground;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "自剪贴板", Tag = "Clipboard" };
+            subItem.Click += Menu_SetPngImageBackground;
+            item.Items.Add(subItem);
+
+            subItem = new MenuItem { Header = "来自文件...", Tag = "File" };
+            subItem.Click += Menu_SetPngImageBackground;
+            item.Items.Add(subItem);
+
             #endregion
 
             contextMenu.Items.Add(item);
@@ -1466,9 +1617,9 @@ namespace EasyImage
 
             subItem = new MenuItem
             {
-                Header = "剪贴",
+                Header = "剪切",
                 Tag = "GifClip",
-                ToolTip = "剪贴当前GIF动态图"
+                ToolTip = "剪切当前GIF动态图"
             };
             subItem.Click += MenuItem_GifClip;
             item.Items.Add(subItem);
@@ -1518,14 +1669,6 @@ namespace EasyImage
             subItem.Click += MenuItem_GifDrawing;
             item.Items.Add(subItem);
 
-            subItem = new MenuItem
-            {
-                Header = "裁剪",
-                Tag = "GifCrop",
-                ToolTip = "裁剪GIF动态图"
-            };
-            subItem.Click += MenuItem_GifCrop;
-            item.Items.Add(subItem);
             #endregion
 
             contextMenu.Items.Add(item);
@@ -1543,24 +1686,28 @@ namespace EasyImage
                 };
                 foreach (var plugin in _cachePlugins)
                 {
-                    if (plugin.Value.Count == 1)
+                    if (plugin.Item3.Count == 1)
                     {
                         subItem = new MenuItem
                         {
-                            Header = plugin.Value[0].GetPluginName(),
-                            Tag = plugin.Value[0]
+                            Header = plugin.Item3.First().GetPluginName(),
+                            Tag = plugin.Item3.First()
                         };
-                        var bitmap = plugin.Value[0].GetPluginIcon();
+                        var bitmap = plugin.Item3.First().GetPluginIcon();
                         if (bitmap != null)
                         {
-                            subItem.Icon = new Image {Source = bitmap.GetBitmapSource()};
+                            subItem.Icon = new Image { Source = bitmap.GetBitmapSource() };
                         }
                         subItem.Click += PluginItem_Click;
                     }
                     else
                     {
-                        subItem = new MenuItem { Header = plugin.Key };
-                        foreach (var ihanle in plugin.Value)
+                        subItem = new MenuItem { Header = plugin.Item1 };
+                        if (plugin.Item2 != null)
+                        {
+                            subItem.Icon = new Image { Source = plugin.Item2.GetBitmapSource() };
+                        }
+                        foreach (var ihanle in plugin.Item3)
                         {
                             var thirdItem = new MenuItem
                             {
@@ -1604,17 +1751,17 @@ namespace EasyImage
             #endregion
         }
 
-        private List<IHandle> GetPluginIhandle(string filePath)
+        private List<IHandleList> GetPluginIhandle(string filePath)
         {
-            var list = new List<IHandle>();
+            var list = new List<IHandleList>();
             var assembly = Assembly.LoadFile(Path.GetFullPath(filePath));
-            foreach (var type in assembly.GetTypes())
+
+            foreach (var iHandleList in assembly.GetTypes().Where(m => m.GetInterface("IHandleList") != null).Select(type => (IHandleList)Activator.CreateInstance(type)))
             {
-                if (type.GetInterface("IHandle") == null) continue;
-                var ihandle = (IHandle)Activator.CreateInstance(type);
-                ihandle.InitPlugin(AppDomain.CurrentDomain.SetupInformation.ApplicationBase);
-                list.Add(ihandle);
+                iHandleList.GetIHandleList()?.ForEach(m => m.InitPlugin(AppDomain.CurrentDomain.SetupInformation.ApplicationBase));
+                list.Add(iHandleList);
             }
+
             return list;
         }
 
@@ -1749,17 +1896,17 @@ namespace EasyImage
 
             element.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                var renderBitmap = new RenderTargetBitmap((int) SystemParameters.VirtualScreenWidth,
-                    (int) SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
+                var renderBitmap = new RenderTargetBitmap((int)SystemParameters.VirtualScreenWidth,
+                    (int)SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
                 renderBitmap.Render(_panelContainer);
                 var scaleTransform = element.GetTransform<ScaleTransform>();
-                var cropViewBox = new CropViewBox((Image) element.Content, element.GetTransform<RotateTransform>().Angle,
+                var cropViewBox = new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle,
                     scaleTransform.ScaleX, scaleTransform.ScaleY);
                 var imageSource = ScreenCropper.CropScreen(renderBitmap, cropViewBox);
                 if (imageSource != null && cropStyle != CropStyle.Default)
                 {
                     imageSource = ImageCropper.CropBitmapSource(imageSource,
-                        ((BitmapSource) ((Image) element.Content).Source).GetResizeBitmap(imageSource.PixelWidth,
+                        ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth,
                             imageSource.PixelHeight), cropStyle);
                 }
                 element.Visibility = Visibility.Visible;
@@ -1767,26 +1914,26 @@ namespace EasyImage
                 {
                     Extentions.ShowMessageBox("不合法的抠图操作!");
                     return;
-                } 
+                }
                 var unSelectedElements =
                     _panelContainer.Children.Cast<object>()
                         .OfType<ImageControl>()
                         .Where(m => !Selector.GetIsSelected(m))
                         .ToList();
                 var intersectElements =
-                    unSelectedElements.Where(m => ((Image) element.Content).IsOverlapped((Image) m.Content)).ToArray();
+                    unSelectedElements.Where(m => ((Image)element.Content).IsOverlapped((Image)m.Content)).ToArray();
 
                 var fullScreenBitmap = GetFullScreenBitmap(element, cropStyle);
                 var transactions = new TransactionAction();
                 foreach (var item in intersectElements)
                 {
                     scaleTransform = item.GetTransform<ScaleTransform>();
-                    cropViewBox = new CropViewBox((Image) item.Content, item.GetTransform<RotateTransform>().Angle,
+                    cropViewBox = new CropViewBox((Image)item.Content, item.GetTransform<RotateTransform>().Angle,
                         scaleTransform.ScaleX, scaleTransform.ScaleY);
                     var bitmapSource = ScreenCropper.CropScreen(fullScreenBitmap, cropViewBox);
                     var cutBitmapSource =
                         ImageCropper.CropBitmapSource(
-                            ((BitmapSource) ((Image) item.Content).Source).GetResizeBitmap(bitmapSource.PixelWidth,
+                            ((BitmapSource)((Image)item.Content).Source).GetResizeBitmap(bitmapSource.PixelWidth,
                                 bitmapSource.PixelHeight), bitmapSource, CropStyle.Transparent);
                     transactions.Add(new ExchangeImageAction(item,
                         new AnimatedImage.AnimatedImage
@@ -1796,7 +1943,7 @@ namespace EasyImage
                         }));
                 }
                 transactions.Add(new ExchangeImageAction(element,
-                    new AnimatedImage.AnimatedImage {Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill}));
+                    new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
                 _actionManager.Execute(transactions);
             }));
         }
@@ -1844,9 +1991,9 @@ namespace EasyImage
                 var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
                 renderBitmap.Render(drawingVisual);
                 return renderBitmap;
-            } 
+            }
             var resizeBitmap = bitmapSource.GetResizeBitmap(width, height);
-            return cropStyle == CropStyle.Shadow ? resizeBitmap : ImageHelper.GetBitmap(resizeBitmap).ShadowSwapTransparent(Color.White).GetBitmapSource();
+            return cropStyle == CropStyle.Shadow ? resizeBitmap : resizeBitmap.GetBitmap().ShadowSwapTransparent(Color.White).GetBitmapSource();
         }
 
         #endregion Private methods

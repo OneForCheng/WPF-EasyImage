@@ -49,6 +49,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ArtDealPlugins.cs" />
     <Compile Include="AtomizedWindow.xaml.cs">
       <DependentUpon>AtomizedWindow.xaml</DependentUpon>
     </Compile>
@@ -58,7 +59,6 @@
     <Compile Include="EnchaseWindow.xaml.cs">
       <DependentUpon>EnchaseWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Extentions.cs" />
     <Compile Include="PluginSpherize.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>

@@ -7,7 +7,7 @@ namespace Property
     {
         public string GetPluginName()
         {
-            return "Properties";
+            return "属性调整";
         }
 
         public Bitmap GetPluginIcon()

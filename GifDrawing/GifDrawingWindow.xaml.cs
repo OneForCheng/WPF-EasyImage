@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Forms;
@@ -45,8 +44,9 @@ namespace GifDrawing
         private Color _pickedColor;
 
         private readonly AnimatedImage.AnimatedImage _animatedImage;
-        private readonly int _pixelWidth;
-        private readonly int _pixelHeight;
+        private readonly int _imageWidth;
+        private readonly int _imageHeight;
+
         public AnimatedImage.AnimatedImage NewAnimatedImage { get; private set; }
 
 
@@ -54,7 +54,7 @@ namespace GifDrawing
 
         #region Constructor
 
-        public GifDrawingWindow(AnimatedImage.AnimatedImage animatedImage)
+        public GifDrawingWindow(AnimatedImage.AnimatedImage animatedImage, int width, int height)
         {
             InitializeComponent();
             var screenHeight = SystemParameters.VirtualScreenHeight;
@@ -62,30 +62,32 @@ namespace GifDrawing
 
             _animatedImage = animatedImage;
             GifImage.Source = _animatedImage.Source;
-            _pixelWidth = _animatedImage.BitmapFrames.First().PixelWidth;
-            _pixelHeight = _animatedImage.BitmapFrames.First().PixelHeight;
+            _imageWidth = width;
+            _imageHeight = height;
 
-            var height = _pixelHeight + 210.0;
-            var width = _pixelWidth + 40.0;
+            var winHeight = _imageHeight + 210.0;
+            var winWidth = _imageWidth + 40.0;
 
-            if (height < 370)
+            if (winHeight < 370)
             {
-                height = 370;
+                winHeight = 370;
             }
-            else if (height > screenHeight)
+            else if (winHeight > screenHeight)
             {
-                height = screenHeight;
+                winHeight = screenHeight;
             }
-            if (width < 370)
+            if (winWidth < 370)
             {
-                width = 370;
+                winWidth = 370;
             }
-            else if (width > screenWidth)
+            else if (winWidth > screenWidth)
             {
-                width = screenWidth;
+                winWidth = screenWidth;
             }
-            Height = height;
-            Width = width;
+            Height = winHeight;
+            Width = winWidth;
+            ImageVisulGrid.Height = _imageHeight;
+            ImageVisulGrid.Width = _imageWidth;
 
             _linePoints = new List<Point>();
             _isSave = false;
@@ -93,7 +95,7 @@ namespace GifDrawing
             _selectedButton = PenToolBtn;
             _drawingTool = DrawingTool.PenTool;
             _pickedColor = Color.Transparent;
-            _drawingManager = new DrawingManager(TargetImage, new Bitmap(_pixelWidth, _pixelHeight, PixelFormat.Format32bppArgb))
+            _drawingManager = new DrawingManager(TargetImage, new Bitmap(_imageWidth, _imageHeight, PixelFormat.Format32bppArgb))
             {
                 RedoButtuon = RedoButton,
                 UndoButton = UndoButton,
@@ -228,24 +230,27 @@ namespace GifDrawing
             if (_isSave)
             {
                 var lastBitmapLayer = (Bitmap)_drawingManager.LastRecordedBitmap.Clone();
-                var rect = new Rectangle(0, 0, _pixelWidth, _pixelHeight);
+                var rect = new Rectangle(0, 0, _imageWidth, _imageHeight);
 
                 var bitmapFrames = _animatedImage.BitmapFrames;
                 var stream = new MemoryStream();
-                using (var encoder = new GifEncoder(stream, _pixelWidth, _pixelHeight, _animatedImage.RepeatCount))
+                using (var encoder = new GifEncoder(stream, _imageWidth, _imageHeight, _animatedImage.RepeatCount))
                 {
                     var delays = _animatedImage.Delays;
-
                     for (var i = 0; i < bitmapFrames.Count; i++)
                     {
                         using (var bitmap = bitmapFrames[i].GetBitmap())
                         {
-                            using (var g = Graphics.FromImage(bitmap))
+                            using (var resizeBitmap = bitmap.ResizeBitmap(_imageWidth, _imageHeight))
                             {
-                                g.SmoothingMode = SmoothingMode.HighQuality;
-                                g.DrawImageUnscaled(lastBitmapLayer, rect);
-                                encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
+                                using (var g = Graphics.FromImage(resizeBitmap))
+                                {
+                                    g.SmoothingMode = SmoothingMode.HighQuality;
+                                    g.DrawImageUnscaled(lastBitmapLayer, rect);
+                                    encoder.AppendFrame(resizeBitmap, (int)delays[i].TotalMilliseconds);
+                                }
                             }
+                           
                         }
                     }
                 }
@@ -497,7 +502,7 @@ namespace GifDrawing
             ImageTextBox.BorderThickness = new Thickness(0);
             if (ImageTextBox.Text.Trim() == string.Empty)
             {
-                ImageTextBox.Visibility = Visibility.Hidden;
+                ImageTextBox.Visibility = Visibility.Collapsed;
                 return;
             }
             ImageTextBox.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
@@ -505,9 +510,9 @@ namespace GifDrawing
                {
                    //为了保证描绘图形时ImageTextBox边框为0，所以使用了调度器
                    var renderBitmap = new RenderTargetBitmap(_drawingManager.LastRecordedBitmap.Width, _drawingManager.LastRecordedBitmap.Height, 96, 96, PixelFormats.Pbgra32);
-                   renderBitmap.Render(ImageVisulGrid);
+                   renderBitmap.Render(TopImageLayerGrid);
                    _drawingManager.Drawing(renderBitmap.GetBitmap());
-                   ImageTextBox.Visibility = Visibility.Hidden;
+                   ImageTextBox.Visibility = Visibility.Collapsed;
                }));
         }
 
@@ -549,7 +554,7 @@ namespace GifDrawing
 
         private void InsertTextToImage()
         {
-            if (ImageTextBox.Visibility == Visibility.Hidden)
+            if (ImageTextBox.Visibility != Visibility.Visible)
             {
                 ImageTextBox.BorderThickness = new Thickness(1);
                 ImageTextBox.Text = string.Empty;

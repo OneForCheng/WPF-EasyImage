@@ -164,6 +164,7 @@ namespace EasyImage
 
         private static bool IsContainPoint(this Visual element, Point point, double width, double height)
         {
+   
             var translatedPoint = element.PointFromScreen(point);
             return (translatedPoint.X > 0) && (translatedPoint.X < width) && (translatedPoint.Y > 0) && (translatedPoint.Y < height);
         }

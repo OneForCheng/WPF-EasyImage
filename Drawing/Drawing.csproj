@@ -58,6 +58,7 @@
   <ItemGroup>
     <Compile Include="Config\DrawingConfig.cs" />
     <Compile Include="DrawingManager.cs" />
+    <Compile Include="DrawingPlugins.cs" />
     <Compile Include="DrawingTool.cs" />
     <Compile Include="DrawingWindow.xaml.cs">
       <DependentUpon>DrawingWindow.xaml</DependentUpon>

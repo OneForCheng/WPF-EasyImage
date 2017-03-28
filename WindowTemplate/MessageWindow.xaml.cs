@@ -105,12 +105,15 @@ namespace WindowTemplate
             {
                 case MessageBoxMode.SingleMode:
                     SingleMode.Visibility = Visibility.Visible;
+                    SingleModeBtn.Focus();
                     break;
                 case MessageBoxMode.DoubleMode:
                     DoubleMode.Visibility = Visibility.Visible;
+                    DoubleModeLeftBtn.Focus();
                     break;
                 case MessageBoxMode.ThreeMode:
                     ThreeMode.Visibility = Visibility.Visible;
+                    ThreeModeLeftBtn.Focus();
                     break;
             }
             MessageTbx.Text = message.Content;

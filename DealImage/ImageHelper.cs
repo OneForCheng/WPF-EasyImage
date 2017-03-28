@@ -18,7 +18,10 @@ namespace DealImage
     {
         public  static BitmapSource GetResizeBitmap(this BitmapSource bitmapSource, int width, int height)
         {
-
+            if (bitmapSource.PixelWidth == width && bitmapSource.PixelHeight == height)
+            {
+                return bitmapSource;
+            }
             var drawingVisual = new DrawingVisual();
             using (var context = drawingVisual.RenderOpen())
             {
