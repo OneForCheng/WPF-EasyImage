@@ -3,7 +3,7 @@ using IPlugins;
 
 namespace ArtDeal
 {
-    public class PluginMosaic : IHandle
+    public class PluginMosaic : IFilter
     {
         public string GetPluginName()
         {

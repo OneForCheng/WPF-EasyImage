@@ -13,7 +13,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="../Resources/Styles/MoveResizeRotateStyle.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-            <ai:AnimatedImage x:Key="MainMenuIcon" Source="../Resources/Images/MainIcon.png"/>
+            <ai:AnimatedGif x:Key="MainMenuIcon" Source="../Resources/Images/main_icon.png"/>
             <BitmapImage x:Key="Square" UriSource="../Resources/Images/new_square.png"></BitmapImage>
             <BitmapImage x:Key="Circle" UriSource="../Resources/Images/new_circle.png"></BitmapImage>
             <BitmapImage x:Key="Triangle" UriSource="../Resources/Images/new_triangle.png"></BitmapImage>

@@ -5,7 +5,7 @@ using System.Drawing.Imaging;
 
 namespace EasyDeal
 {
-    public class PluginEnBlackWhite : IHandle
+    public class PluginEnBlackWhite : IFilter
     {
         public string GetPluginName()
         {

@@ -1,10 +1,5 @@
-﻿using Beauty;
-using Drawing;
-using System;
+﻿using Drawing;
 using System.Windows;
-using System.Windows.Interop;
-using ArtDeal;
-using Property;
 
 namespace PluginsTest
 {

@@ -3,7 +3,7 @@ using IPlugins;
 
 namespace Drawing
 {
-    public class PluginDrawing : IHandle
+    public class PluginDrawing : IFilter
     {
         public string GetPluginName()
         {

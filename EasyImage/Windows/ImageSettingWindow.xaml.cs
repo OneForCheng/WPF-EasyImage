@@ -8,7 +8,7 @@ using System.Windows.Media.Imaging;
 using EasyImage.Actioins;
 using EasyImage.Controls;
 using EasyImage.Enum;
-using UnmanagedToolkit;
+using EasyImage.UnmanagedToolkit;
 
 namespace EasyImage.Windows
 {
@@ -44,7 +44,7 @@ namespace EasyImage.Windows
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.All); //去除窗口指定的系统菜单
-            var image = (BitmapImage)((AnimatedImage.AnimatedImage)(_imageControl.Content)).Source;
+            var image = (BitmapImage)((AnimatedImage.AnimatedGif)(_imageControl.Content)).Source;
             _originWidth = image.Width;
             _originHeight = image.Height;
             _oldWidth = Math.Round(_imageControl.Width, 2);

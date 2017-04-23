@@ -10,13 +10,14 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using AnimatedImage;
 using DealImage.Paste;
 using EasyImage.Behaviors;
 using EasyImage.Config;
 using EasyImage.Controls;
+using EasyImage.UnmanagedToolkit;
 using NHotkey;
 using NHotkey.Wpf;
-using UnmanagedToolkit;
 using WindowTemplate;
 using ContextMenu = System.Windows.Controls.ContextMenu;
 using Cursors = System.Windows.Input.Cursors;
@@ -131,11 +132,6 @@ namespace EasyImage.Windows
 
             #endregion
 
-            //var timer = new DispatcherTimer(
-            //            TimeSpan.FromMinutes(10),
-            //            DispatcherPriority.ApplicationIdle,// Or DispatcherPriority.SystemIdle
-            //            (s, e1) => MessageBox.Show("Timer"),
-            //            Application.Current.Dispatcher);
         }
 
         private void WindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -229,7 +225,7 @@ namespace EasyImage.Windows
                 _controlManager.SelectNone();
                 var translate = new Point(curPosition.X - SystemParameters.VirtualScreenWidth / 2, curPosition.Y - SystemParameters.VirtualScreenHeight / 2);
                 var controls = new List<ImageControl>(imageSources.Count);
-                controls.AddRange(imageSources.Select(imageSource => PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }, translate)));
+                controls.AddRange(imageSources.Select(imageSource => PackageImageToControl(new AnimatedGif { Source = imageSource, Stretch = Stretch.Fill }, translate)));
                 _controlManager.AddElements(controls);
             }
             catch (Exception ex)
@@ -328,7 +324,7 @@ namespace EasyImage.Windows
                 {
                     try
                     {
-                        imageControls.Add(PackageImageToControl(new AnimatedImage.AnimatedImage { Source = Extentions.GetBitmapFormFileIcon(filePath), Stretch = Stretch.Fill }, new Point(0, 0)));
+                        imageControls.Add(PackageImageToControl(new AnimatedGif { Source = Extentions.GetBitmapFormFileIcon(filePath), Stretch = Stretch.Fill }, new Point(0, 0)));
                     }
                     catch (Exception ex)
                     {
@@ -343,7 +339,7 @@ namespace EasyImage.Windows
                 {
                     try
                     {
-                        imageControls.Add(PackageImageToControl(new AnimatedImage.AnimatedImage { Source = Extentions.GetBitmapImage(file), Stretch = Stretch.Fill }, new Point(0, 0)));
+                        imageControls.Add(PackageImageToControl(new AnimatedGif { Source = Extentions.GetBitmapImage(file), Stretch = Stretch.Fill }, new Point(0, 0)));
                     }
                     catch (Exception ex)
                     {
@@ -359,7 +355,7 @@ namespace EasyImage.Windows
         private void AddImageFromInternal(object sender, RoutedEventArgs e)
         {
             var menuItem = sender as MenuItem;
-            var flag = menuItem?.Tag.ToString() ?? "Square";
+            var flag = menuItem?.Tag?.ToString() ?? "Square";
             var bitmapSource = (BitmapImage)Resources[flag];
             _controlManager.SelectNone();
             _addInternalImgCount++;
@@ -424,7 +420,7 @@ namespace EasyImage.Windows
                 _controlManager.ContinuedAddCount++;
                 var translate = _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedAddCount;
                 var controls = new List<ImageControl>(imageSources.Count);
-                controls.AddRange(imageSources.Select(imageSource => PackageImageToControl(new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }, new Point(translate, translate))));
+                controls.AddRange(imageSources.Select(imageSource => PackageImageToControl(new AnimatedGif { Source = imageSource, Stretch = Stretch.Fill }, new Point(translate, translate))));
                 _controlManager.AddElements(controls);
             }
             catch (Exception ex)
@@ -608,23 +604,23 @@ namespace EasyImage.Windows
             MainCanvas.Children.Add(_mainMenu);
         }
 
-        private AnimatedImage.AnimatedImage GetMainMenuIcon()
+        private AnimatedGif GetMainMenuIcon()
         {
-            AnimatedImage.AnimatedImage animatedImage;
+            AnimatedGif animatedGif;
             var path = _userConfigution.ImageSetting.MainMenuInfo.Path;
             if (!File.Exists(path))
             {
                 path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, path);
                 if (!File.Exists(path))
                 {
-                    animatedImage = (AnimatedImage.AnimatedImage)Resources["MainMenuIcon"];
-                    animatedImage.Stretch = Stretch.Fill;
-                    return animatedImage;
+                    animatedGif = (AnimatedGif)Resources["MainMenuIcon"];
+                    animatedGif.Stretch = Stretch.Fill;
+                    return animatedGif;
                 }
             }
             try
             {
-                animatedImage = new AnimatedImage.AnimatedImage
+                animatedGif = new AnimatedGif
                 {
                     Source = Extentions.GetBitmapImage(path),
                     Stretch = Stretch.Fill
@@ -633,11 +629,11 @@ namespace EasyImage.Windows
             catch (Exception ex)
             {
                 App.Log.Error(ex.ToString());
-                animatedImage = (AnimatedImage.AnimatedImage)Resources["MainMenuIcon"];
-                animatedImage.Stretch = Stretch.Fill;
+                animatedGif = (AnimatedGif)Resources["MainMenuIcon"];
+                animatedGif.Stretch = Stretch.Fill;
             }
            
-            return animatedImage;
+            return animatedGif;
         }
 
         private void LoadEasyImageFromFile(string filePath)
@@ -728,14 +724,14 @@ namespace EasyImage.Windows
             return msg.Result;
         }
 
-        private ImageControl PackageImageToControl(AnimatedImage.AnimatedImage image, Point translate)
+        private ImageControl PackageImageToControl(AnimatedGif gif, Point translate)
         {
             var imageControl = new ImageControl(_controlManager);
 
-            var width = imageControl.Width = ((BitmapSource)image.Source).Width;
-            var height = imageControl.Height = ((BitmapSource)image.Source).Height;
+            var width = imageControl.Width = ((BitmapSource)gif.Source).Width;
+            var height = imageControl.Height = ((BitmapSource)gif.Source).Height;
 
-            imageControl.Content = image;
+            imageControl.Content = gif;
             imageControl.Template = (ControlTemplate)Resources["MoveResizeRotateTemplate"];
 
             //调整大小
@@ -762,7 +758,7 @@ namespace EasyImage.Windows
 
         private ImageControl PackageBitmapSourceToControl(BitmapSource imageSource)
         {
-            var animatedImage = new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill };
+            var animatedImage = new AnimatedGif { Source = imageSource, Stretch = Stretch.Fill };
             var imageControl = new ImageControl(_controlManager)
             {
                 IsLockAspect = false,
@@ -807,33 +803,44 @@ namespace EasyImage.Windows
         private ImageControl PackageBaseInfoToControl(ImageControlBaseInfo baseInfo, bool isMove)
         {
             //内存优化
-            var existedImageControl = ImageCanvas.Children.Cast<ImageControl>().FirstOrDefault(m => m.Id == baseInfo.Id);
-            AnimatedImage.AnimatedImage animatedImage;
-            Guid guid;
-            if (existedImageControl == null)
-            {
-                animatedImage =  new AnimatedImage.AnimatedImage { Source = baseInfo.ImageSource, Stretch = Stretch.Fill };
-                guid = Guid.Parse(baseInfo.Id);
-            }
-            else
-            {
-                animatedImage = new AnimatedImage.AnimatedImage
-                {
-                    Source = (existedImageControl.Content as AnimatedImage.AnimatedImage)?.Source,
-                    Stretch = Stretch.Fill
-                };
-                guid = Guid.NewGuid();
-            }
+            //var existedImageControl = ImageCanvas.Children.Cast<ImageControl>().FirstOrDefault(m => m.Guid == baseInfo.Guid);
+            //AnimatedGif animatedGif;
+            //Guid guid;
+            //if (existedImageControl == null)
+            //{
+            //    animatedGif =  new AnimatedGif { Source = baseInfo.ImageSource, Stretch = Stretch.Fill };
+            //    guid = Guid.Parse(baseInfo.Guid);
+            //}
+            //else
+            //{
+            //    animatedGif = new AnimatedGif
+            //    {
+            //        Source = (existedImageControl.Content as AnimatedGif)?.Source,
+            //        Stretch = Stretch.Fill
+            //    };
+            //    guid = Guid.NewGuid();
+            //}
             
-            var imageControl = new ImageControl(_controlManager, guid)
+            //var imageControl = new ImageControl(_controlManager, guid)
+            //{
+            //    IsLockAspect = baseInfo.IsLockAspect,
+            //    Width = baseInfo.Width,
+            //    Height = baseInfo.Height,
+            //    Content = animatedGif,
+            //    Template = (ControlTemplate) Resources["MoveResizeRotateTemplate"],
+            //    RenderTransform = baseInfo.RenderTransform,
+            //};
+
+            var imageControl = new ImageControl(_controlManager)
             {
-                IsLockAspect = baseInfo.FreeResize,
+                IsLockAspect = baseInfo.IsLockAspect,
                 Width = baseInfo.Width,
                 Height = baseInfo.Height,
-                Content = animatedImage,
-                Template = (ControlTemplate) Resources["MoveResizeRotateTemplate"],
+                Content = new AnimatedGif { Source = baseInfo.ImageSource, Stretch = Stretch.Fill },
+                Template = (ControlTemplate)Resources["MoveResizeRotateTemplate"],
                 RenderTransform = baseInfo.RenderTransform,
             };
+            
             if (isMove)
             {
                 var translateTransform = imageControl.GetTransform<TranslateTransform>();

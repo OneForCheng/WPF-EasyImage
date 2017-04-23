@@ -3,7 +3,7 @@ using IPlugins;
 
 namespace Beauty
 {
-    public class PluginSharpen : IHandle
+    public class PluginSharpen : IFilter
     {
         public string GetPluginName()
         {

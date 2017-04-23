@@ -5,7 +5,7 @@ using System.Windows.Interactivity;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using UnmanagedToolkit;
+using EasyImage.UnmanagedToolkit;
 
 namespace EasyImage.Behaviors
 {

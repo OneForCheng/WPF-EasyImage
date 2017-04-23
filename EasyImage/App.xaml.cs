@@ -3,8 +3,8 @@ using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
+using EasyImage.UnmanagedToolkit;
 using log4net;
-using UnmanagedToolkit;
 
 namespace EasyImage
 {

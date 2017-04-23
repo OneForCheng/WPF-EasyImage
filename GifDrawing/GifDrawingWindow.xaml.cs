@@ -43,25 +43,25 @@ namespace GifDrawing
         private readonly List<Point> _linePoints;
         private Color _pickedColor;
 
-        private readonly AnimatedImage.AnimatedImage _animatedImage;
+        private readonly AnimatedImage.AnimatedGif _animatedGif;
         private readonly int _imageWidth;
         private readonly int _imageHeight;
 
-        public AnimatedImage.AnimatedImage NewAnimatedImage { get; private set; }
+        public AnimatedImage.AnimatedGif NewAnimatedGif { get; private set; }
 
 
         #endregion
 
         #region Constructor
 
-        public GifDrawingWindow(AnimatedImage.AnimatedImage animatedImage, int width, int height)
+        public GifDrawingWindow(AnimatedImage.AnimatedGif animatedGif, int width, int height)
         {
             InitializeComponent();
             var screenHeight = SystemParameters.VirtualScreenHeight;
             var screenWidth = SystemParameters.VirtualScreenWidth;
 
-            _animatedImage = animatedImage;
-            GifImage.Source = _animatedImage.Source;
+            _animatedGif = animatedGif;
+            GifImage.Source = _animatedGif.Source;
             _imageWidth = width;
             _imageHeight = height;
 
@@ -232,11 +232,11 @@ namespace GifDrawing
                 var lastBitmapLayer = (Bitmap)_drawingManager.LastRecordedBitmap.Clone();
                 var rect = new Rectangle(0, 0, _imageWidth, _imageHeight);
 
-                var bitmapFrames = _animatedImage.BitmapFrames;
+                var bitmapFrames = _animatedGif.BitmapFrames;
                 var stream = new MemoryStream();
-                using (var encoder = new GifEncoder(stream, _imageWidth, _imageHeight, _animatedImage.RepeatCount))
+                using (var encoder = new GifEncoder(stream, _imageWidth, _imageHeight, _animatedGif.RepeatCount))
                 {
-                    var delays = _animatedImage.Delays;
+                    var delays = _animatedGif.Delays;
                     for (var i = 0; i < bitmapFrames.Count; i++)
                     {
                         using (var bitmap = bitmapFrames[i].GetBitmap())
@@ -260,7 +260,7 @@ namespace GifDrawing
                 bitmapImage.StreamSource = stream;
                 bitmapImage.EndInit();
 
-                NewAnimatedImage = new AnimatedImage.AnimatedImage() { Source = bitmapImage, Stretch = Stretch.Fill };
+                NewAnimatedGif = new AnimatedImage.AnimatedGif() { Source = bitmapImage, Stretch = Stretch.Fill };
             }
         }
 

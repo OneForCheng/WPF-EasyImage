@@ -25,7 +25,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>12</ApplicationRevision>
+    <ApplicationRevision>13</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -117,10 +117,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\UndoFramework\bin\Release\UndoFramework.dll</HintPath>
     </Reference>
-    <Reference Include="UnmanagedToolkit, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\UnmanagedToolkit\bin\Release\UnmanagedToolkit.dll</HintPath>
-    </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -149,12 +145,11 @@
     <Compile Include="Config\UserConfig.cs" />
     <Compile Include="Config\ImageSetting.cs" />
     <Compile Include="Config\WindowState.cs" />
-    <Compile Include="Controls\DealImageToolbar.xaml.cs">
-      <DependentUpon>DealImageToolbar.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Enum\TextboxFlag.cs" />
     <Compile Include="Enum\ThumbFlag.cs" />
     <Compile Include="Controls\ImageControl.cs" />
+    <Compile Include="UnmanagedToolkit\ClipboardMonitor.cs" />
+    <Compile Include="UnmanagedToolkit\Win32.cs" />
     <Compile Include="Windows\GifCropWindow.xaml.cs">
       <DependentUpon>GifCropWindow.xaml</DependentUpon>
     </Compile>
@@ -167,10 +162,6 @@
     <Compile Include="Thumbs\MoveScaleThumb.cs" />
     <Compile Include="Thumbs\ResizeThumb.cs" />
     <Compile Include="Thumbs\RotateThumb.cs" />
-    <Page Include="Controls\DealImageToolbar.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="Windows\GifCropWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -195,7 +186,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Enum\ZIndex.cs" />
+    <Compile Include="Enum\ZIndexFlag.cs" />
     <Compile Include="Extentions.cs" />
     <Compile Include="Windows\ImageWindow.xaml.cs">
       <DependentUpon>ImageWindow.xaml</DependentUpon>
@@ -248,7 +239,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\Images\Rotate.png" />
+    <Resource Include="Resources\Images\rotate_icon.png" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Icon.ico" />
@@ -276,7 +267,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\Images\MainIcon.png" />
+    <Resource Include="Resources\Images\main_icon.png" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Plugins\ArtDeal.dll">
@@ -300,6 +291,7 @@
     <Resource Include="Resources\Images\new_torus.png" />
     <Resource Include="Resources\Images\new_triangle.png" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

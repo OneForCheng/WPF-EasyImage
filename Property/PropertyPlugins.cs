@@ -4,7 +4,7 @@ using IPlugins;
 
 namespace Property
 {
-    class PropertyPlugins : IHandleList
+    class PropertyPlugins : IFilterList
     {
         public string GetPluginName()
         {
@@ -16,9 +16,9 @@ namespace Property
             return null;
         }
 
-        public List<IHandle> GetIHandleList()
+        public List<IFilter> GetIFilterList()
         {
-            return new List<IHandle>
+            return new List<IFilter>
             {
                 new PluginProperties(),
             };

@@ -4,7 +4,7 @@ using IPlugins;
 
 namespace Drawing
 {
-    class DrawingPlugins : IHandleList
+    class DrawingPlugins : IFilterList
     {
         public string GetPluginName()
         {
@@ -16,9 +16,9 @@ namespace Drawing
             return null;
         }
 
-        public List<IHandle> GetIHandleList()
+        public List<IFilter> GetIFilterList()
         {
-            return new List<IHandle>
+            return new List<IFilter>
             {
                 new PluginDrawing(),
             };

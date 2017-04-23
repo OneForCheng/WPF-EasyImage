@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace EasyDeal
 {
-    public class PluginInvertColor : IHandle
+    public class PluginInvertColor : IFilter
     {
         public string GetPluginName()
         {

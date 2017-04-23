@@ -8,7 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using AnimatedImage.Encoding;
 using DealImage;
-using UnmanagedToolkit;
+using EasyImage.UnmanagedToolkit;
 using Brushes = System.Windows.Media.Brushes;
 
 namespace EasyImage.Windows
@@ -22,7 +22,7 @@ namespace EasyImage.Windows
         private bool _isMousePressed;
         private System.Drawing.Point _startPoint;
 
-        private readonly AnimatedImage.AnimatedImage _animatedImage;
+        private readonly AnimatedImage.AnimatedGif _animatedGif;
         private readonly int _imageViewWidth;
         private readonly int _imageViewHeight;
         private readonly int _imageWidth;
@@ -30,19 +30,19 @@ namespace EasyImage.Windows
         private readonly int _pixelWidth;
         private readonly int _pixelHeight;
 
-        public AnimatedImage.AnimatedImage NewAnimatedImage { get; private set; }
+        public AnimatedImage.AnimatedGif NewAnimatedGif { get; private set; }
 
-        public GifCropWindow(AnimatedImage.AnimatedImage animatedImage, int width, int height)
+        public GifCropWindow(AnimatedImage.AnimatedGif animatedGif, int width, int height)
         {
             InitializeComponent();
             var screenHeight = (int)SystemParameters.VirtualScreenHeight;
             var screenWidth = (int)SystemParameters.VirtualScreenWidth;
 
-            _animatedImage = animatedImage;
+            _animatedGif = animatedGif;
             _imageViewWidth = _imageWidth = width;
             _imageViewHeight = _imageHeight = height;
-            _pixelWidth = _animatedImage.BitmapFrames.First().PixelWidth;
-            _pixelHeight = _animatedImage.BitmapFrames.First().PixelHeight;
+            _pixelWidth = _animatedGif.BitmapFrames.First().PixelWidth;
+            _pixelHeight = _animatedGif.BitmapFrames.First().PixelHeight;
 
             if (_imageViewWidth > screenWidth - 40)
             {
@@ -68,7 +68,7 @@ namespace EasyImage.Windows
             }
             Height = winHeight;
             Width = winWidth;
-            TargetImage.Source = _animatedImage.Source;
+            TargetImage.Source = _animatedGif.Source;
             ImageVisulGrid.Height = _imageViewHeight;
             ImageVisulGrid.Width = _imageViewWidth;
             
@@ -101,13 +101,13 @@ namespace EasyImage.Windows
                 var croppedBox = new Int32Rect(left, top, width, height);
                 
                 BitmapSource bitmapSource;
-                if (_animatedImage.Animatable)
+                if (_animatedGif.Animatable)
                 {
-                    var bitmapFrames = _animatedImage.BitmapFrames;
+                    var bitmapFrames = _animatedGif.BitmapFrames;
                     var stream = new MemoryStream();
-                    using (var encoder = new GifEncoder(stream, realWidth, realHeight, _animatedImage.RepeatCount))
+                    using (var encoder = new GifEncoder(stream, realWidth, realHeight, _animatedGif.RepeatCount))
                     {
-                        var delays = _animatedImage.Delays;
+                        var delays = _animatedGif.Delays;
                         for (var i = 0; i < bitmapFrames.Count; i++)
                         {
                             using (var bitmap = new CroppedBitmap(bitmapFrames[i], croppedBox).GetResizeBitmap(realWidth, realHeight).GetBitmap())
@@ -125,12 +125,12 @@ namespace EasyImage.Windows
                 }
                 else
                 {
-                    bitmapSource = _animatedImage.Source as BitmapSource;
+                    bitmapSource = _animatedGif.Source as BitmapSource;
                     if(bitmapSource == null)return;
                     bitmapSource = new CroppedBitmap(bitmapSource, croppedBox).GetResizeBitmap(realWidth, realHeight).GetBitmapImage();
                 }
                
-                NewAnimatedImage = new AnimatedImage.AnimatedImage() { Source = bitmapSource, Stretch = Stretch.Fill };
+                NewAnimatedGif = new AnimatedImage.AnimatedGif() { Source = bitmapSource, Stretch = Stretch.Fill };
             }
         }
 

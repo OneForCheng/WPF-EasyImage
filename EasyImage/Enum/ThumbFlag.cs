@@ -1,7 +1,7 @@
 ﻿namespace EasyImage.Enum
 {
     /// <summary>
-    /// 堆叠顺序
+    /// Thumb位置标识
     /// </summary>
     public enum ThumbFlag
     {

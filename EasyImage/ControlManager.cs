@@ -14,6 +14,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using AnimatedImage;
 using AnimatedImage.Encoding;
 using Microsoft.Win32;
 using DealImage;
@@ -48,7 +49,6 @@ namespace EasyImage
             MoveSpeed = 1.0;
             _actionManager = new ActionManager { MaxBufferCount = 20 };
             _statusCode = _actionManager.StatusCode;
-
         }
 
         #endregion Constructors
@@ -56,7 +56,7 @@ namespace EasyImage
         #region Private fields
         private readonly Panel _panelContainer;
         private readonly ActionManager _actionManager;
-        private List<Tuple<string, Bitmap, List<IHandle>>> _cachePlugins;
+        private List<Tuple<string, Bitmap, List<IFilter>>> _cachePlugins;
         private ImageControl[] _cacheSelectedElements;
         private int _statusCode;
         private int _maxControlZIndex;
@@ -124,16 +124,16 @@ namespace EasyImage
                     return;
                 }
             }
-            _cachePlugins = new List<Tuple<string, Bitmap, List<IHandle>>>();
+            _cachePlugins = new List<Tuple<string, Bitmap, List<IFilter>>>();
             foreach (var filePath in Directory.GetFiles(pluginsDir, "*.dll"))
             {
                 var fileName = Path.GetFileNameWithoutExtension(filePath) ?? string.Empty;
                 try
                 {
-                    var list = GetPluginIhandle(filePath);
+                    var list = GetPluginLists(filePath);
                     if (list != null && list.Count != 0)
                     {
-                        list.ForEach(m=> _cachePlugins.Add(new Tuple<string, Bitmap, List<IHandle>>(m.GetPluginName(), m.GetPluginIcon(), m.GetIHandleList())));
+                        list.ForEach(m=> _cachePlugins.Add(new Tuple<string, Bitmap, List<IFilter>>(m.GetPluginName(), m.GetPluginIcon(), m.GetIFilterList())));
                     }
                 }
                 catch (Exception ex)
@@ -556,7 +556,7 @@ namespace EasyImage
             element.Visibility = Visibility.Hidden;
 
             var bitmapSource = ((Image)element.Content).Source as BitmapSource;
-            var result = ((sender as MenuItem)?.Tag as IHandle)?.ExecHandle(bitmapSource.GetResizeBitmap((int)Math.Round(element.Width), (int)Math.Round(element.Height)).GetBitmap());
+            var result = ((sender as MenuItem)?.Tag as IFilter)?.ExecHandle(bitmapSource.GetResizeBitmap((int)Math.Round(element.Width), (int)Math.Round(element.Height)).GetBitmap());
 
             element.Visibility = Visibility.Visible;
             if (result == null) return;
@@ -569,7 +569,7 @@ namespace EasyImage
             {
                 using (var bitmap = result.ResultBitmap)
                 {
-                    _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = bitmap.GetBitmapSource().GetBitmapImage(), Stretch = Stretch.Fill }));
+                    _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = bitmap.GetBitmapSource().GetBitmapImage(), Stretch = Stretch.Fill }));
                 }
             }
         }
@@ -647,7 +647,7 @@ namespace EasyImage
             }
 
             menuItem = menuItems.Single(m => m.Tag.ToString() == "GifDeal");
-            menuItem.Visibility = count == 1 && ((AnimatedImage.AnimatedImage)element.Content).Animatable ? Visibility.Visible : Visibility.Collapsed;
+            menuItem.Visibility = count == 1 && ((AnimatedGif)element.Content).Animatable ? Visibility.Visible : Visibility.Collapsed;
 
             menuItem = menuItems.Single(m => m.Tag.ToString() == "Setting");
             menuItem.Visibility = count == 1 ? Visibility.Visible : Visibility.Collapsed;
@@ -685,11 +685,11 @@ namespace EasyImage
                 return;
             }
             element.Visibility = Visibility.Hidden;
-            var window = new GifCropWindow((AnimatedImage.AnimatedImage)element.Content, width, height);
+            var window = new GifCropWindow((AnimatedGif)element.Content, width, height);
             window.ShowDialog();
-            if (window.NewAnimatedImage != null)
+            if (window.NewAnimatedGif != null)
             {
-                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), window.NewAnimatedImage));
+                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), window.NewAnimatedGif));
             }
             element.Visibility = Visibility.Visible;
         }
@@ -701,7 +701,7 @@ namespace EasyImage
             var transactions = new TransactionAction();
             foreach (var item in elements)
             {
-                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Top)));
+                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndexFlag.Top)));
             }
             _actionManager.Execute(transactions);
         }
@@ -712,7 +712,7 @@ namespace EasyImage
             var transactions = new TransactionAction();
             foreach (var item in elements)
             {
-                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Topmost)));
+                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndexFlag.Topmost)));
                 _maxControlZIndex++;
             }
             _actionManager.Execute(transactions);
@@ -724,7 +724,7 @@ namespace EasyImage
             var transactions = new TransactionAction();
             foreach (var item in elements)
             {
-                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Bottom)));
+                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndexFlag.Bottom)));
             }
             _actionManager.Execute(transactions);
         }
@@ -735,7 +735,7 @@ namespace EasyImage
             var transactions = new TransactionAction();
             foreach (var item in elements)
             {
-                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndex.Bottommost)));
+                transactions.Add(new ExchangeZIndexAction(item, GetExchangeZIndexElement(item, ZIndexFlag.Bottommost)));
             }
             _actionManager.Execute(transactions);
         }
@@ -759,7 +759,7 @@ namespace EasyImage
             var element = SelectedElements.First();
             try
             {
-                _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = Extentions.GetBitmapImage(dialog.FileName), Stretch = Stretch.Fill }));
+                _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = Extentions.GetBitmapImage(dialog.FileName), Stretch = Stretch.Fill }));
             }
             catch (Exception ex)
             {
@@ -821,7 +821,7 @@ namespace EasyImage
             var imageSource = ImagePaster.GetPasteImagesFromClipboard().FirstOrDefault();
             if (imageSource != null)
             {
-                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedImage.AnimatedImage { Source = imageSource, Stretch = Stretch.Fill }));
+                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedGif { Source = imageSource, Stretch = Stretch.Fill }));
             }
         }
 
@@ -839,7 +839,7 @@ namespace EasyImage
             drawingVisual.Opacity = 0.1;
             var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
             renderBitmap.Render(drawingVisual);
-            _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedImage.AnimatedImage { Source = renderBitmap.GetBitmapImage(), Stretch = Stretch.Fill }));
+            _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedGif { Source = renderBitmap.GetBitmapImage(), Stretch = Stretch.Fill }));
 
         }
 
@@ -884,7 +884,7 @@ namespace EasyImage
                 if (!showDialog) return;
                 bitmapSource = Extentions.GetBitmapImage(dialog.FileName);
             }
-            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            var animatedImage = (AnimatedGif)element.Content;
             if (animatedImage.Animatable)
             {
                 var bitmapFrames = animatedImage.BitmapFrames;
@@ -940,7 +940,7 @@ namespace EasyImage
                 bitmapSource = renderBitmap.GetBitmapImage();
             }
 
-            _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = bitmapSource, Stretch = Stretch.Fill }));
+            _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = bitmapSource, Stretch = Stretch.Fill }));
 
         }
 
@@ -957,7 +957,7 @@ namespace EasyImage
             SetIsSelected(dict.Keys, true);
 
             var bitmapImage = imageSource.GetBitmapImage();
-            var animatedImage = new AnimatedImage.AnimatedImage { Source = bitmapImage, Stretch = Stretch.Fill };
+            var animatedImage = new AnimatedGif { Source = bitmapImage, Stretch = Stretch.Fill };
 
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new ScaleTransform(1, 1));
@@ -1003,7 +1003,7 @@ namespace EasyImage
             if (selectCount == 1)
             {
                 var element = SelectedElements.First();
-                var bitmapSource = (element.Content as AnimatedImage.AnimatedImage)?.Source as BitmapImage;
+                var bitmapSource = (element.Content as AnimatedGif)?.Source as BitmapImage;
                 if (bitmapSource != null)
                 {
                     var fileExt = bitmapSource.StreamSource != null ? ImageHelper.GetImageExtension(bitmapSource.StreamSource) : ImageHelper.GetImageExtension(bitmapSource.UriSource.AbsolutePath);
@@ -1111,7 +1111,7 @@ namespace EasyImage
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
-            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            var animatedImage = (AnimatedGif)element.Content;
             var bitmapFrames = animatedImage.BitmapFrames;
             if (bitmapFrames.Count < 2) return;
 
@@ -1166,7 +1166,7 @@ namespace EasyImage
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
-            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            var animatedImage = (AnimatedGif)element.Content;
             var bitmapFrames = animatedImage.BitmapFrames;
             if (bitmapFrames.Count < 2) return;
 
@@ -1220,7 +1220,7 @@ namespace EasyImage
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
-            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            var animatedImage = (AnimatedGif)element.Content;
             var bitmapFrames = animatedImage.BitmapFrames;
             if (bitmapFrames.Count < 2) return;
             bitmapFrames.Reverse();//反置
@@ -1230,7 +1230,7 @@ namespace EasyImage
             {
                 Width = element.Width,
                 Height = element.Height,
-                Content = new AnimatedImage.AnimatedImage { Source = item, Stretch = Stretch.Fill },
+                Content = new AnimatedGif { Source = item, Stretch = Stretch.Fill },
                 Template = element.Template,
                 RenderTransform = element.RenderTransform.Clone(),
             }))
@@ -1247,7 +1247,7 @@ namespace EasyImage
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
-            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            var animatedImage = (AnimatedGif)element.Content;
             var bitmapFrames = animatedImage.BitmapFrames;
             if (bitmapFrames.Count < 2) return;
 
@@ -1274,7 +1274,7 @@ namespace EasyImage
             {
                 Width = element.Width,
                 Height = element.Height,
-                Content = new AnimatedImage.AnimatedImage { Source = bitmapImage, Stretch = Stretch.Fill },
+                Content = new AnimatedGif { Source = bitmapImage, Stretch = Stretch.Fill },
                 Template = element.Template,
                 RenderTransform = element.RenderTransform.Clone(),
             };
@@ -1294,16 +1294,16 @@ namespace EasyImage
             {
                 return;
             }
-            var animatedImage = (AnimatedImage.AnimatedImage)element.Content;
+            var animatedImage = (AnimatedGif)element.Content;
             var bitmapFrames = animatedImage.BitmapFrames;
             if (bitmapFrames.Count < 2) return;
             element.Visibility = Visibility.Hidden;
 
             var window = new GifDrawing.GifDrawingWindow(animatedImage, width, height);
             window.ShowDialog();
-            if (window.NewAnimatedImage != null)
+            if (window.NewAnimatedGif != null)
             {
-                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), window.NewAnimatedImage));
+                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), window.NewAnimatedGif));
             }
             element.Visibility = Visibility.Visible;
         }
@@ -1702,6 +1702,8 @@ namespace EasyImage
                     }
                     else
                     {
+                        if(plugin.Item3 == null) continue;
+                       
                         subItem = new MenuItem { Header = plugin.Item1 };
                         if (plugin.Item2 != null)
                         {
@@ -1740,6 +1742,7 @@ namespace EasyImage
             #endregion
 
             element.ContextMenu = contextMenu;
+
             #endregion
 
             #region 添加事件
@@ -1751,31 +1754,31 @@ namespace EasyImage
             #endregion
         }
 
-        private List<IHandleList> GetPluginIhandle(string filePath)
+        private List<IFilterList> GetPluginLists(string filePath)
         {
-            var list = new List<IHandleList>();
+            var list = new List<IFilterList>();
             var assembly = Assembly.LoadFile(Path.GetFullPath(filePath));
 
-            foreach (var iHandleList in assembly.GetTypes().Where(m => m.GetInterface("IHandleList") != null).Select(type => (IHandleList)Activator.CreateInstance(type)))
+            foreach (var iFilterList in assembly.GetTypes().Where(m => m.GetInterface("IFilterList") != null).Select(type => (IFilterList)Activator.CreateInstance(type)))
             {
-                iHandleList.GetIHandleList()?.ForEach(m => m.InitPlugin(AppDomain.CurrentDomain.SetupInformation.ApplicationBase));
-                list.Add(iHandleList);
+                iFilterList.GetIFilterList()?.ForEach(m => m.InitPlugin(AppDomain.CurrentDomain.SetupInformation.ApplicationBase));
+                list.Add(iFilterList);
             }
 
             return list;
         }
 
-        private UIElement GetExchangeZIndexElement(ImageControl element, ZIndex zIndex)
+        private UIElement GetExchangeZIndexElement(ImageControl element, ZIndexFlag zIndexFlag)
         {
             var targetElement = element;
             var targetZIndex = Panel.GetZIndex(element);
             int tmp;
             var flag = 1;
-            if (zIndex == ZIndex.Bottommost || zIndex == ZIndex.Bottom)
+            if (zIndexFlag == ZIndexFlag.Bottommost || zIndexFlag == ZIndexFlag.Bottom)
             {
                 flag = -1;
             }
-            if (zIndex == ZIndex.Bottommost || zIndex == ZIndex.Topmost)
+            if (zIndexFlag == ZIndexFlag.Bottommost || zIndexFlag == ZIndexFlag.Topmost)
             {
                 foreach (ImageControl item in _panelContainer.Children)
                 {
@@ -1844,7 +1847,7 @@ namespace EasyImage
                 if (imageSource != null)
                 {
                     _actionManager.Execute(new ExchangeImageAction(element,
-                        new AnimatedImage.AnimatedImage
+                        new AnimatedGif
                         {
                             Source = imageSource.GetBitmapImage(),
                             Stretch = Stretch.Fill
@@ -1878,7 +1881,7 @@ namespace EasyImage
                 }
                 if (imageSource != null)
                 {
-                    _actionManager.Execute(new ExchangeImageAction(element, new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
+                    _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
                 }
                 else
                 {
@@ -1936,14 +1939,14 @@ namespace EasyImage
                             ((BitmapSource)((Image)item.Content).Source).GetResizeBitmap(bitmapSource.PixelWidth,
                                 bitmapSource.PixelHeight), bitmapSource, CropStyle.Transparent);
                     transactions.Add(new ExchangeImageAction(item,
-                        new AnimatedImage.AnimatedImage
+                        new AnimatedGif
                         {
                             Source = cutBitmapSource.GetBitmapImage(),
                             Stretch = Stretch.Fill
                         }));
                 }
                 transactions.Add(new ExchangeImageAction(element,
-                    new AnimatedImage.AnimatedImage { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
+                    new AnimatedGif { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
                 _actionManager.Execute(transactions);
             }));
         }
@@ -1958,7 +1961,7 @@ namespace EasyImage
             transformGroup.Children.Add(new ScaleTransform(scaleTransform.ScaleX, scaleTransform.ScaleY, 0.5, 0.5));
             transformGroup.Children.Add(new RotateTransform(rotateTransform.Angle, 0.5, 0.5));
 
-            var bitmapSource = GetCropStyleBitmap(((AnimatedImage.AnimatedImage)imageControl.Content).Source as BitmapSource, (int)Math.Round(imageControl.Width, 0), (int)Math.Round(imageControl.Height, 0), cropStyle);
+            var bitmapSource = GetCropStyleBitmap(((AnimatedGif)imageControl.Content).Source as BitmapSource, (int)Math.Round(imageControl.Width, 0), (int)Math.Round(imageControl.Height, 0), cropStyle);
             var bevelSideLength = Math.Sqrt(bitmapSource.Width * bitmapSource.Width + bitmapSource.Height * bitmapSource.Height);
             var screenWidth = (int)SystemParameters.VirtualScreenWidth;
             var screenHeight = (int)SystemParameters.VirtualScreenHeight;

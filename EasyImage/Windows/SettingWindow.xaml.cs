@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Windows;
@@ -8,8 +7,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using EasyImage.Config;
 using EasyImage.Enum;
+using EasyImage.UnmanagedToolkit;
 using Microsoft.Win32;
-using UnmanagedToolkit;
 
 namespace EasyImage.Windows
 {
@@ -21,7 +20,7 @@ namespace EasyImage.Windows
         private readonly UserConfig _userConfig;
         private readonly UserControl _imageControl;
         private readonly TranslateTransform _translateTransform;
-        private AnimatedImage.AnimatedImage _oldAnimatedImage;
+        private AnimatedImage.AnimatedGif _oldAnimatedGif;
         private Shortcut _oldGlobelAddShortcut, _oldGlobelPasteShortcut;
         private string _oldPath;
         private double _oldWidth, _oldHeight, _oldTranslateX, _oldTranslateY, _oldInitMaxImgSize;
@@ -55,7 +54,7 @@ namespace EasyImage.Windows
             _oldTranslateX = Math.Round(_translateTransform.X, 2);
             _oldTranslateY = Math.Round(_translateTransform.Y, 2);
             _oldInitMaxImgSize = Math.Round(_userConfig.ImageSetting.InitMaxImgSize);
-            _oldAnimatedImage = (AnimatedImage.AnimatedImage)_imageControl.Content;
+            _oldAnimatedGif = (AnimatedImage.AnimatedGif)_imageControl.Content;
             _oldPath = _userConfig.ImageSetting.MainMenuInfo.Path;
             _oldGlobelAddShortcut = (Shortcut)_userConfig.ShortcutSetting.GlobelAddShortcut.Clone();
             _oldGlobelPasteShortcut = (Shortcut)_userConfig.ShortcutSetting.GlobelPasteShortcut.Clone();
@@ -100,7 +99,7 @@ namespace EasyImage.Windows
             _userConfig.ShortcutSetting.GlobelAddShortcut = (Shortcut)_oldGlobelAddShortcut.Clone();
             _userConfig.ShortcutSetting.GlobelPasteShortcut = (Shortcut)_oldGlobelPasteShortcut.Clone();
 
-            _imageControl.Content = _oldAnimatedImage;
+            _imageControl.Content = _oldAnimatedGif;
             HeightTbx.Text = _oldHeight.ToString(CultureInfo.InvariantCulture);
             WidthTbx.Text = _oldWidth.ToString(CultureInfo.InvariantCulture);
             LocationXTbx.Text = _oldTranslateX.ToString(CultureInfo.InvariantCulture);
@@ -218,7 +217,7 @@ namespace EasyImage.Windows
                 var fileFullName = dialog.FileName;
                 var fileName = $"MenuItemIcon{fileFullName.Substring(fileFullName.LastIndexOf('.'))}";
                 File.Copy(fileFullName, Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, fileName ), true);
-                _imageControl.Content = new AnimatedImage.AnimatedImage
+                _imageControl.Content = new AnimatedImage.AnimatedGif
                 {
                     Source = Extentions.GetBitmapImage(fileFullName),
                     Stretch = Stretch.Fill,

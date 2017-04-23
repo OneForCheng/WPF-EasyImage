@@ -4,7 +4,7 @@ using IPlugins;
 
 namespace EasyDeal
 {
-    class EasyDealPlugins : IHandleList
+    class EasyDealPlugins : IFilterList
     {
         public string GetPluginName()
         {
@@ -16,9 +16,9 @@ namespace EasyDeal
             return null;
         }
 
-        public List<IHandle> GetIHandleList()
+        public List<IFilter> GetIFilterList()
         {
-            return new List<IHandle>
+            return new List<IFilter>
             {
                 new PluginBlackWhite(),
                 new PluginEnBlackWhite(),

@@ -4,7 +4,7 @@ using IPlugins;
 
 namespace ArtDeal
 {
-    class ArtDealPlugins : IHandleList
+    class ArtDealPlugins : IFilterList
     {
         public string GetPluginName()
         {
@@ -16,9 +16,9 @@ namespace ArtDeal
             return null;
         }
 
-        public List<IHandle> GetIHandleList()
+        public List<IFilter> GetIFilterList()
         {
-            return new List<IHandle>
+            return new List<IFilter>
             {
                 new PluginBinary(),
                 new PluginEnchase(),

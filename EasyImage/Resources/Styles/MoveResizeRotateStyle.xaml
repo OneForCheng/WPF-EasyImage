@@ -13,7 +13,7 @@
 
     <!-- RotateIconThumb Template -->
     <ControlTemplate x:Key="RotateIconThumbTemplate" TargetType="{x:Type Thumb}">
-        <Image Width="22" Height="22" Source="../Images/Rotate.png"></Image>
+        <Image Width="22" Height="22" Source="../Images/rotate_icon.png"></Image>
     </ControlTemplate>
 
     <!-- Move Template -->

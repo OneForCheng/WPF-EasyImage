@@ -33,7 +33,7 @@
                     <Border  BorderThickness="1" BorderBrush="Gray"  HorizontalAlignment="Center" VerticalAlignment="Center">
                         <Border x:Name="ImageBorder" BorderThickness="0" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <Grid  x:Name="ImageVisulGrid"  Background="Transparent">
-                                <animatedImage:AnimatedImage x:Name="TargetImage" Stretch="Fill" MouseLeftButtonDown="TargetImage_MouseLeftButtonDown"  Cursor="Cross"  HorizontalAlignment="Center" VerticalAlignment="Center" MouseMove="TargetImage_MouseMove" MouseLeftButtonUp="TargetImage_MouseLeftButtonUp" />
+                                <animatedImage:AnimatedGif x:Name="TargetImage" Stretch="Fill" MouseLeftButtonDown="TargetImage_MouseLeftButtonDown"  Cursor="Cross"  HorizontalAlignment="Center" VerticalAlignment="Center" MouseMove="TargetImage_MouseMove" MouseLeftButtonUp="TargetImage_MouseLeftButtonUp" />
                                 <Rectangle x:Name="CropRect" Stroke="Red" Width="0" Height="0" Cursor="Cross" HorizontalAlignment="Left" VerticalAlignment="Top" MouseLeftButtonDown="TargetImage_MouseLeftButtonDown">
                                     <Rectangle.Fill>
                                         <SolidColorBrush Color="Gray" Opacity="0.1"></SolidColorBrush>

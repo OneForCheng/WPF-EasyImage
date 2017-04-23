@@ -1,5 +1,4 @@
-﻿using System.Windows;
-using System.Windows.Media;
+﻿using System.Windows.Media;
 using EasyImage.Controls;
 using UndoFramework.Abstract;
 
@@ -11,9 +10,18 @@ namespace EasyImage.Actioins
         private readonly TranslateTransform _translateTransform;
    
         private readonly RotateTransform _rotateTransform;
-        private double _oldWidth, _oldHeight, _oldAngle, _oldTranslateX, _oldTranslateY;
-        private double _newWidth, _newHeight, _newAngle, _newTranslateX, _newTranslateY;
-        private bool _oldIsLockAspect, _newIsLockAspect;
+        private readonly double _oldWidth;
+        private readonly double _oldHeight;
+        private readonly double _newWidth;
+        private readonly double _newHeight;
+        private readonly double _oldAngle;
+        private readonly double _newAngle;
+        private readonly double _oldTranslateX;
+        private readonly double _oldTranslateY;
+        private readonly double _newTranslateX;
+        private readonly double _newTranslateY;
+        private readonly bool _oldIsLockAspect;
+        private readonly bool _newIsLockAspect;
 
         public SetPropertyAction(ImageControl element, double oldWidth, double oldHeight, double oldAngle, bool oldIsLockAspect, double oldTranslateX, double oldTranslateY,
                                 double newWidth, double newHeight, double newAngle, bool newIsLockAspect, double newTranslateX, double newTranslateY)

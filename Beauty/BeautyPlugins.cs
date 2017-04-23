@@ -4,7 +4,7 @@ using IPlugins;
 
 namespace Beauty
 {
-    class BeautyPlugins : IHandleList
+    class BeautyPlugins : IFilterList
     {
         public string GetPluginName()
         {
@@ -16,9 +16,9 @@ namespace Beauty
             return null;
         }
 
-        public List<IHandle> GetIHandleList()
+        public List<IFilter> GetIFilterList()
         {
-            return new List<IHandle>
+            return new List<IFilter>
             {
                 new PluginBuffingBrighten(),
                 new PluginSharpen(),

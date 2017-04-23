@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace EasyDeal
 {
-    public class PluginSobelEdge : IHandle
+    public class PluginSobelEdge : IFilter
     {
         public string GetPluginName()
         {
