@@ -35,8 +35,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GifDrawing", "GifDrawing\Gi
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Components", "Components", "{1577DCB7-0C98-4304-9C8B-0952E955DFB1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyImageWebApp", "EasyImageWebApp\EasyImageWebApp.csproj", "{2D046C34-F0E4-4DF6-A6AB-8F0563514760}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -99,10 +97,6 @@ Global
 		{A6A52FB7-7FB2-4725-AEFA-3CE0769580FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A6A52FB7-7FB2-4725-AEFA-3CE0769580FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A6A52FB7-7FB2-4725-AEFA-3CE0769580FB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2D046C34-F0E4-4DF6-A6AB-8F0563514760}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2D046C34-F0E4-4DF6-A6AB-8F0563514760}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2D046C34-F0E4-4DF6-A6AB-8F0563514760}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2D046C34-F0E4-4DF6-A6AB-8F0563514760}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

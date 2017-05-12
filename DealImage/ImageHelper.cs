@@ -251,7 +251,7 @@ namespace DealImage
             return new Rect(minX, minY, maxX - minX, maxY - minY);
         }
 
-        private static Rect GetRelationRect(this FrameworkElement element, Point relationPoint)
+        public static Rect GetRelationRect(this FrameworkElement element, Point relationPoint)
         {
             double minX = double.MaxValue, minY = double.MaxValue;
             var rect = VisualTreeHelper.GetDescendantBounds(element);
@@ -268,7 +268,7 @@ namespace DealImage
             return new Rect(minX - relationPoint.X, minY - relationPoint.Y, width, height);
         }
 
-        private static Rect GetChildViewbox(this FrameworkElement element, FrameworkElement childElement)
+        public static Rect GetChildViewbox(this FrameworkElement element, FrameworkElement childElement)
         {
             var rect = VisualTreeHelper.GetDescendantBounds(element);
             var childRect = VisualTreeHelper.GetDescendantBounds(childElement);

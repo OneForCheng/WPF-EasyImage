@@ -689,7 +689,7 @@ namespace EasyImage
             window.ShowDialog();
             if (window.NewAnimatedGif != null)
             {
-                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), window.NewAnimatedGif));
+                _actionManager.Execute(new ExchangeImageAction(element, window.NewAnimatedGif));
             }
             element.Visibility = Visibility.Visible;
         }
@@ -740,7 +740,7 @@ namespace EasyImage
             _actionManager.Execute(transactions);
         }
 
-        private void Menu_ExchangeImageFromFile(object sender, RoutedEventArgs e)
+        private async void Menu_ExchangeImageFromFile(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
             var dialog = new OpenFileDialog
@@ -759,7 +759,7 @@ namespace EasyImage
             var element = SelectedElements.First();
             try
             {
-                _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = Extentions.GetBitmapImage(dialog.FileName), Stretch = Stretch.Fill }));
+                _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = await Extentions.GetBitmapImage(dialog.FileName), Stretch = Stretch.Fill }));
             }
             catch (Exception ex)
             {
@@ -815,10 +815,10 @@ namespace EasyImage
             CutImageFromInternal(CropStyle.Transparent);
         }
 
-        private void Menu_ExchangeImageFromClipboard(object sender, RoutedEventArgs e)
+        private async void Menu_ExchangeImageFromClipboard(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
-            var imageSource = ImagePaster.GetPasteImagesFromClipboard().FirstOrDefault();
+            var imageSource = (await ImagePaster.GetPasteImagesFromClipboard()).FirstOrDefault();
             if (imageSource != null)
             {
                 _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), new AnimatedGif { Source = imageSource, Stretch = Stretch.Fill }));
@@ -843,7 +843,7 @@ namespace EasyImage
 
         }
 
-        private void Menu_SetPngImageBackground(object sender, RoutedEventArgs e)
+        private async void Menu_SetPngImageBackground(object sender, RoutedEventArgs e)
         {
             var menuItem = sender as MenuItem;
             if (menuItem == null || SelectedElements.Count() != 1) return;
@@ -864,7 +864,7 @@ namespace EasyImage
             }
             else if (tag == "Clipboard")
             {
-                bitmapSource = ImagePaster.GetPasteImagesFromClipboard().FirstOrDefault() as BitmapSource;
+                bitmapSource = (await ImagePaster.GetPasteImagesFromClipboard()).FirstOrDefault() as BitmapSource;
                 if (bitmapSource == null) return;
             }
             else
@@ -882,7 +882,7 @@ namespace EasyImage
                 };
                 var showDialog = dialog.ShowDialog().GetValueOrDefault();
                 if (!showDialog) return;
-                bitmapSource = Extentions.GetBitmapImage(dialog.FileName);
+                bitmapSource = await Extentions.GetBitmapImage(dialog.FileName);
             }
             var animatedImage = (AnimatedGif)element.Content;
             if (animatedImage.Animatable)
@@ -940,7 +940,7 @@ namespace EasyImage
                 bitmapSource = renderBitmap.GetBitmapImage();
             }
 
-            _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = bitmapSource, Stretch = Stretch.Fill }));
+            _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = bitmapSource, Stretch = Stretch.Fill }, false));
 
         }
 
@@ -953,10 +953,9 @@ namespace EasyImage
             SetIsSelected(dict.Keys, false);
 
             var rect = dict.Values.GetMinContainRect();
-            var imageSource = dict.GetMinContainBitmap();
+            var bitmapImage = dict.GetCombinedBitmap(rect);//获取合并后图片（支持单张动态图的合并）
             SetIsSelected(dict.Keys, true);
 
-            var bitmapImage = imageSource.GetBitmapImage();
             var animatedImage = new AnimatedGif { Source = bitmapImage, Stretch = Stretch.Fill };
 
             var transformGroup = new TransformGroup();
@@ -1062,6 +1061,27 @@ namespace EasyImage
                 SetIsSelected(dict.Keys, false);
                 var imageSource = dict.GetMinContainBitmap();
                 SetIsSelected(dict.Keys, true);
+
+                if (imageSource.PixelWidth != imageSource.PixelHeight)
+                {
+                    var maxSideLength = imageSource.PixelWidth > imageSource.PixelHeight
+                    ? imageSource.PixelWidth
+                    : imageSource.PixelHeight;
+                    var drawingVisual = new DrawingVisual();
+                    using (var context = drawingVisual.RenderOpen())
+                    {
+                        var brush = new ImageBrush(imageSource)
+                        {
+                            Stretch = Stretch.None,
+                        };
+                        context.DrawRectangle(brush, null, new Rect(0, 0, maxSideLength, maxSideLength));
+                    }
+                    var renderBitmap = new RenderTargetBitmap(maxSideLength, maxSideLength, 96, 96, PixelFormats.Pbgra32);
+                    renderBitmap.Render(drawingVisual);
+                    imageSource = renderBitmap;
+                }
+                
+
                 var index = menu.Items.IndexOf(menuItem);
                 switch (index)
                 {
@@ -1107,7 +1127,7 @@ namespace EasyImage
             _actionManager.Execute(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m), SelectedElements.First()));
         }
 
-        private void MenuItem_GifCopy(object sender, RoutedEventArgs e)
+        private async void MenuItem_GifCopy(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
@@ -1145,7 +1165,7 @@ namespace EasyImage
                 using (var fs = File.OpenWrite(tempFilePath))
                 {
                     var data = stream.ToArray();
-                    fs.Write(data, 0, data.Length);
+                    await fs.WriteAsync(data, 0, data.Length);
                 }
                 var byteData = Encoding.UTF8.GetBytes("<QQRichEditFormat><Info version=\"1001\"></Info><EditElement type=\"1\" filepath=\"" + tempFilePath + "\" shortcut=\"\"></EditElement><EditElement type=\"0\"><![CDATA[]]></EditElement></QQRichEditFormat>");
                 var dataObject = new DataObject();
@@ -1162,7 +1182,7 @@ namespace EasyImage
 
         }
 
-        private void MenuItem_GifSave(object sender, RoutedEventArgs e)
+        private async void MenuItem_GifSave(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
@@ -1210,7 +1230,8 @@ namespace EasyImage
                 stream.Position = 0;
                 using (var file = File.Create(filePath))
                 {
-                    stream.WriteTo(file);
+                    await stream.CopyToAsync(file);
+                    //stream.WriteTo(file);
                 }
             }
 
@@ -1303,18 +1324,17 @@ namespace EasyImage
             window.ShowDialog();
             if (window.NewAnimatedGif != null)
             {
-                _actionManager.Execute(new ExchangeImageAction(SelectedElements.First(), window.NewAnimatedGif));
+                _actionManager.Execute(new ExchangeImageAction(element, window.NewAnimatedGif));
             }
             element.Visibility = Visibility.Visible;
         }
-
 
         private void Menu_Setting(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
             var window = new ImageSettingWindow(SelectedElements.First());
             window.ShowDialog();
-            if (window.IsModified)
+            if (window.SetPropertyAction != null)
             {
                 _actionManager.Execute(window.SetPropertyAction);
             }

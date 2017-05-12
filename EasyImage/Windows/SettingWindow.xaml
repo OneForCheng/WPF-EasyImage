@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:EasyImage.Enum"
         xmlns:system="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="SettingWindow" Height="400" Width="400"  ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" ShowInTaskbar="False" Topmost="True"  Loaded="Window_Loaded">
+        Title="SettingWindow" Height="400" Width="400"  ResizeMode="NoResize" WindowStyle="None" AllowsTransparency="True" Background="Transparent" WindowStartupLocation="CenterScreen" ShowInTaskbar="False" Topmost="True"  Loaded="Window_Loaded" Closing="Window_Closing">
     <Window.Resources>
         <ResourceDictionary>
             <!-- 引用资源字典 -->
@@ -67,13 +67,15 @@
 
                                 <Button x:Name="ReplaceBtn" Content="更改图片..." FontSize="13" Margin="45,134,0,0" Style="{StaticResource NormalBtnStyle}" Click="ReplaceBtn_Click" Height="18" VerticalAlignment="Top" HorizontalAlignment="Left" Width="80"/>
 
-                                <Label x:Name="ImageLbl" Padding="1" FontSize="15" Foreground="White" Content="图像:" HorizontalAlignment="Left" Height="22" Margin="10,161,0,0" VerticalAlignment="Top" Width="40"/>
+                                <Label x:Name="ImageLbl" Padding="1" FontSize="15" Foreground="White" Content="图像加载:" HorizontalAlignment="Left" Height="22" Margin="10,161,0,0" VerticalAlignment="Top" Width="70"/>
                                 <Label x:Name="MaxSizeLbl" Padding="1" FontSize="13" Foreground="White" Content="初始最大宽/高:" HorizontalAlignment="Left" Height="18" Margin="45,187,0,0" VerticalAlignment="Top" Width="95"/>
                                 <TextBox x:Name="MaxSizeTbx" MaxLength="16"  TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="145,187,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
                                     <TextBox.Tag>
                                         <x:Static Member="local:TextboxFlag.Fifth"></x:Static>
                                     </TextBox.Tag>
                                 </TextBox>
+                                
+                                <CheckBox x:Name="AutoRunCk" Content="程序开机自启" Foreground="White" FontSize="13" HorizontalAlignment="Left" Height="20" Margin="250,250,0,-2" VerticalAlignment="Top" Width="100" Click="AutoRunCk_Click"/>
 
                             </Grid>
                         </Grid>

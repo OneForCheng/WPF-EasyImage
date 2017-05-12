@@ -229,42 +229,11 @@ namespace GifDrawing
         {
             if (_isSave)
             {
-                var lastBitmapLayer = (Bitmap)_drawingManager.LastRecordedBitmap.Clone();
-                var rect = new Rectangle(0, 0, _imageWidth, _imageHeight);
-
-                var bitmapFrames = _animatedGif.BitmapFrames;
-                var stream = new MemoryStream();
-                using (var encoder = new GifEncoder(stream, _imageWidth, _imageHeight, _animatedGif.RepeatCount))
-                {
-                    var delays = _animatedGif.Delays;
-                    for (var i = 0; i < bitmapFrames.Count; i++)
-                    {
-                        using (var bitmap = bitmapFrames[i].GetBitmap())
-                        {
-                            using (var resizeBitmap = bitmap.ResizeBitmap(_imageWidth, _imageHeight))
-                            {
-                                using (var g = Graphics.FromImage(resizeBitmap))
-                                {
-                                    g.SmoothingMode = SmoothingMode.HighQuality;
-                                    g.DrawImageUnscaled(lastBitmapLayer, rect);
-                                    encoder.AppendFrame(resizeBitmap, (int)delays[i].TotalMilliseconds);
-                                }
-                            }
-                           
-                        }
-                    }
-                }
-                stream.Position = 0;
-                var bitmapImage = new BitmapImage();
-                bitmapImage.BeginInit();
-                bitmapImage.StreamSource = stream;
-                bitmapImage.EndInit();
-
-                NewAnimatedGif = new AnimatedImage.AnimatedGif() { Source = bitmapImage, Stretch = Stretch.Fill };
+                NewAnimatedGif = new AnimatedImage.AnimatedGif() { Source = GetAnimatedGif(), Stretch = Stretch.Fill };
             }
         }
 
-        private void WindowKeyDown(object sender, KeyEventArgs e)
+        private async void WindowKeyDown(object sender, KeyEventArgs e)
         {
             if ((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
             {
@@ -274,7 +243,7 @@ namespace GifDrawing
                         _drawingManager.Undo();
                         break;
                     case Key.C:
-                        _drawingManager.LastRecordedBitmap.CopyImageToClipboard();
+                        await GetAnimatedGif().CopyImageToClipboard();
                         break;
                     case Key.Y:
                         _drawingManager.Redo();
@@ -399,7 +368,7 @@ namespace GifDrawing
             ImageViewGrid.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(DrawingInfo.CurrentArgbColor.A, color.R, color.G, color.B));
         }
 
-        private void ImageButton_Click(object sender, RoutedEventArgs e)
+        private async void ImageButton_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
             if (button == null) return;
@@ -416,7 +385,7 @@ namespace GifDrawing
                     SetDrawingTool(button, tag);
                     break;
                 case DrawingTool.CopyTool:
-                   _drawingManager.LastRecordedBitmap.CopyImageToClipboard();
+                    await GetAnimatedGif().CopyImageToClipboard();
                     break;
                 case DrawingTool.UndoTool:
                     _drawingManager.Undo();
@@ -789,6 +758,40 @@ namespace GifDrawing
             }
         }
 
+        private BitmapImage GetAnimatedGif()
+        {
+            var lastBitmapLayer = (Bitmap)_drawingManager.LastRecordedBitmap.Clone();
+            var rect = new Rectangle(0, 0, _imageWidth, _imageHeight);
+
+            var bitmapFrames = _animatedGif.BitmapFrames;
+            var stream = new MemoryStream();
+            using (var encoder = new GifEncoder(stream, _imageWidth, _imageHeight, _animatedGif.RepeatCount))
+            {
+                var delays = _animatedGif.Delays;
+                for (var i = 0; i < bitmapFrames.Count; i++)
+                {
+                    using (var bitmap = bitmapFrames[i].GetBitmap())
+                    {
+                        using (var resizeBitmap = bitmap.ResizeBitmap(_imageWidth, _imageHeight))
+                        {
+                            using (var g = Graphics.FromImage(resizeBitmap))
+                            {
+                                g.SmoothingMode = SmoothingMode.HighQuality;
+                                g.DrawImageUnscaled(lastBitmapLayer, rect);
+                                encoder.AppendFrame(resizeBitmap, (int)delays[i].TotalMilliseconds);
+                            }
+                        }
+
+                    }
+                }
+            }
+            stream.Position = 0;
+            var bitmapImage = new BitmapImage();
+            bitmapImage.BeginInit();
+            bitmapImage.StreamSource = stream;
+            bitmapImage.EndInit();
+            return bitmapImage;
+        }
 
         #endregion
 

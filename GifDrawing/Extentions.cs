@@ -6,7 +6,9 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -108,17 +110,19 @@ namespace GifDrawing
             return resizeBitmap;
         }
 
-        public static void CopyImageToClipboard(this Bitmap bitmap)
+        public static async Task CopyImageToClipboard(this BitmapImage bitmapSource)
         {
             using (var stream = new MemoryStream())
             {
-                var dataObject = new DataObject();
+                bitmapSource.StreamSource.Position = 0;
+                await bitmapSource.StreamSource.CopyToAsync(stream);
 
+                var dataObject = new DataObject();
+               
                 //普通图片格式
-                dataObject.SetData(ImageDataFormats.Bitmap, bitmap, true);
+                dataObject.SetData(ImageDataFormats.Bitmap, bitmapSource, true);
 
                 //兼容PNG透明格式图片
-                bitmap.Save(stream, ImageFormat.Png);
                 dataObject.SetData(ImageDataFormats.Png, stream, true);
 
                 //兼容QQ

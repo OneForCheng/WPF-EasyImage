@@ -27,7 +27,8 @@ namespace EasyImage.Windows
         private bool _textChanged;
         private bool _canTextChange;
         private TextboxFlag _textboxFlag;
-        public bool IsModified { get; private set; }
+        private bool _isModified;
+
         public SetPropertyAction SetPropertyAction { get; private set; }
 
         public ImageSettingWindow(ImageControl imageControl)
@@ -67,8 +68,7 @@ namespace EasyImage.Windows
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (!IsModified && _oldIsLockAspect == _imageControl.IsLockAspect) return;
-            IsModified = true;
+            if (!_isModified && _oldIsLockAspect == _imageControl.IsLockAspect) return;
             SetPropertyAction = new SetPropertyAction(_imageControl,
                 _oldWidth, _oldHeight, _oldAngle, _oldIsLockAspect, _oldTranslateX, _oldTranslateY,
                 _imageControl.Width, _imageControl.Height, _rotateTransform.Angle, _imageControl.IsLockAspect, _translateTransform.X, _translateTransform.Y
@@ -128,7 +128,7 @@ namespace EasyImage.Windows
             CheckBox.IsChecked = _oldIsLockAspect;
 
             PixelRbn.IsChecked = true;
-            IsModified = false;
+            _isModified = false;
 
             _canTextChange = true;
         }
@@ -234,7 +234,7 @@ namespace EasyImage.Windows
                     if (_selectedPixelRbn)
                     {
                         _imageControl.Height = height;
-                        IsModified = true;
+                        _isModified = true;
                         return;
                     }
                     else
@@ -243,7 +243,7 @@ namespace EasyImage.Windows
                         if (height > 0)
                         {
                             _imageControl.Height = height;
-                            IsModified = true;
+                            _isModified = true;
                             return;
                         }
                     }
@@ -268,7 +268,7 @@ namespace EasyImage.Windows
                     if (_selectedPixelRbn)
                     {
                         _imageControl.Width = width;
-                        IsModified = true;
+                        _isModified = true;
                         return;
                     }
                     else
@@ -277,7 +277,7 @@ namespace EasyImage.Windows
                         if (width > 0)
                         {
                             _imageControl.Width = width;
-                            IsModified = true;
+                            _isModified = true;
                             return;
                         }
                     }
@@ -305,7 +305,7 @@ namespace EasyImage.Windows
                     angle += 360;
                     _rotateTransform.Angle = angle;
                 }
-                IsModified = true;
+                _isModified = true;
             }
             _canTextChange = false;
             AngleTbx.Text = _rotateTransform.Angle.ToString(CultureInfo.InvariantCulture);
@@ -319,7 +319,7 @@ namespace EasyImage.Windows
             if (double.TryParse(LocationXTbx.Text, out translateX))
             {
                 _translateTransform.X = Math.Round(translateX, 2);
-                IsModified = true;
+                _isModified = true;
             }
             _canTextChange = false;
             LocationXTbx.Text = Math.Round(_translateTransform.X, 2).ToString(CultureInfo.InvariantCulture);
@@ -334,7 +334,7 @@ namespace EasyImage.Windows
             if (double.TryParse(LocationYTbx.Text, out translateY))
             {
                 _translateTransform.Y = Math.Round(translateY, 2);
-                IsModified = true;
+                _isModified = true;
             }
             _canTextChange = false;
             LocationYTbx.Text = Math.Round(_translateTransform.Y, 2).ToString(CultureInfo.InvariantCulture);

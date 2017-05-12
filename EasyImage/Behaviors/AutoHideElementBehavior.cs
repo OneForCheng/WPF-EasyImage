@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Interactivity;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -9,22 +8,32 @@ using EasyImage.UnmanagedToolkit;
 
 namespace EasyImage.Behaviors
 {
-    public class AutoHideElementBehavior<T> : Behavior<FrameworkElement> where T : FrameworkElement
+    public class AutoHideElementBehavior: Behavior<FrameworkElement> 
     {
         private enum HideState
         {
             None,
+            PreviewTopHidden,
+            TopHidden,
+            PreviewRightHidden,
+            RightHidden,
+            PreviewBottomHidden,
+            BottomHidden,
+            PreviewLeftHidden,
+            LeftHidden,
+        }
+
+        private enum MoveDirection
+        {
             Top,
             Right,
             Bottom,
-            Left,
+            Left
         }
 
         #region Private fields
         private HideState _hideStatus;
-        private readonly DispatcherTimer _autoHideTimer;//一个触发器
         private bool _lockTimer;
-        private T _targetElement;
         private TranslateTransform _cacheTranslateTransform;
         private const double Factor = 3;
         private Win32.Point _curPosition;
@@ -36,8 +45,19 @@ namespace EasyImage.Behaviors
         {
             _lockTimer = false;
             _hideStatus = HideState.None;
-            _autoHideTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-            _autoHideTimer.Tick += AutoHideTimer_Tick;
+            var autoHideTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+            autoHideTimer.Tick += AutoHideTimer_Tick;
+            autoHideTimer.Start();
+        }
+
+        #endregion
+
+        #region Protected methods
+
+        protected override void OnAttached()
+        {
+            base.OnAttached();
+            _cacheTranslateTransform = AssociatedObject.GetTransform<TranslateTransform>();
         }
 
         #endregion
@@ -45,44 +65,64 @@ namespace EasyImage.Behaviors
         #region Public properties and methods
 
         public bool IsHide => _hideStatus != HideState.None;
-
+            
         public void Show()
         {
             if (_hideStatus != HideState.None)
             {
-                if (_autoHideTimer.IsEnabled)
-                {
-                    _autoHideTimer.Stop();
-                }
+                _lockTimer = true;
                 switch (_hideStatus)
                 {
-                    case HideState.Top:
-                        AnimationTranslate(HideState.Bottom, _targetElement.ActualHeight + Factor, () =>
+                    case HideState.PreviewTopHidden:
+                        _cacheTranslateTransform.Y = Factor + 1;
+                        _hideStatus = HideState.None;
+                        _lockTimer = false;
+                        break;
+                    case HideState.TopHidden:
+                        AnimationTranslate(MoveDirection.Bottom, AssociatedObject.ActualHeight + Factor, () =>
                         {
-                            _cacheTranslateTransform.Y = 0;
+                            _cacheTranslateTransform.Y = Factor + 1;
                             _hideStatus = HideState.None;
-
+                            _lockTimer = false;
                         });
                         break;
-                    case HideState.Right:
-                        AnimationTranslate(HideState.Left, _targetElement.ActualWidth + Factor, () =>
+                    case HideState.PreviewRightHidden:
+                        _cacheTranslateTransform.X = SystemParameters.VirtualScreenWidth - AssociatedObject.ActualWidth - Factor - 1;
+                        _hideStatus = HideState.None;
+                        _lockTimer = false;
+                        break;
+                    case HideState.RightHidden:
+                        AnimationTranslate(MoveDirection.Left, AssociatedObject.ActualWidth + Factor, () =>
                         {
-                            _cacheTranslateTransform.X = SystemParameters.VirtualScreenWidth - _targetElement.ActualWidth;
+                            _cacheTranslateTransform.X = SystemParameters.VirtualScreenWidth - AssociatedObject.ActualWidth - Factor - 1;
                             _hideStatus = HideState.None;
+                            _lockTimer = false;
                         });
                         break;
-                    case HideState.Bottom:
-                        AnimationTranslate(HideState.Top, _targetElement.ActualHeight + Factor, () =>
+                    case HideState.PreviewBottomHidden:
+                        _cacheTranslateTransform.Y = SystemParameters.VirtualScreenHeight - AssociatedObject.ActualHeight - Factor - 1;
+                        _hideStatus = HideState.None;
+                        _lockTimer = false;
+                        break;
+                    case HideState.BottomHidden:
+                        AnimationTranslate(MoveDirection.Top, AssociatedObject.ActualHeight + Factor, () =>
                         {
-                            _cacheTranslateTransform.Y = SystemParameters.VirtualScreenHeight - _targetElement.ActualHeight;
+                            _cacheTranslateTransform.Y = SystemParameters.VirtualScreenHeight - AssociatedObject.ActualHeight - Factor - 1;
                             _hideStatus = HideState.None;
+                            _lockTimer = false;
                         });
                         break;
-                    case HideState.Left:
-                        AnimationTranslate(HideState.Right, _targetElement.ActualWidth + Factor, () =>
+                    case HideState.PreviewLeftHidden:
+                        _cacheTranslateTransform.X = Factor + 1;
+                        _hideStatus = HideState.None;
+                        _lockTimer = false;
+                        break;
+                    case HideState.LeftHidden:
+                        AnimationTranslate(MoveDirection.Right, AssociatedObject.ActualWidth + Factor, () =>
                         {
-                            _cacheTranslateTransform.X = 0;
+                            _cacheTranslateTransform.X = Factor + 1;
                             _hideStatus = HideState.None;
+                            _lockTimer = false;
                         });
                         break;
                 }
@@ -91,82 +131,8 @@ namespace EasyImage.Behaviors
 
         #endregion
 
-        #region Protect methods
-        protected override void OnAttached()
-        {
-            base.OnAttached();
-            AssociatedObject.MouseLeave += AssociatedObject_MouseLeave;
-        }
-
-        protected override void OnDetaching()
-        {
-            base.OnDetaching();
-            AssociatedObject.MouseLeave -= AssociatedObject_MouseLeave;
-        }
-
-        #endregion
 
         #region Events and Private methods
-        private void AssociatedObject_MouseLeave(object sender, MouseEventArgs e)
-        {
-            if(_hideStatus != HideState.None) return;
-            _targetElement = e.Source as T;
-            if(_targetElement == null) return;
-            _cacheTranslateTransform = _targetElement.GetTransform<TranslateTransform>();
-            if (_cacheTranslateTransform.Y < Factor)
-            {
-                _hideStatus = HideState.Top;
-            }
-            else if (_cacheTranslateTransform.X + _targetElement.ActualWidth + Factor > SystemParameters.VirtualScreenWidth)
-            {
-                _hideStatus = HideState.Right;
-            }
-            else if (_cacheTranslateTransform.Y + _targetElement.ActualHeight + Factor > SystemParameters.VirtualScreenHeight)
-            {
-                _hideStatus = HideState.Bottom;
-            }
-            else if (_cacheTranslateTransform.X < Factor)
-            {
-                _hideStatus = HideState.Left;
-            }
-            if (_hideStatus == HideState.None) return;
-            switch (_hideStatus)
-            {
-                case HideState.Top:
-                    AnimationTranslate(_hideStatus, _targetElement.ActualHeight + Factor, () =>
-                    {
-                        _cacheTranslateTransform.Y = -(_targetElement.ActualHeight +  Factor);
-                        _lockTimer = false;
-                        _autoHideTimer.Start();
-                    });
-                    break;
-                case HideState.Right:
-                    AnimationTranslate(_hideStatus, _targetElement.ActualHeight + Factor, () =>
-                    {
-                        _cacheTranslateTransform.X = (SystemParameters.VirtualScreenWidth + Factor);
-                        _lockTimer = false;
-                        _autoHideTimer.Start();
-                    });
-                    break;
-                case HideState.Bottom:
-                    AnimationTranslate(_hideStatus, _targetElement.ActualHeight + Factor, () =>
-                    {
-                        _cacheTranslateTransform.Y = (SystemParameters.VirtualScreenHeight + Factor);
-                        _lockTimer = false;
-                        _autoHideTimer.Start();
-                    });
-                    break;
-                case HideState.Left:
-                    AnimationTranslate(_hideStatus, _targetElement.ActualWidth + Factor, () =>
-                    {
-                        _cacheTranslateTransform.X = -(_targetElement.ActualWidth + Factor);
-                        _lockTimer = false;
-                        _autoHideTimer.Start();
-                    });
-                    break;
-            }
-            
-        }
 
         private void AutoHideTimer_Tick(object sender, EventArgs e)
         {
@@ -177,89 +143,223 @@ namespace EasyImage.Behaviors
                 {
                     switch (_hideStatus)
                     {
-                        case HideState.Top:
+                        case HideState.None:
+                            if (_cacheTranslateTransform.Y <= Factor)
+                            {
+                                _hideStatus = HideState.PreviewTopHidden;
+                            }
+                            else if (_cacheTranslateTransform.X + AssociatedObject.ActualWidth >= SystemParameters.VirtualScreenWidth - Factor)
+                            {
+                                _hideStatus = HideState.PreviewRightHidden;
+                            }
+                            else if (_cacheTranslateTransform.Y + AssociatedObject.ActualHeight >= SystemParameters.VirtualScreenHeight - Factor)
+                            {
+                                _hideStatus = HideState.PreviewBottomHidden;
+                            }
+                            else if (_cacheTranslateTransform.X <= Factor)
+                            {
+                                _hideStatus = HideState.PreviewLeftHidden;
+                            }
+                            _lockTimer = false;
+                            break;
+                        case HideState.PreviewTopHidden:
+                            if (_cacheTranslateTransform.Y <= Factor)
+                            {
+                                if (_curPosition.X < _cacheTranslateTransform.X ||
+                                _curPosition.X > _cacheTranslateTransform.X + AssociatedObject.ActualWidth ||
+                                _curPosition.Y > _cacheTranslateTransform.Y + AssociatedObject.ActualHeight)
+                                {
+                                    AnimationTranslate(MoveDirection.Top, AssociatedObject.ActualHeight + Factor, () =>
+                                    {
+                                        _cacheTranslateTransform.Y = -(AssociatedObject.ActualHeight + Factor);
+                                        _hideStatus = HideState.TopHidden;
+                                        _lockTimer = false;
+                                    });
+                                }
+                                else
+                                {
+                                    _lockTimer = false;
+                                }
+                            }
+                            else
+                            {
+                                _hideStatus = HideState.None;
+                                _lockTimer = false;
+                            }
+                            break;
+                        case HideState.TopHidden:
                             if (_curPosition.Y <= Factor &&
                                 _curPosition.X >= _cacheTranslateTransform.X &&
-                                _curPosition.X <= _cacheTranslateTransform.X + _targetElement.ActualWidth)
+                                _curPosition.X <= _cacheTranslateTransform.X + AssociatedObject.ActualWidth)
                             {
-                                _autoHideTimer.Stop();
-                                AnimationTranslate(HideState.Bottom, _targetElement.ActualHeight + Factor, () =>
+                                AnimationTranslate(MoveDirection.Bottom, AssociatedObject.ActualHeight + Factor, () =>
                                 {
                                     _cacheTranslateTransform.Y = 0;
-                                    _hideStatus = HideState.None;
-
+                                    _hideStatus = HideState.PreviewTopHidden;
+                                    _lockTimer = false;
                                 });
-                                
+
+                            }
+                            else
+                            {
+                                _lockTimer = false;
                             }
                             break;
-                        case HideState.Right:
+                        case HideState.PreviewRightHidden:
+                            if (_cacheTranslateTransform.X + AssociatedObject.ActualWidth >= SystemParameters.VirtualScreenWidth - Factor)
+                            {
+                                if (_curPosition.X < _cacheTranslateTransform.X ||
+                                _curPosition.Y < _cacheTranslateTransform.Y ||
+                                _curPosition.Y > _cacheTranslateTransform.Y + AssociatedObject.ActualHeight)
+                                {
+                                    AnimationTranslate(MoveDirection.Right, AssociatedObject.ActualHeight + Factor, () =>
+                                    {
+                                        _cacheTranslateTransform.X = (SystemParameters.VirtualScreenWidth + Factor);
+                                        _hideStatus = HideState.RightHidden;
+                                        _lockTimer = false;
+                                    });
+                                }
+                                else
+                                {
+                                    _lockTimer = false;
+                                }
+                            }
+                            else
+                            {
+                                _hideStatus = HideState.None;
+                                _lockTimer = false;
+                            }
+                            break;
+                        case HideState.RightHidden:
                             if (_curPosition.X >= SystemParameters.VirtualScreenWidth - Factor &&
                                 _curPosition.Y >= _cacheTranslateTransform.Y &&
-                                _curPosition.Y <= _cacheTranslateTransform.Y + _targetElement.ActualHeight)
+                                _curPosition.Y <= _cacheTranslateTransform.Y + AssociatedObject.ActualHeight)
                             {
-                                _autoHideTimer.Stop();
-                                AnimationTranslate(HideState.Left, _targetElement.ActualWidth + Factor, () =>
+                                AnimationTranslate(MoveDirection.Left, AssociatedObject.ActualWidth + Factor, () =>
                                 {
-                                    _cacheTranslateTransform.X = SystemParameters.VirtualScreenWidth - _targetElement.ActualWidth;
-                                    _hideStatus = HideState.None;
+                                    _cacheTranslateTransform.X = SystemParameters.VirtualScreenWidth - AssociatedObject.ActualWidth;
+                                    _hideStatus = HideState.PreviewRightHidden;
+                                    _lockTimer = false;
                                 });
-                                
+
+                            }
+                            else
+                            {
+                                _lockTimer = false;
                             }
                             break;
-                        case HideState.Bottom:
+                        case HideState.PreviewBottomHidden:
+                            if (_cacheTranslateTransform.Y + AssociatedObject.ActualHeight >= SystemParameters.VirtualScreenHeight - Factor)
+                            {
+                                if (_curPosition.Y < _cacheTranslateTransform.Y ||
+                               _curPosition.X < _cacheTranslateTransform.X ||
+                               _curPosition.X > _cacheTranslateTransform.X + AssociatedObject.ActualWidth)
+                                {
+                                    AnimationTranslate(MoveDirection.Bottom, AssociatedObject.ActualHeight + Factor, () =>
+                                    {
+                                        _cacheTranslateTransform.Y = (SystemParameters.VirtualScreenHeight + Factor);
+                                        _hideStatus = HideState.BottomHidden;
+                                        _lockTimer = false;
+                                      
+                                    });
+                                }
+                                else
+                                {
+                                    _lockTimer = false;
+                                }
+                            }
+                            else
+                            {
+                                _hideStatus = HideState.None;
+                                _lockTimer = false;
+                            }
+                            break;
+                        case HideState.BottomHidden:
                             if (_curPosition.Y >= SystemParameters.VirtualScreenHeight - Factor &&
                                _curPosition.X >= _cacheTranslateTransform.X &&
-                               _curPosition.X <= _cacheTranslateTransform.X + _targetElement.ActualWidth)
+                               _curPosition.X <= _cacheTranslateTransform.X + AssociatedObject.ActualWidth)
                             {
-                                _autoHideTimer.Stop();
-                                AnimationTranslate(HideState.Top, _targetElement.ActualHeight + Factor, () =>
+                                AnimationTranslate(MoveDirection.Top, AssociatedObject.ActualHeight + Factor, () =>
                                 {
-                                    _cacheTranslateTransform.Y = SystemParameters.VirtualScreenHeight - _targetElement.ActualHeight;
-                                    _hideStatus = HideState.None;
+                                    _cacheTranslateTransform.Y = SystemParameters.VirtualScreenHeight - AssociatedObject.ActualHeight;
+                                    _hideStatus = HideState.PreviewBottomHidden;
+                                    _lockTimer = false;
                                 });
                             }
+                            else
+                            {
+                                _lockTimer = false;
+                            }
                             break;
-                        case HideState.Left:
+                        case HideState.PreviewLeftHidden:
+                            if (_cacheTranslateTransform.X <= Factor)
+                            {
+                                if (_curPosition.X > _cacheTranslateTransform.X + AssociatedObject.ActualWidth ||
+                                 _curPosition.Y < _cacheTranslateTransform.Y ||
+                                 _curPosition.Y > _cacheTranslateTransform.Y + AssociatedObject.ActualHeight)
+                                {
+                                    AnimationTranslate(MoveDirection.Left, AssociatedObject.ActualWidth + Factor, () =>
+                                    {
+                                        _cacheTranslateTransform.X = -(AssociatedObject.ActualWidth + Factor);
+                                        _hideStatus = HideState.LeftHidden;
+                                        _lockTimer = false;
+                                    });
+                                }
+                                else
+                                {
+                                    _lockTimer = false;
+                                }
+                            }
+                            else
+                            {
+                                _hideStatus = HideState.None;
+                                _lockTimer = false;
+                            }
+                            break;
+                        case HideState.LeftHidden:
                             if (_curPosition.X <= Factor &&
                                  _curPosition.Y >= _cacheTranslateTransform.Y &&
-                                 _curPosition.Y <= _cacheTranslateTransform.Y + _targetElement.ActualHeight)
+                                 _curPosition.Y <= _cacheTranslateTransform.Y + AssociatedObject.ActualHeight)
                             {
-                                _autoHideTimer.Stop();
-                                AnimationTranslate(HideState.Right, _targetElement.ActualWidth + Factor, () =>
+                                AnimationTranslate(MoveDirection.Right, AssociatedObject.ActualWidth + Factor, () =>
                                 {
                                     _cacheTranslateTransform.X = 0;
-                                    _hideStatus = HideState.None;
+                                    _hideStatus = HideState.PreviewLeftHidden;
+                                    _lockTimer = false;
                                 });
+                            }
+                            else
+                            {
+                                _lockTimer = false;
                             }
                             break;
                     }
                 }
-                _lockTimer = false;
             }
         }
 
-        private void AnimationTranslate(HideState hideDirection, double distance, Action completedEvent = null)
+        private void AnimationTranslate(MoveDirection direction, double distance, Action completedEvent = null)
         {
             double fromValue = 0, toValue = 0;
             var dependencyProperty = TranslateTransform.YProperty;
-            switch (hideDirection)
+            switch (direction)
             {
-                case HideState.Top:
+                case MoveDirection.Top:
                     dependencyProperty = TranslateTransform.YProperty;
                     fromValue = _cacheTranslateTransform.Y;
                     toValue = fromValue - distance;
                     break;
-                case HideState.Right:
+                case MoveDirection.Right:
                     dependencyProperty = TranslateTransform.XProperty;
                     fromValue = _cacheTranslateTransform.X;
                     toValue = fromValue + distance;
                     break;
-                case HideState.Bottom:
+                case MoveDirection.Bottom:
                     dependencyProperty = TranslateTransform.YProperty;
                     fromValue = _cacheTranslateTransform.Y;
                     toValue = fromValue + distance;
                     break;
-                case HideState.Left:
+                case MoveDirection.Left:
                     dependencyProperty = TranslateTransform.XProperty;
                     fromValue = _cacheTranslateTransform.X;
                     toValue = fromValue - distance;
@@ -268,13 +368,9 @@ namespace EasyImage.Behaviors
             var animation = new DoubleAnimation(fromValue, toValue, new Duration(TimeSpan.FromMilliseconds(500)), FillBehavior.Stop);
             if (completedEvent != null)
             {
-                animation.Completed += (sender, args) =>
-                {
-                    completedEvent.Invoke();
-                };
+                animation.Completed += (sender, args) => { completedEvent.Invoke(); };
             }
             _cacheTranslateTransform.BeginAnimation(dependencyProperty, animation);
-
         }
 
         #endregion

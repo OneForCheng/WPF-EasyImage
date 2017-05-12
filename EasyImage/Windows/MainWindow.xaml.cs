@@ -120,6 +120,7 @@ namespace EasyImage.Windows
             if (e.Button == System.Windows.Forms.MouseButtons.Left  && _imgWin != null)
             {
                 _imgWin.Visibility = Visibility.Visible;
+                _imgWin.Topmost = true;
                 _imgWin.Activate();
                 _imgWin.ShowMainMenu();
             }

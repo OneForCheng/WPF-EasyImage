@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Web;
 using System.Windows;
 using System.Windows.Media;
@@ -80,11 +81,12 @@ namespace DealImage.Paste
             return false;
         }
 
-        public static List<ImageSource> GetPasteImagesFromClipboard()
+        public static async Task<List<ImageSource>> GetPasteImagesFromClipboard()
         {
 
-            var imageSources = GetImageFromIDataObject(Clipboard.GetDataObject());
+            var imageSources = await GetImageFromIDataObject(Clipboard.GetDataObject());
             if (imageSources.Count > 0) return imageSources;
+
 
             //兼容
             if (System.Windows.Forms.Clipboard.ContainsImage())
@@ -113,7 +115,7 @@ namespace DealImage.Paste
             return imageSources;
         }
 
-        public static List<ImageSource> GetImageFromIDataObject(IDataObject dataObject)
+        public static async Task<List<ImageSource>> GetImageFromIDataObject(IDataObject dataObject)
         {
             var imageSources = new List<ImageSource>();
 
@@ -156,7 +158,7 @@ namespace DealImage.Paste
                             var stream = new MemoryStream();
                             using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
                             {
-                                fileStream.CopyTo(stream);
+                               await fileStream.CopyToAsync(stream);
                             }
                             stream.Position = 0;
                             var bitmapImage = new BitmapImage();
@@ -206,12 +208,16 @@ namespace DealImage.Paste
                                 request.Timeout = 1000 * 5;
                                 request.ReadWriteTimeout = 1000 * 5;
                                 request.ContentType = "application/x-www-form-urlencoded";
-                                using (var response = (HttpWebResponse)request.GetResponse())
+                                
+                                using (var response =  (HttpWebResponse)(await request.GetResponseAsync()))
                                 {
                                     using (var reader = response.GetResponseStream())
                                     {
                                         stream = new MemoryStream();
-                                        reader?.CopyTo(stream);
+                                        if (reader != null)
+                                        {
+                                            await reader.CopyToAsync(stream);
+                                        }
                                     }
                                 }
                             }

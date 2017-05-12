@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -41,7 +42,7 @@ namespace EasyImage.Windows
         private ControlManager _controlManager;
         private ClipboardMonitor _clipboardMonitor;
         private UserControl _mainMenu;
-        private AutoHideElementBehavior<UserControl> _autoHideBehavior;
+        private AutoHideElementBehavior _autoHideBehavior;
         private int _addInternalImgCount;
 
         #endregion
@@ -113,7 +114,7 @@ namespace EasyImage.Windows
                 }
                 HotkeyManager.Current.AddOrReplace("GlobalPasteFromClipboard", globelPasteShortcut.Key,
                     modifierKeys, GlobalPasteFromClipboard);
-
+                    
 
             }
             catch(Exception ex)
@@ -214,13 +215,13 @@ namespace EasyImage.Windows
             _controlManager.MoveSpeed = 1.0;
         }
 
-        private void WindowDrop(object sender, DragEventArgs e)
+        private async void WindowDrop(object sender, DragEventArgs e)
         {
             try
             {
                 Win32.Point curPosition;
                 Win32.GetCursorPos(out curPosition);
-                var imageSources = ImagePaster.GetImageFromIDataObject(e.Data);
+                var imageSources = await ImagePaster.GetImageFromIDataObject(e.Data);
                 if (imageSources.Count <= 0) return;
                 _controlManager.SelectNone();
                 var translate = new Point(curPosition.X - SystemParameters.VirtualScreenWidth / 2, curPosition.Y - SystemParameters.VirtualScreenHeight / 2);
@@ -295,7 +296,7 @@ namespace EasyImage.Windows
             LoadEasyImageFromFile(dialog.FileName);
         }
 
-        private void AddImagesFromFile(object sender, RoutedEventArgs e)
+        private async void AddImagesFromFile(object sender, RoutedEventArgs e)
         {
             
             var dialog = new OpenFileDialog()
@@ -339,7 +340,8 @@ namespace EasyImage.Windows
                 {
                     try
                     {
-                        imageControls.Add(PackageImageToControl(new AnimatedGif { Source = Extentions.GetBitmapImage(file), Stretch = Stretch.Fill }, new Point(0, 0)));
+                        var imageSource = await Extentions.GetBitmapImage(file);
+                        imageControls.Add(PackageImageToControl(new AnimatedGif { Source = imageSource, Stretch = Stretch.Fill }, new Point(0, 0)));
                     }
                     catch (Exception ex)
                     {
@@ -356,7 +358,7 @@ namespace EasyImage.Windows
         {
             var menuItem = sender as MenuItem;
             var flag = menuItem?.Tag?.ToString() ?? "Square";
-            var bitmapSource = (BitmapImage)Resources[flag];
+            var bitmapSource = ((BitmapSource)Resources[flag]).GetBitmapImage();
             _controlManager.SelectNone();
             _addInternalImgCount++;
             _controlManager.AddElement(PackageBitmapSourceToControl(bitmapSource));
@@ -397,7 +399,7 @@ namespace EasyImage.Windows
             SaveEasyImageToFile(dialog.FileName);
         }
 
-        private void PasteImagesFromClipboard(object sender, RoutedEventArgs e)
+        private async void PasteImagesFromClipboard(object sender, RoutedEventArgs e)
         {
             if (ImagePaster.CanInternalPasteFromClipboard())
             {
@@ -414,7 +416,7 @@ namespace EasyImage.Windows
             if (!ImagePaster.CanPasteImageFromClipboard()) return;
             try
             {
-                var imageSources = ImagePaster.GetPasteImagesFromClipboard();
+                var imageSources = await ImagePaster.GetPasteImagesFromClipboard();
                 if (imageSources.Count <= 0) return;
                 _controlManager.SelectNone();
                 _controlManager.ContinuedAddCount++;
@@ -479,14 +481,15 @@ namespace EasyImage.Windows
             mainMenuIconInfo.TranslateY = translate.Y;
         }
 
-        private void InitMainMenu()
+        private async void InitMainMenu()
         {
             #region 初始化属性
             var mainMenuInfo = _userConfigution.ImageSetting.MainMenuInfo;
 
+            var animatedGif = await GetMainMenuIcon();
             _mainMenu = new UserControl
             {
-                Content = GetMainMenuIcon(),
+                Content = animatedGif,
                 Width = mainMenuInfo.Width,
                 Height = mainMenuInfo.Height,
                 ToolTip = "EasyImage主菜单",
@@ -505,7 +508,7 @@ namespace EasyImage.Windows
             };
             dragBehavior.Attach(_mainMenu);
 
-            _autoHideBehavior = new AutoHideElementBehavior<UserControl>();
+            _autoHideBehavior = new AutoHideElementBehavior();
             _autoHideBehavior.Attach(_mainMenu);
 
             #endregion
@@ -604,7 +607,7 @@ namespace EasyImage.Windows
             MainCanvas.Children.Add(_mainMenu);
         }
 
-        private AnimatedGif GetMainMenuIcon()
+        private async Task<AnimatedGif> GetMainMenuIcon()
         {
             AnimatedGif animatedGif;
             var path = _userConfigution.ImageSetting.MainMenuInfo.Path;
@@ -620,9 +623,10 @@ namespace EasyImage.Windows
             }
             try
             {
+                var imageSource = await Extentions.GetBitmapImage(path);
                 animatedGif = new AnimatedGif
                 {
-                    Source = Extentions.GetBitmapImage(path),
+                    Source = imageSource,
                     Stretch = Stretch.Fill
                 };
             }
@@ -750,7 +754,7 @@ namespace EasyImage.Windows
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new ScaleTransform(1, 1));
             transformGroup.Children.Add(new RotateTransform(0));
-            transformGroup.Children.Add(new TranslateTransform((SystemParameters.VirtualScreenWidth - imageControl.Width) / 2 + translate.X, (SystemParameters.VirtualScreenHeight - imageControl.Height) / 2 + translate.Y));
+            transformGroup.Children.Add(new TranslateTransform(Math.Round((SystemParameters.VirtualScreenWidth - imageControl.Width) / 2 + translate.X), Math.Round((SystemParameters.VirtualScreenHeight - imageControl.Height) / 2 + translate.Y)));
             imageControl.RenderTransform = transformGroup;
             
             return imageControl;
@@ -794,7 +798,7 @@ namespace EasyImage.Windows
                     _addInternalImgCount = 0;
                     break;
             }
-            transformGroup.Children.Add(new TranslateTransform((SystemParameters.VirtualScreenWidth - imageControl.Width) / 2 + moveX, (SystemParameters.VirtualScreenHeight - imageControl.Height) / 2 + moveY));
+            transformGroup.Children.Add(new TranslateTransform(Math.Round((SystemParameters.VirtualScreenWidth - imageControl.Width) / 2 + moveX), Math.Round((SystemParameters.VirtualScreenHeight - imageControl.Height) / 2 + moveY)));
             imageControl.RenderTransform = transformGroup;
 
             return imageControl;
@@ -840,13 +844,15 @@ namespace EasyImage.Windows
                 Template = (ControlTemplate)Resources["MoveResizeRotateTemplate"],
                 RenderTransform = baseInfo.RenderTransform,
             };
-            
+
+            var translateTransform = imageControl.GetTransform<TranslateTransform>();
             if (isMove)
             {
-                var translateTransform = imageControl.GetTransform<TranslateTransform>();
                 translateTransform.X += _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedAddCount;
                 translateTransform.Y += _userConfigution.ImageSetting.PasteMoveUnitDistace * _controlManager.ContinuedAddCount;
             }
+            translateTransform.X = Math.Round(translateTransform.X);
+            translateTransform.Y = Math.Round(translateTransform.Y);
 
             return imageControl;
         }

@@ -22,7 +22,17 @@ namespace EasyImage.Controls
             _isLockAspect = imageControl.IsLockAspect;
             _width = imageControl.Width;
             _height = imageControl.Height;
-            var stream = ((imageControl.Content as AnimatedGif)?.Source as BitmapImage)?.StreamSource as MemoryStream;
+            
+            var bitmapImage = (imageControl.Content as AnimatedGif)?.Source as BitmapImage;
+            if (bitmapImage == null)
+            {
+                var bitmapSource = (imageControl.Content as AnimatedGif)?.Source as BitmapSource;
+                if (bitmapSource != null)
+                {
+                    bitmapImage = bitmapSource.GetBitmapImage();
+                }
+            }
+            var stream = bitmapImage?.StreamSource as MemoryStream;
             if (stream != null)
             {
                 stream.Position = 0;

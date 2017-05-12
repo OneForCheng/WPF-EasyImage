@@ -1,11 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using AnimatedImage;
+using AnimatedImage.Encoding;
+using DealImage;
 using WindowTemplate;
+using Point = System.Windows.Point;
 
 namespace EasyImage
 {
@@ -89,13 +97,96 @@ namespace EasyImage
             return bitmapImage;
         }
 
-        public static BitmapImage GetBitmapImage(string filePath)
+        /// <summary>
+        /// 获取合并后的图片
+        /// </summary>
+        /// <param name="dictionary"></param>
+        /// <param name="rect"></param>
+        /// <returns></returns>
+        public static BitmapImage GetCombinedBitmap(this IDictionary<FrameworkElement, FrameworkElement> dictionary, Rect rect)
+        {
+            var animatedGifs = dictionary.Values.Select((item, index) => new { item, index }).Where(m => ((AnimatedGif)m.item).Animatable).ToArray();
+            if (animatedGifs.Length == 1)
+            {
+                var imageWidth = (int)rect.Width;
+                var imageHeight = (int)rect.Height;
+                var relationPoint = new Point(rect.X, rect.Y);
+
+                //动态图信息
+                var animatedGif = (AnimatedGif)animatedGifs[0].item;
+                var index = animatedGifs[0].index;
+                var element = dictionary.Keys.ElementAt(index);
+                var width = (int)Math.Round(element.Width);
+                var height = (int)Math.Round(element.Height);
+                var angle = element.GetTransform<RotateTransform>().Angle;
+                var scaleTransform = element.GetTransform<ScaleTransform>();
+                var scaleX = scaleTransform.ScaleX;
+                var scaleY = scaleTransform.ScaleY;
+                var gifRect = animatedGif.GetRelationRect(relationPoint);
+                var visualWidth = (int)Math.Round(gifRect.Width);
+                var visualHeight = (int)Math.Round(gifRect.Height);
+
+                var bitmapFrames = animatedGif.BitmapFrames;
+                var stream = new MemoryStream();
+                using (var encoder = new GifEncoder(stream, imageWidth, imageHeight, animatedGif.RepeatCount))
+                {
+                    var delays = animatedGif.Delays;
+                    for (var i = 0; i < bitmapFrames.Count; i++)
+                    {
+                        var drawingVisual = new DrawingVisual();
+                        using (var context = drawingVisual.RenderOpen())
+                        {
+                            var j = 0;
+                            foreach (var item in dictionary)
+                            {
+                                if (j == index)
+                                {
+                                    //绘制动态图的每一帧
+                                    var brush = new ImageBrush(bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight));
+                                    context.DrawRectangle(brush, null, gifRect);
+                                }
+                                else
+                                {
+                                    var viewbox = item.Key.GetChildViewbox(item.Value);
+                                    var brush = new VisualBrush(item.Key)
+                                    {
+                                        ViewboxUnits = BrushMappingMode.RelativeToBoundingBox,
+                                        Viewbox = viewbox,
+                                    };
+                                    context.DrawRectangle(brush, null, item.Value.GetRelationRect(relationPoint));
+                                }
+                                j++;
+                            }
+                        }
+                        var renderBitmap = new RenderTargetBitmap(imageWidth, imageHeight, 96, 96, PixelFormats.Pbgra32);
+                        renderBitmap.Render(drawingVisual);
+                        using (var frame = renderBitmap.GetBitmap())
+                        {
+                            encoder.AppendFrame(frame, (int)delays[i].TotalMilliseconds);
+                        }
+                    }
+                }
+                stream.Position = 0;
+                var bitmapImage = new BitmapImage();
+                bitmapImage.BeginInit();
+                bitmapImage.StreamSource = stream;
+                bitmapImage.EndInit();
+                return bitmapImage;
+            }
+            else
+            {
+                return dictionary.GetMinContainBitmap().GetBitmapImage();
+            }
+           
+        }
+
+        public static async Task<BitmapImage> GetBitmapImage(string filePath)
         {
             if (!File.Exists(filePath)) return null;
             var stream = new MemoryStream();
             using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
             {
-                fileStream.CopyTo(stream);
+                await fileStream.CopyToAsync(stream);
             }
             stream.Position = 0;
             var bitmapImage = new BitmapImage();
@@ -109,7 +200,7 @@ namespace EasyImage
         {
             if (!File.Exists(filePath)) return null;
             var stream = new MemoryStream();
-            using (var icon = System.Drawing.Icon.ExtractAssociatedIcon(filePath))
+            using (var icon = Icon.ExtractAssociatedIcon(filePath))
             {
                 if (icon != null)
                 {

@@ -22,6 +22,7 @@ namespace EasyImage.Windows
         private readonly TranslateTransform _translateTransform;
         private AnimatedImage.AnimatedGif _oldAnimatedGif;
         private Shortcut _oldGlobelAddShortcut, _oldGlobelPasteShortcut;
+        private bool _oldAutoRun;
         private string _oldPath;
         private double _oldWidth, _oldHeight, _oldTranslateX, _oldTranslateY, _oldInitMaxImgSize;
         private bool _textChanged;
@@ -58,12 +59,14 @@ namespace EasyImage.Windows
             _oldPath = _userConfig.ImageSetting.MainMenuInfo.Path;
             _oldGlobelAddShortcut = (Shortcut)_userConfig.ShortcutSetting.GlobelAddShortcut.Clone();
             _oldGlobelPasteShortcut = (Shortcut)_userConfig.ShortcutSetting.GlobelPasteShortcut.Clone();
+            _oldAutoRun = _userConfig.AppSetting.AutoRun;
 
             HeightTbx.Text = _oldHeight.ToString(CultureInfo.InvariantCulture);
             WidthTbx.Text = _oldWidth.ToString(CultureInfo.InvariantCulture);
             LocationXTbx.Text = _oldTranslateX.ToString(CultureInfo.InvariantCulture);
             LocationYTbx.Text = _oldTranslateY.ToString(CultureInfo.InvariantCulture);
             MaxSizeTbx.Text = _oldInitMaxImgSize.ToString(CultureInfo.InvariantCulture);
+            AutoRunCk.IsChecked = _oldAutoRun;
 
             CtrlCbx1.IsChecked = _oldGlobelAddShortcut.IsCtrl;
             AltCbx1.IsChecked = _oldGlobelAddShortcut.IsAlt;
@@ -78,6 +81,25 @@ namespace EasyImage.Windows
             _canTextChange = true;
         }
 
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            var autoRun = AutoRunCk.IsChecked.GetValueOrDefault();
+            var fileName = AppDomain.CurrentDomain.SetupInformation.ApplicationName;
+            fileName = fileName.Substring(0, fileName.LastIndexOf('.'));
+            if (autoRun)
+            {
+                var registry = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true) ??
+                               Registry.LocalMachine.CreateSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
+                registry?.SetValue(fileName,Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, AppDomain.CurrentDomain.SetupInformation.ApplicationName));
+                
+            }
+            else
+            {
+                var registry = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                registry?.DeleteValue(fileName, false);
+            }
+        }
+            
         private void DragMoveWindow(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
@@ -98,6 +120,7 @@ namespace EasyImage.Windows
             _userConfig.ImageSetting.MainMenuInfo.Path = _oldPath;
             _userConfig.ShortcutSetting.GlobelAddShortcut = (Shortcut)_oldGlobelAddShortcut.Clone();
             _userConfig.ShortcutSetting.GlobelPasteShortcut = (Shortcut)_oldGlobelPasteShortcut.Clone();
+            _userConfig.AppSetting.AutoRun = _oldAutoRun;
 
             _imageControl.Content = _oldAnimatedGif;
             HeightTbx.Text = _oldHeight.ToString(CultureInfo.InvariantCulture);
@@ -105,6 +128,7 @@ namespace EasyImage.Windows
             LocationXTbx.Text = _oldTranslateX.ToString(CultureInfo.InvariantCulture);
             LocationYTbx.Text = _oldTranslateY.ToString(CultureInfo.InvariantCulture);
             MaxSizeTbx.Text = _oldInitMaxImgSize.ToString(CultureInfo.InvariantCulture);
+            AutoRunCk.IsChecked = _oldAutoRun;
 
             CtrlCbx1.IsChecked = _oldGlobelAddShortcut.IsCtrl;
             AltCbx1.IsChecked = _oldGlobelAddShortcut.IsAlt;
@@ -195,7 +219,7 @@ namespace EasyImage.Windows
             }
         }
 
-        private void ReplaceBtn_Click(object sender, RoutedEventArgs e)
+        private async void ReplaceBtn_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog()
             {
@@ -217,9 +241,10 @@ namespace EasyImage.Windows
                 var fileFullName = dialog.FileName;
                 var fileName = $"MenuItemIcon{fileFullName.Substring(fileFullName.LastIndexOf('.'))}";
                 File.Copy(fileFullName, Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, fileName ), true);
+                var imageSource = await Extentions.GetBitmapImage(fileFullName);
                 _imageControl.Content = new AnimatedImage.AnimatedGif
                 {
-                    Source = Extentions.GetBitmapImage(fileFullName),
+                    Source = imageSource,
                     Stretch = Stretch.Fill,
                 };
                
@@ -311,6 +336,11 @@ namespace EasyImage.Windows
                     KeyTbx2.Text = e.ImeProcessedKey.ToString();
                     break;
             }
+        }
+
+        private void AutoRunCk_Click(object sender, RoutedEventArgs e)
+        {
+            _userConfig.AppSetting.AutoRun = AutoRunCk.IsChecked.GetValueOrDefault();
         }
 
         private void SetWidthValue()
