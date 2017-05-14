@@ -554,24 +554,89 @@ namespace EasyImage
             if (SelectedElements.Count() != 1) return;
             var element = SelectedElements.First();
             element.Visibility = Visibility.Hidden;
+            var width = (int)Math.Round(element.Width);
+            var height = (int)Math.Round(element.Height);
 
-            var bitmapSource = ((Image)element.Content).Source as BitmapSource;
-            var result = ((sender as MenuItem)?.Tag as IFilter)?.ExecHandle(bitmapSource.GetResizeBitmap((int)Math.Round(element.Width), (int)Math.Round(element.Height)).GetBitmap());
+            var iSingleFilter = (sender as MenuItem)?.Tag as ISingleFilter;
+            if (iSingleFilter != null)
+            {
+                var bitmapSource = ((Image)element.Content).Source as BitmapSource;
+                var bitmap = bitmapSource.GetResizeBitmap(width, height).GetBitmap();
+                var result = iSingleFilter.ExecHandle(bitmap);
 
-            element.Visibility = Visibility.Visible;
-            if (result == null) return;
-            if (!result.IsSuccess)
-            {
-                App.Log.Error(result.Exception.ToString());
-                Extentions.ShowMessageBox("程序错误,请查看日志了解详细情况!");
-            }
-            else if (result.IsModified)
-            {
-                using (var bitmap = result.ResultBitmap)
+                element.Visibility = Visibility.Visible;
+                if (result == null)
                 {
-                    _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = bitmap.GetBitmapSource().GetBitmapImage(), Stretch = Stretch.Fill }));
+                    bitmap?.Dispose();
+                    return;
                 }
+                if (!result.IsSuccess)
+                {
+                    App.Log.Error(result.Exception.ToString());
+                    Extentions.ShowMessageBox("程序错误,请查看日志了解详细情况!");
+                }
+                else if (result.IsModified)
+                {
+                    using (var resultBitmap = result.ResultBitmaps.First())
+                    {
+                        _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = resultBitmap.GetBitmapSource().GetBitmapImage(), Stretch = Stretch.Fill }));
+                    }
+                }
+                bitmap?.Dispose();
             }
+            else
+            {
+                var iMultiFilter = (sender as MenuItem)?.Tag as IMultiFilter;
+                var animatedGif = (AnimatedGif) element.Content;
+                var bitmaps = new List<Bitmap>();
+                bitmaps.AddRange(animatedGif.BitmapFrames.Select(m => m.GetResizeBitmap(width, height).GetBitmap()));
+                var result = iMultiFilter?.ExecHandle(bitmaps);
+                
+                element.Visibility = Visibility.Visible;
+                if (result == null)
+                {
+                    bitmaps.ForEach(m => m?.Dispose());
+                    return;
+                }
+                if (!result.IsSuccess)
+                {
+                    App.Log.Error(result.Exception.ToString());
+                    Extentions.ShowMessageBox("程序错误,请查看日志了解详细情况!");
+                }
+                else if (result.IsModified)
+                {
+                    if (animatedGif.Animatable)
+                    {
+                        var stream = new MemoryStream();
+                        using (var encoder = new GifEncoder(stream, width, height, animatedGif.RepeatCount))
+                        {
+                            var bitmapFrames = result.ResultBitmaps as Bitmap[] ?? result.ResultBitmaps.ToArray();
+                            var delays = animatedGif.Delays;
+                            for (var i = 0; i < bitmapFrames.Length; i++)
+                            {
+                                encoder.AppendFrame(bitmapFrames[i], (int)delays[i].TotalMilliseconds);
+                                bitmapFrames[i]?.Dispose();
+                            }
+
+                        }
+                        stream.Position = 0;
+                        var bitmapImage = new BitmapImage();
+                        bitmapImage.BeginInit();
+                        bitmapImage.StreamSource = stream;
+                        bitmapImage.EndInit();
+                        _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = bitmapImage, Stretch = Stretch.Fill }));
+                    }
+                    else
+                    {
+                        using (var resultBitmap = result.ResultBitmaps.First())
+                        {
+                            _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = resultBitmap.GetBitmapSource().GetBitmapImage(), Stretch = Stretch.Fill }));
+                        }
+                    }
+                }
+                bitmaps.ForEach(m => m?.Dispose());
+            }
+
         }
 
         private void Element_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -1778,7 +1843,7 @@ namespace EasyImage
         {
             var list = new List<IFilterList>();
             var assembly = Assembly.LoadFile(Path.GetFullPath(filePath));
-
+       
             foreach (var iFilterList in assembly.GetTypes().Where(m => m.GetInterface("IFilterList") != null).Select(type => (IFilterList)Activator.CreateInstance(type)))
             {
                 iFilterList.GetIFilterList()?.ForEach(m => m.InitPlugin(AppDomain.CurrentDomain.SetupInformation.ApplicationBase));
@@ -1891,22 +1956,166 @@ namespace EasyImage
 
             element.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                var renderBitmap = new RenderTargetBitmap((int)SystemParameters.VirtualScreenWidth, (int)SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
-                renderBitmap.Render(_panelContainer);
+
                 var scaleTransform = element.GetTransform<ScaleTransform>();
-                var imageSource = ScreenCropper.CropScreen(renderBitmap, new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle, scaleTransform.ScaleX, scaleTransform.ScaleY));
-                if (imageSource != null && cropStyle != CropStyle.Default)
+                var cropViewBox = new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle,
+                    scaleTransform.ScaleX, scaleTransform.ScaleY);
+
+
+                var dictionary =
+                    _panelContainer.Children.Cast<object>()
+                        .OfType<ImageControl>()
+                        .Where(m => !Selector.GetIsSelected(m) && ((Image)element.Content).IsOverlapped((Image)m.Content)).OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(item => item, item => (Image)item.Content);
+
+                var animatedGifs = dictionary.Values.Select((item, index) => new { item, index }).Where(m => ((AnimatedGif)m.item).Animatable).ToArray();
+                if (animatedGifs.Length == 1)
                 {
-                    imageSource = ImageCropper.CropBitmapSource(imageSource, ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth, imageSource.PixelHeight), cropStyle);
-                }
-                if (imageSource != null)
-                {
-                    _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
+
+                    var imageWidth = (int)element.Width;
+                    var imageHeight = (int)element.Height;
+                    var screenWidth = (int)SystemParameters.VirtualScreenWidth;
+                    var screenHeight = (int)SystemParameters.VirtualScreenHeight;
+
+                    //动态图信息
+                    var animatedGif = (AnimatedGif)animatedGifs[0].item;
+                    var index = animatedGifs[0].index;
+                    var targetElement = dictionary.Keys.ElementAt(index);
+                    var width = (int)Math.Round(targetElement.Width);
+                    var height = (int)Math.Round(targetElement.Height);
+                    var angle = targetElement.GetTransform<RotateTransform>().Angle;
+                    var targetScaleTransform = targetElement.GetTransform<ScaleTransform>();
+                    var scaleX = targetScaleTransform.ScaleX;
+                    var scaleY = targetScaleTransform.ScaleY;
+                    var gifRect = animatedGif.GetMinContainRect();
+                    var visualWidth = (int)Math.Round(gifRect.Width);
+                    var visualHeight = (int)Math.Round(gifRect.Height);
+
+                   
+                    var isOk = true;
+                    var stream = new MemoryStream();
+                    using (var encoder = new GifEncoder(stream, imageWidth, imageHeight, animatedGif.RepeatCount))
+                    {
+                        var bitmapFrames = animatedGif.BitmapFrames;
+                        var delays = animatedGif.Delays;
+                        BitmapSource cacheBottomBitmapSource = null, cacheTopBitmapSource = null;
+                        if (index > 0)
+                        {
+                            var drawingVisual = new DrawingVisual();
+                            using (var context = drawingVisual.RenderOpen())
+                            {
+                                for (var j = 0; j < index; j++)
+                                {
+                                    var item = dictionary.ElementAt(j);
+                                    var viewbox = item.Key.GetChildViewbox(item.Value);
+                                    var brush = new VisualBrush(item.Key)
+                                    {
+                                        ViewboxUnits = BrushMappingMode.RelativeToBoundingBox,
+                                        Viewbox = viewbox,
+                                    };
+                                    context.DrawRectangle(brush, null, item.Value.GetMinContainRect());
+                                }
+                            }
+                            var renderBitmap = new RenderTargetBitmap(screenWidth, screenHeight, 96, 96, PixelFormats.Pbgra32);
+                            renderBitmap.Render(drawingVisual);
+                            cacheBottomBitmapSource = renderBitmap;
+                        }
+                        if (index + 1 < dictionary.Count)
+                        {
+                            var drawingVisual = new DrawingVisual();
+                            using (var context = drawingVisual.RenderOpen())
+                            {
+                                for (var j = index + 1; j < dictionary.Count; j++)
+                                {
+                                    var item = dictionary.ElementAt(j);
+                                    var viewbox = item.Key.GetChildViewbox(item.Value);
+                                    var brush = new VisualBrush(item.Key)
+                                    {
+                                        ViewboxUnits = BrushMappingMode.RelativeToBoundingBox,
+                                        Viewbox = viewbox,
+                                    };
+                                    context.DrawRectangle(brush, null, item.Value.GetMinContainRect());
+                                }
+                            }
+                            var renderBitmap = new RenderTargetBitmap(screenWidth, screenHeight, 96, 96, PixelFormats.Pbgra32);
+                            renderBitmap.Render(drawingVisual);
+                            cacheTopBitmapSource = renderBitmap;
+                        }
+                        var cacheRect = new Rect(0, 0, screenWidth, screenHeight);
+
+                        for (var i = 0; i < bitmapFrames.Count; i++)
+                        {
+                            var drawingVisual = new DrawingVisual();
+                            using (var context = drawingVisual.RenderOpen())
+                            {
+                                if (cacheBottomBitmapSource != null)
+                                {
+                                    context.DrawImage(cacheBottomBitmapSource, cacheRect);
+                                }
+                                context.DrawRectangle(new ImageBrush(bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight)), null, gifRect);
+                                if (cacheTopBitmapSource != null)
+                                {
+                                    context.DrawImage(cacheTopBitmapSource, cacheRect);
+                                }
+                            }
+                            var renderBitmap = new RenderTargetBitmap(screenWidth, screenHeight, 96, 96, PixelFormats.Pbgra32);
+                            renderBitmap.Render(drawingVisual);
+
+                            var imageSource = ScreenCropper.CropScreen(renderBitmap, cropViewBox);
+                            if (imageSource != null && cropStyle != CropStyle.Default)
+                            {
+                                imageSource = ImageCropper.CropBitmapSource(imageSource, ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth, imageSource.PixelHeight), cropStyle);
+                            }
+                            if (imageSource != null)
+                            {
+                                using (var frame = imageSource.GetBitmap())
+                                {
+                                    encoder.AppendFrame(frame, (int) delays[i].TotalMilliseconds);
+                                }
+                            }
+                            else
+                            {
+                                Extentions.ShowMessageBox("不合法的截图操作!");
+                                isOk = false;
+                                break;
+                            }   
+                        }
+                    }
+
+                    if (isOk)
+                    {
+                        stream.Position = 0;
+                        var bitmapImage = new BitmapImage();
+                        bitmapImage.BeginInit();
+                        bitmapImage.StreamSource = stream;
+                        bitmapImage.EndInit();
+                        _actionManager.Execute(new ExchangeImageAction(element,
+                            new AnimatedGif {Source = bitmapImage, Stretch = Stretch.Fill}));
+                    }
+                    else
+                    {
+                        stream.Close();
+                    }
                 }
                 else
                 {
-                    Extentions.ShowMessageBox("不合法的截图操作!");
+                    var renderBitmap = new RenderTargetBitmap((int)SystemParameters.VirtualScreenWidth, (int)SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
+                    renderBitmap.Render(_panelContainer);
+                   
+                    var imageSource = ScreenCropper.CropScreen(renderBitmap, cropViewBox);
+                    if (imageSource != null && cropStyle != CropStyle.Default)
+                    {
+                        imageSource = ImageCropper.CropBitmapSource(imageSource, ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth, imageSource.PixelHeight), cropStyle);
+                    }
+                    if (imageSource != null)
+                    {
+                        _actionManager.Execute(new ExchangeImageAction(element, new AnimatedGif { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
+                    }
+                    else
+                    {
+                        Extentions.ShowMessageBox("不合法的截图操作!");
+                    }
                 }
+               
                 element.Visibility = Visibility.Visible;
             }));
         }
@@ -1919,54 +2128,227 @@ namespace EasyImage
 
             element.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                var renderBitmap = new RenderTargetBitmap((int)SystemParameters.VirtualScreenWidth,
-                    (int)SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
-                renderBitmap.Render(_panelContainer);
+               
+                BitmapImage resultBitmapImage;
                 var scaleTransform = element.GetTransform<ScaleTransform>();
                 var cropViewBox = new CropViewBox((Image)element.Content, element.GetTransform<RotateTransform>().Angle,
                     scaleTransform.ScaleX, scaleTransform.ScaleY);
-                var imageSource = ScreenCropper.CropScreen(renderBitmap, cropViewBox);
-                if (imageSource != null && cropStyle != CropStyle.Default)
-                {
-                    imageSource = ImageCropper.CropBitmapSource(imageSource,
-                        ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth,
-                            imageSource.PixelHeight), cropStyle);
-                }
-                element.Visibility = Visibility.Visible;
-                if (imageSource == null)
-                {
-                    Extentions.ShowMessageBox("不合法的抠图操作!");
-                    return;
-                }
-                var unSelectedElements =
-                    _panelContainer.Children.Cast<object>()
-                        .OfType<ImageControl>()
-                        .Where(m => !Selector.GetIsSelected(m))
-                        .ToList();
-                var intersectElements =
-                    unSelectedElements.Where(m => ((Image)element.Content).IsOverlapped((Image)m.Content)).ToArray();
+                
+                var dictionary =
+                   _panelContainer.Children.Cast<object>()
+                       .OfType<ImageControl>()
+                       .Where(m => !Selector.GetIsSelected(m) && ((Image)element.Content).IsOverlapped((Image)m.Content)).OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(item => item, item => (Image)item.Content);
 
+                var animatedGifs = dictionary.Values.Select((item, index) => new { item, index }).Where(m => ((AnimatedGif)m.item).Animatable).ToArray();
+                
+                //截图
+                if (animatedGifs.Length == 1)
+                {
+                    var imageWidth = (int)element.Width;
+                    var imageHeight = (int)element.Height;
+                    var screenWidth = (int)SystemParameters.VirtualScreenWidth;
+                    var screenHeight = (int)SystemParameters.VirtualScreenHeight;
+
+                    //动态图信息
+                    var animatedGif = (AnimatedGif)animatedGifs[0].item;
+                    var index = animatedGifs[0].index;
+                    var elementGif = dictionary.Keys.ElementAt(index);
+                    var width = (int)Math.Round(elementGif.Width);
+                    var height = (int)Math.Round(elementGif.Height);
+                    var angle = elementGif.GetTransform<RotateTransform>().Angle;
+                    var scaleTransformGif = elementGif.GetTransform<ScaleTransform>();
+                    var scaleX = scaleTransformGif.ScaleX;
+                    var scaleY = scaleTransformGif.ScaleY;
+                    var gifRect = animatedGif.GetMinContainRect();
+                    var visualWidth = (int)Math.Round(gifRect.Width);
+                    var visualHeight = (int)Math.Round(gifRect.Height);
+
+                    var isOk = true;
+                    var stream = new MemoryStream();
+                    using (var encoder = new GifEncoder(stream, imageWidth, imageHeight, animatedGif.RepeatCount))
+                    {
+                        var bitmapFrames = animatedGif.BitmapFrames;
+                        var delays = animatedGif.Delays;
+                        BitmapSource cacheBottomBitmapSource = null, cacheTopBitmapSource = null;
+                        if (index > 0)
+                        {
+                            var drawingVisual = new DrawingVisual();
+                            using (var context = drawingVisual.RenderOpen())
+                            {
+                                for (var j = 0; j < index; j++)
+                                {
+                                    var item = dictionary.ElementAt(j);
+                                    var viewbox = item.Key.GetChildViewbox(item.Value);
+                                    var brush = new VisualBrush(item.Key)
+                                    {
+                                        ViewboxUnits = BrushMappingMode.RelativeToBoundingBox,
+                                        Viewbox = viewbox,
+                                    };
+                                    context.DrawRectangle(brush, null, item.Value.GetMinContainRect());
+                                }
+                            }
+                            var renderBitmap = new RenderTargetBitmap(screenWidth, screenHeight, 96, 96, PixelFormats.Pbgra32);
+                            renderBitmap.Render(drawingVisual);
+                            cacheBottomBitmapSource = renderBitmap;
+                        }
+                        if (index + 1 < dictionary.Count)
+                        {
+                            var drawingVisual = new DrawingVisual();
+                            using (var context = drawingVisual.RenderOpen())
+                            {
+                                for (var j = index + 1; j < dictionary.Count; j++)
+                                {
+                                    var item = dictionary.ElementAt(j);
+                                    var viewbox = item.Key.GetChildViewbox(item.Value);
+                                    var brush = new VisualBrush(item.Key)
+                                    {
+                                        ViewboxUnits = BrushMappingMode.RelativeToBoundingBox,
+                                        Viewbox = viewbox,
+                                    };
+                                    context.DrawRectangle(brush, null, item.Value.GetMinContainRect());
+                                }
+                            }
+                            var renderBitmap = new RenderTargetBitmap(screenWidth, screenHeight, 96, 96, PixelFormats.Pbgra32);
+                            renderBitmap.Render(drawingVisual);
+                            cacheTopBitmapSource = renderBitmap;
+                        }
+                        var cacheRect = new Rect(0, 0, screenWidth, screenHeight);
+
+                        for (var i = 0; i < bitmapFrames.Count; i++)
+                        {
+                            var drawingVisual = new DrawingVisual();
+                            using (var context = drawingVisual.RenderOpen())
+                            {
+                                if (cacheBottomBitmapSource != null)
+                                {
+                                    context.DrawImage(cacheBottomBitmapSource, cacheRect);
+                                }
+                                context.DrawRectangle(new ImageBrush(bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight)), null, gifRect);
+                                if (cacheTopBitmapSource != null)
+                                {
+                                    context.DrawImage(cacheTopBitmapSource, cacheRect);
+                                }
+                            }
+                            var renderBitmap = new RenderTargetBitmap(screenWidth, screenHeight, 96, 96, PixelFormats.Pbgra32);
+                            renderBitmap.Render(drawingVisual);
+
+                            var imageSource = ScreenCropper.CropScreen(renderBitmap, cropViewBox);
+                            if (imageSource != null && cropStyle != CropStyle.Default)
+                            {
+                                imageSource = ImageCropper.CropBitmapSource(imageSource, ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth, imageSource.PixelHeight), cropStyle);
+                            }
+                            if (imageSource != null)
+                            {
+                                using (var frame = imageSource.GetBitmap())
+                                {
+                                    encoder.AppendFrame(frame, (int)delays[i].TotalMilliseconds);
+                                }
+                            }
+                            else
+                            {
+                                Extentions.ShowMessageBox("不合法的截图操作!");
+                                isOk = false;
+                                break;
+                            }
+                        }
+                    }
+                    element.Visibility = Visibility.Visible;
+                    if (!isOk)
+                    {
+                        stream.Close();
+                        return;
+                    }
+                    stream.Position = 0;
+                    var bitmapImage = new BitmapImage();
+                    bitmapImage.BeginInit();
+                    bitmapImage.StreamSource = stream;
+                    bitmapImage.EndInit();
+                    resultBitmapImage = bitmapImage;//获取截图（动态）
+                }
+                else
+                {
+                    var renderBitmap = new RenderTargetBitmap((int)SystemParameters.VirtualScreenWidth,
+                    (int)SystemParameters.VirtualScreenHeight, 96, 96, PixelFormats.Pbgra32);
+                    renderBitmap.Render(_panelContainer);
+                    
+                    var imageSource = ScreenCropper.CropScreen(renderBitmap, cropViewBox);
+                    if (imageSource != null && cropStyle != CropStyle.Default)
+                    {
+                        imageSource = ImageCropper.CropBitmapSource(imageSource,
+                            ((BitmapSource)((Image)element.Content).Source).GetResizeBitmap(imageSource.PixelWidth,
+                                imageSource.PixelHeight), cropStyle);
+                    }
+                    element.Visibility = Visibility.Visible;
+                    if (imageSource == null)
+                    {
+                        Extentions.ShowMessageBox("不合法的抠图操作!");
+                        return;
+                    }
+                    resultBitmapImage = imageSource.GetBitmapImage();//获取截图
+                }
+
+                //抠图
                 var fullScreenBitmap = GetFullScreenBitmap(element, cropStyle);
                 var transactions = new TransactionAction();
-                foreach (var item in intersectElements)
+
+                var targetIndex = -1;
+                if (animatedGifs.Length == 1)
+                {
+                    targetIndex = animatedGifs[0].index;
+                }
+                var k = 0;
+                
+                foreach (var item in dictionary.Keys.Cast<ImageControl>())
                 {
                     scaleTransform = item.GetTransform<ScaleTransform>();
                     cropViewBox = new CropViewBox((Image)item.Content, item.GetTransform<RotateTransform>().Angle,
                         scaleTransform.ScaleX, scaleTransform.ScaleY);
                     var bitmapSource = ScreenCropper.CropScreen(fullScreenBitmap, cropViewBox);
-                    var cutBitmapSource =
-                        ImageCropper.CropBitmapSource(
-                            ((BitmapSource)((Image)item.Content).Source).GetResizeBitmap(bitmapSource.PixelWidth,
-                                bitmapSource.PixelHeight), bitmapSource, CropStyle.Transparent);
-                    transactions.Add(new ExchangeImageAction(item,
-                        new AnimatedGif
+
+                    BitmapSource cutBitmapSource;
+                    if (k++ == targetIndex)
+                    {
+                        var animatedGif = (AnimatedGif)item.Content;
+                        var width = (int)Math.Round(item.Width);
+                        var height = (int)Math.Round(item.Height);
+                        var stream = new MemoryStream();
+                        using (var encoder = new GifEncoder(stream, width, height, animatedGif.RepeatCount))
                         {
-                            Source = cutBitmapSource.GetBitmapImage(),
-                            Stretch = Stretch.Fill
-                        }));
+                            var bitmapFrames = animatedGif.BitmapFrames;
+                            var delays = animatedGif.Delays;
+                            for (var i = 0; i < bitmapFrames.Count; i++)
+                            {
+                                using (var frame = ImageCropper.CropBitmapSource(bitmapFrames[i].GetResizeBitmap(bitmapSource.PixelWidth, bitmapSource.PixelHeight), bitmapSource, CropStyle.Transparent).GetBitmap())
+                                {
+                                    encoder.AppendFrame(frame, (int)delays[i].TotalMilliseconds);
+                                }
+                            }
+                        }
+                        stream.Position = 0;
+                        var bitmapImage = new BitmapImage();
+                        bitmapImage.BeginInit();
+                        bitmapImage.StreamSource = stream;
+                        bitmapImage.EndInit();
+                        cutBitmapSource = bitmapImage;
+                    }
+                    else
+                    {
+                        cutBitmapSource =
+                            ImageCropper.CropBitmapSource(
+                                ((BitmapSource)((Image)item.Content).Source).GetResizeBitmap(bitmapSource.PixelWidth,
+                                    bitmapSource.PixelHeight), bitmapSource, CropStyle.Transparent).GetBitmapImage();
+                    }
+
+                    transactions.Add(new ExchangeImageAction(item,
+                            new AnimatedGif
+                            {
+                                Source = cutBitmapSource,
+                                Stretch = Stretch.Fill
+                            }));
+                
                 }
                 transactions.Add(new ExchangeImageAction(element,
-                    new AnimatedGif { Source = imageSource.GetBitmapImage(), Stretch = Stretch.Fill }));
+                    new AnimatedGif { Source = resultBitmapImage, Stretch = Stretch.Fill }));
                 _actionManager.Execute(transactions);
             }));
         }

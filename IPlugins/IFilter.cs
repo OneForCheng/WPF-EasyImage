@@ -22,11 +22,6 @@ namespace IPlugins
         /// <param name="appStartupPath">主程序启动路径</param>
         void InitPlugin(string appStartupPath);
 
-        /// <summary>
-        /// 处理图片
-        /// </summary>
-        /// <param name="bitmap">需要处理的图片</param>
-        /// <returns>处理结果</returns>
-        HandleResult ExecHandle(Bitmap bitmap);
+        
     }
 }

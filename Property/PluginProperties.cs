@@ -3,7 +3,7 @@ using IPlugins;
 
 namespace Property
 {
-    public class PluginProperties : IFilter
+    public class PluginProperties : ISingleFilter
     {
         public string GetPluginName()
         {

@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 
 namespace IPlugins
 {
     public class HandleResult : IDisposable
     {
-        public Bitmap ResultBitmap { get; }
+        public IEnumerable<Bitmap> ResultBitmaps { get; }
 
         public bool IsModified { get; }
 
@@ -26,18 +27,24 @@ namespace IPlugins
         /// <summary>
         /// 正常构造函数
         /// </summary>
-        /// <param name="bitmap"></param>
+        /// <param name="bitmaps"></param>
         /// <param name="isModified"></param>
-        public HandleResult(Bitmap bitmap, bool isModified)
+        public HandleResult(IEnumerable<Bitmap> bitmaps, bool isModified)
         {
-            ResultBitmap = bitmap;
+            ResultBitmaps = bitmaps;
             IsModified = isModified;
             IsSuccess = true;
         }
 
         public void Dispose()
         {
-            ResultBitmap?.Dispose();
+            if (ResultBitmaps != null)
+            {
+                foreach (var item in ResultBitmaps)
+                {
+                    item.Dispose();
+                }
+            }
         }
     }
 }

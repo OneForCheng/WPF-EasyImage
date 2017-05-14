@@ -137,7 +137,7 @@ namespace Beauty
 
         private void RightBtn_Click(object sender, RoutedEventArgs e)
         {
-            HandleResult = new HandleResult((Bitmap)_resultBitmap.Clone(), true);
+            HandleResult = new HandleResult(new[] { (Bitmap)_resultBitmap.Clone() }, true);
             Close();
         }
 

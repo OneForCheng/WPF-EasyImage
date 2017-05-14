@@ -18,12 +18,14 @@ RegExpIsMatch_ "/\?" "%*"
 if 0==%errorlevel% call :USAGE&exit /b 0
 
 
-copy /y F:\工作目录\EasyImage\ArtDeal\bin\Release\ArtDeal.dll f:\工作目录\EasyImage\EasyImage\Plugins\ArtDeal.dll
-copy /y F:\工作目录\EasyImage\EasyDeal\bin\Release\EasyDeal.dll f:\工作目录\EasyImage\EasyImage\Plugins\EasyDeal.dll
-copy /y F:\工作目录\EasyImage\Drawing\bin\Release\Drawing.dll f:\工作目录\EasyImage\EasyImage\Plugins\Drawing.dll
-copy /y F:\工作目录\EasyImage\Beauty\bin\Release\Beauty.dll f:\工作目录\EasyImage\EasyImage\Plugins\Beauty.dll
-copy /y F:\工作目录\EasyImage\Property\bin\Release\Property.dll f:\工作目录\EasyImage\EasyImage\Plugins\Property.dll
+set sourcepath=F:\工作目录\EasyImage
+set targetpath=f:\工作目录\EasyImage\EasyImage\Plugins
 
+copy /y %sourcepath%\ArtDeal\bin\Release\ArtDeal.dll %targetpath%\ArtDeal.dll
+copy /y %sourcepath%\EasyDeal\bin\Release\EasyDeal.dll %targetpath%\EasyDeal.dll
+copy /y %sourcepath%\Drawing\bin\Release\Drawing.dll %targetpath%\Drawing.dll
+copy /y %sourcepath%\Beauty\bin\Release\Beauty.dll %targetpath%\Beauty.dll
+copy /y %sourcepath%\Property\bin\Release\Property.dll %targetpath%\Property.dll
 
 
 REM copy /y F:\工作目录\EasyImage\ArtDeal\bin\Release\ArtDeal.dll C:\Users\cheng\AppData\Local\Apps\2.0\Y38C8Z4A.G46\LD61W7T6.J3E\easy..tion_e673c794dde2cfee_0001.0000_466e6fad5bcf9763\Plugins\ArtDeal.dll

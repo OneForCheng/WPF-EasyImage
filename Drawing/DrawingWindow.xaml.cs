@@ -216,7 +216,7 @@ namespace Drawing
         {
             if (_isSave)
             {
-                HandleResult = new HandleResult((Bitmap)_drawingManager.LastRecordedBitmap.Clone(), true);
+                HandleResult = new HandleResult(new [] { (Bitmap)_drawingManager.LastRecordedBitmap.Clone()}, true);
             }
         }
 

@@ -48,6 +48,8 @@
     <Compile Include="HandleResult.cs" />
     <Compile Include="IFilter.cs" />
     <Compile Include="IFilterList.cs" />
+    <Compile Include="IMultiFilter.cs" />
+    <Compile Include="ISingleFilter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -126,36 +126,71 @@ namespace EasyImage
                 var visualWidth = (int)Math.Round(gifRect.Width);
                 var visualHeight = (int)Math.Round(gifRect.Height);
 
-                var bitmapFrames = animatedGif.BitmapFrames;
+               
                 var stream = new MemoryStream();
                 using (var encoder = new GifEncoder(stream, imageWidth, imageHeight, animatedGif.RepeatCount))
                 {
+
+                    var bitmapFrames = animatedGif.BitmapFrames;
                     var delays = animatedGif.Delays;
+                    BitmapSource cacheBottomBitmapSource = null, cacheTopBitmapSource = null;
+                    if (index > 0)
+                    {
+                        var drawingVisual = new DrawingVisual();
+                        using (var context = drawingVisual.RenderOpen())
+                        {
+                            for (var j = 0; j < index; j++)
+                            {
+                                var item = dictionary.ElementAt(j);
+                                var viewbox = item.Key.GetChildViewbox(item.Value);
+                                var brush = new VisualBrush(item.Key)
+                                {
+                                    ViewboxUnits = BrushMappingMode.RelativeToBoundingBox,
+                                    Viewbox = viewbox,
+                                };
+                                context.DrawRectangle(brush, null, item.Value.GetRelationRect(relationPoint));
+                            }
+                        }
+                        var renderBitmap = new RenderTargetBitmap(imageWidth, imageHeight, 96, 96, PixelFormats.Pbgra32);
+                        renderBitmap.Render(drawingVisual);
+                        cacheBottomBitmapSource = renderBitmap;
+                    }
+                    if (index + 1 < dictionary.Count)
+                    {
+                        var drawingVisual = new DrawingVisual();
+                        using (var context = drawingVisual.RenderOpen())
+                        {
+                            for (var j = index + 1; j < dictionary.Count; j++)
+                            {
+                                var item = dictionary.ElementAt(j);
+                                var viewbox = item.Key.GetChildViewbox(item.Value);
+                                var brush = new VisualBrush(item.Key)
+                                {
+                                    ViewboxUnits = BrushMappingMode.RelativeToBoundingBox,
+                                    Viewbox = viewbox,
+                                };
+                                context.DrawRectangle(brush, null, item.Value.GetRelationRect(relationPoint));
+                            }
+                        }
+                        var renderBitmap = new RenderTargetBitmap(imageWidth, imageHeight, 96, 96, PixelFormats.Pbgra32);
+                        renderBitmap.Render(drawingVisual);
+                        cacheTopBitmapSource = renderBitmap;
+                    }
+                    var cacheRect = new Rect(0, 0, imageWidth, imageHeight);
+
                     for (var i = 0; i < bitmapFrames.Count; i++)
                     {
                         var drawingVisual = new DrawingVisual();
                         using (var context = drawingVisual.RenderOpen())
                         {
-                            var j = 0;
-                            foreach (var item in dictionary)
+                            if (cacheBottomBitmapSource != null)
                             {
-                                if (j == index)
-                                {
-                                    //绘制动态图的每一帧
-                                    var brush = new ImageBrush(bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight));
-                                    context.DrawRectangle(brush, null, gifRect);
-                                }
-                                else
-                                {
-                                    var viewbox = item.Key.GetChildViewbox(item.Value);
-                                    var brush = new VisualBrush(item.Key)
-                                    {
-                                        ViewboxUnits = BrushMappingMode.RelativeToBoundingBox,
-                                        Viewbox = viewbox,
-                                    };
-                                    context.DrawRectangle(brush, null, item.Value.GetRelationRect(relationPoint));
-                                }
-                                j++;
+                                context.DrawImage(cacheBottomBitmapSource, cacheRect);
+                            }
+                            context.DrawRectangle(new ImageBrush(bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight)), null, gifRect);
+                            if (cacheTopBitmapSource != null)
+                            {
+                                context.DrawImage(cacheTopBitmapSource, cacheRect);
                             }
                         }
                         var renderBitmap = new RenderTargetBitmap(imageWidth, imageHeight, 96, 96, PixelFormats.Pbgra32);

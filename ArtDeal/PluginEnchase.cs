@@ -3,7 +3,7 @@ using IPlugins;
 
 namespace ArtDeal
 {
-    public class PluginEnchase : IFilter
+    public class PluginEnchase : ISingleFilter
     {
         public string GetPluginName()
         {
