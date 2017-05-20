@@ -1,13 +1,14 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using IPlugins;
 
 namespace Property
 {
-    public class PluginProperties : ISingleFilter
+    public class PluginProperties : IMultiFilter
     {
         public string GetPluginName()
         {
-            return "属性调整";
+            return "属性调整[GIF]";
         }
 
         public Bitmap GetPluginIcon()
@@ -20,9 +21,9 @@ namespace Property
 
         }
 
-        public HandleResult ExecHandle(Bitmap bitmap)
+        public HandleResult ExecHandle(IEnumerable<Bitmap> bitmaps)
         {
-            var window = new PropertiesWindow(bitmap);
+            var window = new PropertiesWindow(bitmaps);
             window.ShowDialog();
             return window.HandleResult;
 

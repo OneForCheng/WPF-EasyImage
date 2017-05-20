@@ -36,14 +36,14 @@
                         <RadioButton x:Name="PercentageRbn" Foreground="White" Content="百分比" HorizontalAlignment="Left" Height="16" Margin="180,29,0,0" VerticalAlignment="Top" Width="65"/>
 
                         <Label x:Name="HeightLbl" Padding="1" FontSize="13" Foreground="White" Content="高度:" HorizontalAlignment="Left" Height="18" Margin="40,50,0,0" VerticalAlignment="Top" Width="40"/>
-                        <TextBox x:Name="HeightTbx" MaxLength="16" TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="85,50,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus"  TextChanged="TextBox_TextChanged"  >
+                        <TextBox x:Name="HeightTbx"  Padding="0"  MaxLength="16" TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="85,50,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus"  TextChanged="TextBox_TextChanged"  >
                             <TextBox.Tag>
                                 <x:Static Member="local:TextboxFlag.First"></x:Static>
                             </TextBox.Tag>
                         </TextBox>
 
                         <Label x:Name="WidthLbl" Padding="1" FontSize="13" Foreground="White" Content="宽度:" HorizontalAlignment="Left" Height="18" Margin="40,72,0,0" VerticalAlignment="Top" Width="40"/>
-                        <TextBox x:Name="WidthTbx" MaxLength="16"  HorizontalAlignment="Left" Height="18" Margin="85,72,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
+                        <TextBox x:Name="WidthTbx" Padding="0"  MaxLength="16"  HorizontalAlignment="Left" Height="18" Margin="85,72,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
                             <TextBox.Tag>
                                 <x:Static Member="local:TextboxFlag.Second"></x:Static>
                             </TextBox.Tag>
@@ -56,7 +56,7 @@
                         <Label x:Name="OriginWidthValueLbl" Padding="1" FontSize="13" Foreground="White" Content="0" HorizontalAlignment="Left" Height="18" Margin="240,72,0,0" VerticalAlignment="Top" Width="112"/>
 
                         <Label x:Name="RotateLbl" Padding="1" FontSize="13" Foreground="White" Content="旋转:" HorizontalAlignment="Left" Height="18" Margin="40,94,0,0" VerticalAlignment="Top" Width="40"/>
-                        <TextBox x:Name="AngleTbx" MaxLength="16"  HorizontalAlignment="Left" Height="18" Margin="85,94,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
+                        <TextBox x:Name="AngleTbx"  Padding="0" MaxLength="16"  HorizontalAlignment="Left" Height="18" Margin="85,94,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
                             <TextBox.Tag>
                                 <x:Static Member="local:TextboxFlag.Third"></x:Static>
                             </TextBox.Tag>
@@ -66,14 +66,14 @@
 
                         <Label x:Name="LocationLbl" Padding="1" FontSize="15" Foreground="White" Content="位置:" HorizontalAlignment="Left" Height="22" Margin="5,136,0,0" VerticalAlignment="Top" Width="40"/>
                         <Label x:Name="LocationXLbl" Padding="1" FontSize="13" Foreground="White" Content="水平位置:" HorizontalAlignment="Left" Height="18" Margin="40,160,0,0" VerticalAlignment="Top" Width="60"/>
-                        <TextBox x:Name="LocationXTbx" MaxLength="16"  TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="120,160,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
+                        <TextBox x:Name="LocationXTbx" Padding="0"  MaxLength="16"  TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="120,160,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged" >
                             <TextBox.Tag>
                                 <x:Static Member="local:TextboxFlag.Forth"></x:Static>
                             </TextBox.Tag>
                         </TextBox>
 
                         <Label x:Name="LocationYLbl" Padding="1" FontSize="13" Foreground="White" Content="垂直位置:" HorizontalAlignment="Left" Height="18" Margin="40,182,0,0" VerticalAlignment="Top" Width="60"/>
-                        <TextBox x:Name="LocationYTbx" MaxLength="16"  TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="120,182,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged">
+                        <TextBox x:Name="LocationYTbx"  Padding="0" MaxLength="16"  TextWrapping="NoWrap" HorizontalAlignment="Left" Height="18" Margin="120,182,0,0" Text="" VerticalAlignment="Top" Width="80" LostKeyboardFocus="TextBox_LostKeyboardFocus" TextChanged="TextBox_TextChanged">
                             <TextBox.Tag>
                                 <x:Static Member="local:TextboxFlag.Fifth"></x:Static>
                             </TextBox.Tag>

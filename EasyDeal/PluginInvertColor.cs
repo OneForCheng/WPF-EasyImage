@@ -11,7 +11,7 @@ namespace EasyDeal
 
         public string GetPluginName()
         {
-            return "反色处理[GIF]";
+            return "反色处理";
         }
 
         public Bitmap GetPluginIcon()

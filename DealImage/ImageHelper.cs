@@ -10,7 +10,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Brushes = System.Windows.Media.Brushes;
 using Point = System.Windows.Point;
-using Rectangle = System.Windows.Shapes.Rectangle;
 
 namespace DealImage
 {
@@ -46,30 +45,19 @@ namespace DealImage
 
         public static Bitmap GetBitmap(this BitmapSource source)
         {
-            var bmp = new Bitmap
-            (
-              source.PixelWidth,
-              source.PixelHeight,
-              System.Drawing.Imaging.PixelFormat.Format32bppArgb
-            );
+            //判断source.Format是否是PixelFormats.Bgra32没有什么用的，必须转换一次才能保证
+            var formatBitmap = new FormatConvertedBitmap();
+            formatBitmap.BeginInit();
+            formatBitmap.Source = source;
+            formatBitmap.DestinationFormat = PixelFormats.Bgra32;
+            formatBitmap.EndInit();
 
-            var data = bmp.LockBits
-             (
-                 new System.Drawing.Rectangle(System.Drawing.Point.Empty, bmp.Size),
-                 ImageLockMode.WriteOnly,
-                 System.Drawing.Imaging.PixelFormat.Format32bppArgb
-             );
+            var bitmap = new Bitmap(formatBitmap.PixelWidth, formatBitmap.PixelHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            var data = bitmap.LockBits(new Rectangle(System.Drawing.Point.Empty, bitmap.Size), ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            formatBitmap.CopyPixels(Int32Rect.Empty, data.Scan0, data.Height * data.Stride, data.Stride);
+            bitmap.UnlockBits(data);
 
-            source.CopyPixels
-            (
-              Int32Rect.Empty,
-              data.Scan0,
-              data.Height * data.Stride,
-              data.Stride
-            );
-
-            bmp.UnlockBits(data);
-            return bmp;
+            return bitmap;
         }
 
         public static BitmapSource GetBitmapSource(this Bitmap bitmap)
@@ -155,7 +143,7 @@ namespace DealImage
             }
 
             var renderBitmap = new RenderTargetBitmap((int)rect.Width, (int)rect.Height, 96, 96, PixelFormats.Pbgra32);
-            var rectangle = new Rectangle
+            var rectangle = new System.Windows.Shapes.Rectangle
             {
                 Width = (int) rect.Width,
                 Height = (int) rect.Height,

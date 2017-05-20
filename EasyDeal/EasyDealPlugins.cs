@@ -8,7 +8,7 @@ namespace EasyDeal
     {
         public string GetPluginName()
         {
-            return "简单处理";
+            return "简单处理[GIF]";
         }
 
         public Bitmap GetPluginIcon()

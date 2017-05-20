@@ -1,9 +1,10 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using IPlugins;
 
 namespace ArtDeal
 {
-    public class PluginEnchase : ISingleFilter
+    public class PluginEnchase : IMultiFilter
     {
         public string GetPluginName()
         {
@@ -20,9 +21,9 @@ namespace ArtDeal
 
         }
 
-        public HandleResult ExecHandle(Bitmap bitmap)
+        public HandleResult ExecHandle(IEnumerable<Bitmap> bitmaps)
         {
-            var window = new EnchaseWindow(bitmap);
+            var window = new EnchaseWindow(bitmaps);
             window.ShowDialog();
             return window.HandleResult;
         }

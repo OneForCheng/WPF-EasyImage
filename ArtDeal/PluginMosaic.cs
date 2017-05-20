@@ -1,9 +1,10 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using IPlugins;
 
 namespace ArtDeal
 {
-    public class PluginMosaic : ISingleFilter
+    public class PluginMosaic : IMultiFilter
     {
         public string GetPluginName()
         {
@@ -20,9 +21,9 @@ namespace ArtDeal
 
         }
 
-        public HandleResult ExecHandle(Bitmap bitmap)
+        public HandleResult ExecHandle(IEnumerable<Bitmap> bitmaps)
         {
-            var window = new MosaicWindow(bitmap);
+            var window = new MosaicWindow(bitmaps);
             window.ShowDialog();
             return window.HandleResult;
         }

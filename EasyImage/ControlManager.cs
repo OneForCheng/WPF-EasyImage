@@ -42,9 +42,10 @@ namespace EasyImage
     {
 
         #region Constructors
-        public ControlManager(Panel container)
+        public ControlManager(Panel container, ImageWindow window)
         {
             _panelContainer = container;
+            _imageWindow = window;
             _maxControlZIndex = 0;
             MoveSpeed = 1.0;
             _actionManager = new ActionManager { MaxBufferCount = 20 };
@@ -54,6 +55,8 @@ namespace EasyImage
         #endregion Constructors
 
         #region Private fields
+
+        private readonly ImageWindow _imageWindow;
         private readonly Panel _panelContainer;
         private readonly ActionManager _actionManager;
         private List<Tuple<string, Bitmap, List<IFilter>>> _cachePlugins;
@@ -273,7 +276,6 @@ namespace EasyImage
                 AddElements(_cacheSelectedElements.Select(m => m.Clone()).Cast<ImageControl>());
                 _cacheSelectedElements = null;
             }
-
         }
 
         /// <summary>
@@ -284,6 +286,7 @@ namespace EasyImage
             CopySelected();
             RemoveSelected();
         }
+
 
         /// <summary>
         /// 没有选择元素
@@ -545,6 +548,8 @@ namespace EasyImage
             _actionManager.Execute(transactions);
         }
 
+
+
         #endregion Public methods
 
         #region Events
@@ -589,7 +594,12 @@ namespace EasyImage
                 var iMultiFilter = (sender as MenuItem)?.Tag as IMultiFilter;
                 var animatedGif = (AnimatedGif) element.Content;
                 var bitmaps = new List<Bitmap>();
+
+                Clipboard.Clear();
+                Clipboard.SetData(DataFormats.Bitmap, animatedGif.BitmapFrames.First().GetBitmap());
+
                 bitmaps.AddRange(animatedGif.BitmapFrames.Select(m => m.GetResizeBitmap(width, height).GetBitmap()));
+               
                 var result = iMultiFilter?.ExecHandle(bitmaps);
                 
                 element.Visibility = Visibility.Visible;
@@ -1394,6 +1404,12 @@ namespace EasyImage
             element.Visibility = Visibility.Visible;
         }
 
+        private void MenuItem_CollectImage(object sender, RoutedEventArgs e)
+        {
+            if (!SelectedElements.Any()) return;
+            _imageWindow.AddFavorites(SelectedElements.Select(m => ((AnimatedGif)m.Content).Source));
+        }
+
         private void Menu_Setting(object sender, RoutedEventArgs e)
         {
             if (SelectedElements.Count() != 1) return;
@@ -1756,6 +1772,13 @@ namespace EasyImage
 
             #endregion
 
+            contextMenu.Items.Add(item);
+
+            #endregion
+
+            #region 收藏
+            item = new MenuItem { Header = "收藏", Tag = "Collect" };
+            item.Click += MenuItem_CollectImage;
             contextMenu.Items.Add(item);
 
             #endregion

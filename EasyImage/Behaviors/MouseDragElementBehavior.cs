@@ -9,7 +9,6 @@ namespace EasyImage.Behaviors
     /// <summary>
     /// 鼠标拖拽控件行为
     /// </summary>
-    /// <typeparam name="T">目标控件</typeparam>
     public class MouseDragElementBehavior<T> : Behavior<FrameworkElement> where T : FrameworkElement
     {
         private Point _mousePosition;
@@ -61,7 +60,7 @@ namespace EasyImage.Behaviors
                 {
                     _cacheTranslateTransform.X += moveX;
                 }
-                else if(moveX < 0 && _cacheTranslateTransform.X + moveX >= MoveableRange.Value.Left)
+                else if (moveX < 0 && _cacheTranslateTransform.X + moveX >= MoveableRange.Value.Left)
                 {
                     _cacheTranslateTransform.X += moveX;
                 }
@@ -70,12 +69,12 @@ namespace EasyImage.Behaviors
                 {
                     _cacheTranslateTransform.Y += moveY;
                 }
-                else if(moveY < 0 && _cacheTranslateTransform.Y + moveY >= MoveableRange.Value.Top)
+                else if (moveY < 0 && _cacheTranslateTransform.Y + moveY >= MoveableRange.Value.Top)
                 {
                     _cacheTranslateTransform.Y += moveY;
                 }
             }
-            
+
             _mousePosition = curPosition;
         }
 
@@ -89,4 +88,5 @@ namespace EasyImage.Behaviors
         #endregion
 
     }
+
 }

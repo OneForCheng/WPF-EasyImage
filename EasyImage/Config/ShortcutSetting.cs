@@ -3,6 +3,46 @@ using System.Windows.Input;
 
 namespace EasyImage.Config
 {
+    
+    [Serializable]
+    public class ShortcutSetting
+    {
+        private Shortcut _globelAddShortcut;
+        private Shortcut _globelPasteShortcut;
+
+        public ShortcutSetting()
+        {
+            _globelAddShortcut = new Shortcut
+            {
+                IsCtrl = true,
+                IsAlt = true,
+                IsShift = false,
+                Key = Key.N,
+            };
+            _globelPasteShortcut = new Shortcut
+            {
+                IsCtrl = true,
+                IsAlt = true,
+                IsShift = false,
+                Key = Key.V,
+            };
+        }
+
+        public Shortcut GlobelAddShortcut
+        {
+            get { return _globelAddShortcut; }
+            set { _globelAddShortcut = value; }
+        }
+
+        public Shortcut GlobelPasteShortcut
+        {
+            get { return _globelPasteShortcut; }
+            set { _globelPasteShortcut = value; }
+        }
+
+
+    }
+
     [Serializable]
     public class Shortcut : ICloneable
     {
@@ -52,45 +92,6 @@ namespace EasyImage.Config
                 Key = _key,
             };
         }
-    }
-
-    [Serializable]
-    public class ShortcutSetting
-    {
-        private Shortcut _globelAddShortcut;
-        private Shortcut _globelPasteShortcut;
-
-        public ShortcutSetting()
-        {
-            _globelAddShortcut = new Shortcut
-            {
-                IsCtrl = true,
-                IsAlt = true,
-                IsShift = false,
-                Key = Key.N,
-            };
-            _globelPasteShortcut = new Shortcut
-            {
-                IsCtrl = true,
-                IsAlt = true,
-                IsShift = false,
-                Key = Key.V,
-            };
-        }
-
-        public Shortcut GlobelAddShortcut
-        {
-            get { return _globelAddShortcut; }
-            set { _globelAddShortcut = value; }
-        }
-
-        public Shortcut GlobelPasteShortcut
-        {
-            get { return _globelPasteShortcut; }
-            set { _globelPasteShortcut = value; }
-        }
-
-
     }
 
 }

@@ -12,7 +12,7 @@ namespace EasyDeal
 
         public string GetPluginName()
         {
-            return "边缘检测[GIF]";
+            return "边缘检测";
         }
 
         public Bitmap GetPluginIcon()

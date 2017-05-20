@@ -115,11 +115,11 @@ namespace EasyImage.Config
             }
             set
             {
-                if (_translateX < 0)
+                if (value < 0)
                 {
                     _translateX = 0;
                 }
-                else if (_translateX > SystemParameters.VirtualScreenWidth - Width)
+                else if (value > SystemParameters.VirtualScreenWidth - Width)
                 {
                     _translateX = SystemParameters.VirtualScreenWidth - Width;
                 }
@@ -147,11 +147,11 @@ namespace EasyImage.Config
             }
             set
             {
-                if (_translateY < 0)
+                if (value < 0)
                 {
                     _translateY = 0;
                 }
-                else if (_translateY > SystemParameters.VirtualScreenHeight - Height)
+                else if (value > SystemParameters.VirtualScreenHeight - Height)
                 {
                     _translateY = SystemParameters.VirtualScreenHeight - Height;
                 }

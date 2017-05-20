@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Forms;
@@ -22,7 +24,8 @@ namespace ArtDeal
     public partial class MagicMirrorWindow : IDisposable
     {
 
-        private readonly Bitmap _cacheBitmap;
+        private readonly Bitmap _cacheFirstBitmap;
+        private readonly IEnumerable<Bitmap> _cacheBitmaps;
         private Point _originPoint;
         private int _factor;
         private Bitmap _resultBitmap;
@@ -138,15 +141,16 @@ namespace ArtDeal
 
         public HandleResult HandleResult { get; private set; }
 
-        public MagicMirrorWindow(Bitmap bitmap)
+        public MagicMirrorWindow(IEnumerable<Bitmap> bitmaps)
         {
             InitializeComponent();
-            _cacheBitmap = (Bitmap)bitmap.Clone();
+            _cacheBitmaps = bitmaps;
+            _cacheFirstBitmap = _cacheBitmaps.First();
 
             var screenHeight = SystemParameters.VirtualScreenHeight;
             var screenWidth = SystemParameters.VirtualScreenWidth;
-            var height = _cacheBitmap.Height + 125.0;
-            var width = _cacheBitmap.Width + 40.0;
+            var height = _cacheFirstBitmap.Height + 125.0;
+            var width = _cacheFirstBitmap.Width + 40.0;
             if (height < 300)
             {
                 height = 300;
@@ -167,7 +171,7 @@ namespace ArtDeal
             Width = width;
 
             _factor = 100;
-            _originPoint = new Point(_cacheBitmap.Width / 2.0, _cacheBitmap.Height / 2.0);
+            _originPoint = new Point(_cacheFirstBitmap.Width / 2.0, _cacheFirstBitmap.Height / 2.0);
         }
 
         private void WindowLoaded(object sender, RoutedEventArgs e)
@@ -175,7 +179,7 @@ namespace ArtDeal
             this.DisableMaxmize(true); //禁用窗口最大化功能
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.Restore | Win32.SystemMenuItems.Minimize | Win32.SystemMenuItems.Maximize | Win32.SystemMenuItems.SpliteLine); //去除窗口指定的系统菜单
             //TitleLbl.Content = $"哈哈镜处理: {_factor}";
-            _resultBitmap = GetHandledImage(_cacheBitmap, _originPoint, _factor);
+            _resultBitmap = GetHandledImage(_cacheFirstBitmap, _originPoint, _factor);
             _writeableBitmap = new WriteableBitmap(Imaging.CreateBitmapSourceFromHBitmap(_resultBitmap.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions()));
             TargetImage.Source = _writeableBitmap;
         }
@@ -215,7 +219,15 @@ namespace ArtDeal
 
         private void RightBtn_Click(object sender, RoutedEventArgs e)
         {
-            HandleResult = new HandleResult(new[] { (Bitmap)_resultBitmap.Clone() }, true);
+            var resultBitmaps = new List<Bitmap>()
+            {
+                (Bitmap)_resultBitmap.Clone()
+            };
+            for (var i = 1; i < _cacheBitmaps.Count(); i++)
+            {
+                resultBitmaps.Add(GetHandledImage(_cacheBitmaps.ElementAt(i), _originPoint, _factor));
+            }
+            HandleResult = new HandleResult(resultBitmaps, true);
             Close();
         }
 
@@ -227,10 +239,10 @@ namespace ArtDeal
 
         private void TargetImage_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.LeftButton != MouseButtonState.Pressed || _cacheBitmap == null) return;
+            if (e.LeftButton != MouseButtonState.Pressed || _cacheFirstBitmap == null) return;
             _originPoint = e.GetPosition(TargetImage);
             _resultBitmap?.Dispose();
-            _resultBitmap = GetHandledImage(_cacheBitmap, _originPoint, _factor);
+            _resultBitmap = GetHandledImage(_cacheFirstBitmap, _originPoint, _factor);
             UpdateImage(_resultBitmap);
         }
 
@@ -273,11 +285,11 @@ namespace ArtDeal
 
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (_cacheBitmap == null) return;
+            if (_cacheFirstBitmap == null) return;
             _resultBitmap?.Dispose();
             _factor = (int)e.NewValue;
             //TitleLbl.Content = $"哈哈镜处理: {_factor}";
-            _resultBitmap = GetHandledImage(_cacheBitmap, _originPoint, _factor);
+            _resultBitmap = GetHandledImage(_cacheFirstBitmap, _originPoint, _factor);
             UpdateImage(_resultBitmap);
         }
 
@@ -395,7 +407,6 @@ namespace ArtDeal
 
         public void Dispose()
         {
-            _cacheBitmap?.Dispose();
             _resultBitmap?.Dispose();
         }
 

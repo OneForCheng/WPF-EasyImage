@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Forms;
@@ -20,7 +22,8 @@ namespace Beauty
     /// </summary>
     public partial class BuffingBrightenWindow : IDisposable
     {
-        private readonly Bitmap _cacheBitmap;
+        private readonly Bitmap _cacheFirstBitmap;
+        private readonly IEnumerable<Bitmap> _cacheBitmaps;
         private Bitmap _highPassBitmap;
         private Bitmap _resultBitmap;
         private WriteableBitmap _writeableBitmap;
@@ -35,15 +38,16 @@ namespace Beauty
 
         public HandleResult HandleResult { get; private set; }
 
-        public BuffingBrightenWindow(Bitmap bitmap)
+        public BuffingBrightenWindow(IEnumerable<Bitmap> bitmaps)
         {
             InitializeComponent();
-            _cacheBitmap = bitmap;
-            
+            _cacheBitmaps = bitmaps;
+            _cacheFirstBitmap = _cacheBitmaps.First();
+
             var screenHeight = SystemParameters.VirtualScreenHeight;
             var screenWidth = SystemParameters.VirtualScreenWidth;
-            var height = bitmap.Height + 145.0;
-            var width = bitmap.Width + 40.0;
+            var height = _cacheFirstBitmap.Height + 145.0;
+            var width = _cacheFirstBitmap.Width + 40.0;
             if (height < 300)
             {
                 height = 300;
@@ -75,7 +79,7 @@ namespace Beauty
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.All); //去除窗口指定的系统菜单
             TitleLbl.Content = $"磨皮美白处理: [{_denoiseLevel},{_brightLevel}]";
             SetRgbColorTable(_brightLevel);
-            _resultBitmap = GetHandledImage(_cacheBitmap, _denoiseLevel, _brightLevel);
+            _resultBitmap = GetHandledImage(_cacheFirstBitmap, _denoiseLevel, _brightLevel);
             _writeableBitmap = new WriteableBitmap(Imaging.CreateBitmapSourceFromHBitmap(_resultBitmap.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions()));
             TargetImage.Source = _writeableBitmap;
         }
@@ -137,7 +141,18 @@ namespace Beauty
 
         private void RightBtn_Click(object sender, RoutedEventArgs e)
         {
-            HandleResult = new HandleResult(new[] { (Bitmap)_resultBitmap.Clone() }, true);
+            var resultBitmaps = new List<Bitmap>()
+            {
+                (Bitmap)_resultBitmap.Clone()
+            };
+            for (var i = 1; i < _cacheBitmaps.Count(); i++)
+            {
+                _highPassBitmap?.Dispose();
+                _highPassBitmap = null;
+                _cumtrapz = null;
+                resultBitmaps.Add(GetHandledImage(_cacheBitmaps.ElementAt(i), _denoiseLevel, _brightLevel));
+            }
+            HandleResult = new HandleResult(resultBitmaps, true);
             Close();
         }
 
@@ -150,7 +165,7 @@ namespace Beauty
         private void TextureCbx_Click(object sender, RoutedEventArgs e)
         {
             _persistTexture = TextureCbx.IsChecked.GetValueOrDefault();
-            _resultBitmap = GetHandledImage(_cacheBitmap, _denoiseLevel, _brightLevel);
+            _resultBitmap = GetHandledImage(_cacheFirstBitmap, _denoiseLevel, _brightLevel);
             UpdateImage(_resultBitmap);
         }
 
@@ -178,24 +193,24 @@ namespace Beauty
 
         private void FirstSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (_cacheBitmap == null) return;
+            if (_cacheFirstBitmap == null) return;
             _selectFirst = true;
             _resultBitmap?.Dispose();
             _denoiseLevel = (int)e.NewValue;
             TitleLbl.Content = $"磨皮美白处理: [{_denoiseLevel},{_brightLevel}]";
-            _resultBitmap = GetHandledImage(_cacheBitmap, _denoiseLevel, _brightLevel);
+            _resultBitmap = GetHandledImage(_cacheFirstBitmap, _denoiseLevel, _brightLevel);
             UpdateImage(_resultBitmap);
         }
 
         private void SecondSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (_cacheBitmap == null) return;
+            if (_cacheFirstBitmap == null) return;
             _selectFirst = false; 
             _resultBitmap?.Dispose();
             _brightLevel = (int)e.NewValue;
             SetRgbColorTable(_brightLevel);
             TitleLbl.Content = $"磨皮美白处理: [{_denoiseLevel},{_brightLevel}]";
-            _resultBitmap = GetHandledImage(_cacheBitmap, _denoiseLevel, _brightLevel);
+            _resultBitmap = GetHandledImage(_cacheFirstBitmap, _denoiseLevel, _brightLevel);
             UpdateImage(_resultBitmap);
         }
 
@@ -299,7 +314,6 @@ namespace Beauty
                     {
                         for (var x = 0; x < width; x++)
                         {
-
                             //if (denoiseLevel != 0 && ptr[0] > 20 && ptr[1] > 40 && ptr[2] > 95)//肤色检查
                             if (denoiseLevel != 0)
                             {
@@ -735,7 +749,6 @@ namespace Beauty
 
         public void Dispose()
         {
-            _cacheBitmap?.Dispose();
             _resultBitmap?.Dispose();
             _highPassBitmap?.Dispose();
         }

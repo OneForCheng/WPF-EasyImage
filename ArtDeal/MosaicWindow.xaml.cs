@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Forms;
@@ -20,22 +22,25 @@ namespace ArtDeal
     /// </summary>
     public partial class MosaicWindow : IDisposable
     {
-        private readonly Bitmap _cacheBitmap;
+        private readonly Bitmap _cacheFirstBitmap;
+        private readonly IEnumerable<Bitmap> _cacheBitmaps;
         private Bitmap _resultBitmap;
         private WriteableBitmap _writeableBitmap;
         private byte[] _bitmapBuffer;
+        private int _factor;
 
         public HandleResult HandleResult { get; private set; }
 
-        public MosaicWindow(Bitmap bitmap)
+        public MosaicWindow(IEnumerable<Bitmap> bitmaps)
         {
             InitializeComponent();
-            _cacheBitmap = bitmap;
+            _cacheBitmaps = bitmaps;
+            _cacheFirstBitmap = _cacheBitmaps.First();
 
             var screenHeight = SystemParameters.VirtualScreenHeight;
             var screenWidth = SystemParameters.VirtualScreenWidth;
-            var height = bitmap.Height + 125.0;
-            var width = bitmap.Width + 40.0;
+            var height = _cacheFirstBitmap.Height + 125.0;
+            var width = _cacheFirstBitmap.Width + 40.0;
             if (height < 300)
             {
                 height = 300;
@@ -54,13 +59,14 @@ namespace ArtDeal
             }
             Height = height;
             Width = width;
+            _factor = 5;
         }
 
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.All); //去除窗口指定的系统菜单
-            TitleLbl.Content = "马赛克处理: 5";
-            _resultBitmap = GetHandledImage(_cacheBitmap, 5);
+            TitleLbl.Content = $"马赛克处理: {_factor}";
+            _resultBitmap = GetHandledImage(_cacheFirstBitmap, _factor);
             _writeableBitmap = new WriteableBitmap(Imaging.CreateBitmapSourceFromHBitmap(_resultBitmap.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions()));
             TargetImage.Source = _writeableBitmap;
         }
@@ -101,7 +107,15 @@ namespace ArtDeal
 
         private void RightBtn_Click(object sender, RoutedEventArgs e)
         {
-            HandleResult = new HandleResult(new[] { (Bitmap)_resultBitmap.Clone() }, true);
+            var resultBitmaps = new List<Bitmap>()
+            {
+                (Bitmap)_resultBitmap.Clone()
+            };
+            for (var i = 1; i < _cacheBitmaps.Count(); i++)
+            {
+                resultBitmaps.Add(GetHandledImage(_cacheBitmaps.ElementAt(i), _factor));
+            }
+            HandleResult = new HandleResult(resultBitmaps, true);
             Close();
         }
 
@@ -135,11 +149,11 @@ namespace ArtDeal
 
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (_cacheBitmap == null) return;
+            if (_cacheFirstBitmap == null) return;
             _resultBitmap?.Dispose();
-            var newValue = (int)e.NewValue;
-            TitleLbl.Content = $"马赛克处理: {newValue}";
-            _resultBitmap = GetHandledImage(_cacheBitmap, newValue);
+            _factor = (int)e.NewValue;
+            TitleLbl.Content = $"马赛克处理: {_factor}";
+            _resultBitmap = GetHandledImage(_cacheFirstBitmap, _factor);
             UpdateImage(_resultBitmap);
         }
 
@@ -357,7 +371,6 @@ namespace ArtDeal
 
         public void Dispose()
         {
-            _cacheBitmap?.Dispose();
             _resultBitmap?.Dispose();
         }
     }

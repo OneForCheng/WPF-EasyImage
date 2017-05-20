@@ -21,7 +21,7 @@
         <Rectangle Fill="#FF6A96E4" Height="10" Stroke="#FF6A96E4" VerticalAlignment="Bottom" MouseLeftButtonDown="DragMoveWindow"/>
         <CheckBox x:Name="ExchangeBgCbx" FontSize="3" Padding="0" IsChecked="True" BorderThickness="0" FontStretch="Condensed" Click="ExchangeBgCbx_Click" ToolTip="切换背景(右击选择)" Margin="0,0,0,79" Height="12" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="11" MouseRightButtonDown="ExchangeBgCbx_MouseRightButtonDown"/>
 
-        <Label x:Name="TitleLbl" Content="动态图裁剪" VerticalAlignment="Top" Foreground="White" Margin="0,0,25,0" FontSize="14"  MouseLeftButtonDown="DragMoveWindow"/>
+        <Label x:Name="TitleLbl" Content="图片裁剪" VerticalAlignment="Top" Foreground="White" Margin="0,0,25,0" FontSize="14"  MouseLeftButtonDown="DragMoveWindow"/>
         <Button x:Name="CloseBtn" Content="×" Style="{StaticResource CloseBtnStyle}" VerticalAlignment="Top" HorizontalAlignment="Right" Width="18" Height="18" BorderThickness="0" Margin="0,4,4,0"  Click="CloseBtn_Click"/>
         <Grid Margin="10,25,10,10" >
             <Grid.RowDefinitions>

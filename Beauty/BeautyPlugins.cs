@@ -8,7 +8,7 @@ namespace Beauty
     {
         public string GetPluginName()
         {
-            return "美化处理";
+            return "美化处理[GIF]";
         }
 
         public Bitmap GetPluginIcon()

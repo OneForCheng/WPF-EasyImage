@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -21,7 +23,8 @@ namespace Property
     /// </summary>
     public partial class PropertiesWindow : IDisposable
     {
-        private readonly Bitmap _cacheBitmap;
+        private readonly Bitmap _cacheFirstBitmap;
+        private readonly IEnumerable<Bitmap> _cacheBitmaps;
         private Bitmap _resultBitmap;
         private Bitmap _gaussBlurBitmap;
         private WriteableBitmap _writeableBitmap;
@@ -36,15 +39,16 @@ namespace Property
 
         public HandleResult HandleResult { get; private set; }
 
-        public PropertiesWindow(Bitmap bitmap)
+        public PropertiesWindow(IEnumerable<Bitmap> bitmaps)
         {
             InitializeComponent();
-            _cacheBitmap = bitmap;
+            _cacheBitmaps = bitmaps;
+            _cacheFirstBitmap = _cacheBitmaps.First();
             
             var screenHeight = SystemParameters.VirtualScreenHeight;
             var screenWidth = SystemParameters.VirtualScreenWidth;
-            var height = bitmap.Height + 165.0;
-            var width = bitmap.Width + 40.0;
+            var height = _cacheFirstBitmap.Height + 165.0;
+            var width = _cacheFirstBitmap.Width + 40.0;
             if (height < 350)
             {
                 height = 350;
@@ -81,14 +85,14 @@ namespace Property
             
 
             _selectSlider = FirstSlider;
-            InitAverageBrights(_cacheBitmap);
+            InitAverageBrights(_cacheFirstBitmap);
             _enableChange = true;
         }
 
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.All); //去除窗口指定的系统菜单
-            _resultBitmap = (Bitmap)_cacheBitmap.Clone();
+            _resultBitmap = (Bitmap)_cacheFirstBitmap.Clone();
             _writeableBitmap = new WriteableBitmap(Imaging.CreateBitmapSourceFromHBitmap(_resultBitmap.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions()));
             TargetImage.Source = _writeableBitmap;
             _gaussBlurBitmap = GaussBlur(_resultBitmap, 10);
@@ -141,7 +145,18 @@ namespace Property
 
         private void RightBtn_Click(object sender, RoutedEventArgs e)
         {
-            HandleResult = new HandleResult(new[] { (Bitmap)_resultBitmap.Clone() } , true);
+            var resultBitmaps = new List<Bitmap>()
+            {
+                (Bitmap)_resultBitmap.Clone()
+            };
+            for (var i = 1; i < _cacheBitmaps.Count(); i++)
+            {
+                _gaussBlurBitmap?.Dispose();
+                InitAverageBrights(_cacheBitmaps.ElementAt(i));
+                _gaussBlurBitmap = GaussBlur(_cacheBitmaps.ElementAt(i), 10);
+                resultBitmaps.Add(GetHandledImage(_cacheBitmaps.ElementAt(i), _sliderValues[0], _sliderValues[1], _sliderValues[2], _sliderValues[3], _sliderValues[4], _sliderValues[5]));
+            }
+            HandleResult = new HandleResult(resultBitmaps, true);
             Close();
         }
 
@@ -171,7 +186,7 @@ namespace Property
             FifthSlider.Value = 0;
             SixthSlider.Value = 0;
             _resultBitmap?.Dispose();
-            _resultBitmap = (Bitmap) _cacheBitmap.Clone();
+            _resultBitmap = (Bitmap) _cacheFirstBitmap.Clone();
             UpdateImage(_resultBitmap);
             _enableChange = true;
         }
@@ -231,7 +246,7 @@ namespace Property
                     break;
             }
             _sliderValues[(int)sliderFlag] = newValue;
-            _resultBitmap = GetHandledImage(_cacheBitmap, _sliderValues[0], _sliderValues[1], _sliderValues[2], _sliderValues[3], _sliderValues[4], _sliderValues[5]);
+            _resultBitmap = GetHandledImage(_cacheFirstBitmap, _sliderValues[0], _sliderValues[1], _sliderValues[2], _sliderValues[3], _sliderValues[4], _sliderValues[5]);
             UpdateImage(_resultBitmap);
         }
 
@@ -606,7 +621,6 @@ namespace Property
 
         public void Dispose()
         {
-            _cacheBitmap?.Dispose();
             _resultBitmap?.Dispose();
             _gaussBlurBitmap?.Dispose();
         }

@@ -44,6 +44,7 @@ namespace EasyImage.Windows
         private UserControl _mainMenu;
         private AutoHideElementBehavior _autoHideBehavior;
         private int _addInternalImgCount;
+        private ImageFavoritesWindow _imageFavoritesWindow;
 
         #endregion
 
@@ -67,7 +68,7 @@ namespace EasyImage.Windows
             ImageCanvas.Width = Width;
             ImageCanvas.Height = Height;
             _userConfigution = ((MainWindow) Owner).UserConfigution;
-            _controlManager = new ControlManager(ImageCanvas);
+            _controlManager = new ControlManager(ImageCanvas, this);
             _controlManager.LoadPlugins(_userConfigution.AppSetting.PluginPath);
             _clipboardMonitor = new ClipboardMonitor();
             _clipboardMonitor.OnClipboardContentChanged += OnClipboardContentChanged;
@@ -114,8 +115,6 @@ namespace EasyImage.Windows
                 }
                 HotkeyManager.Current.AddOrReplace("GlobalPasteFromClipboard", globelPasteShortcut.Key,
                     modifierKeys, GlobalPasteFromClipboard);
-                    
-
             }
             catch(Exception ex)
             {
@@ -125,12 +124,23 @@ namespace EasyImage.Windows
 
             InitMainMenu();
 
+           
             var filePath = _userConfigution.WindowState.InitEasyImagePath;
             if (filePath != null)
             {
                 LoadEasyImageFromFile(filePath);
             }
 
+            var imageFavoritesWindowState = _userConfigution.WindowState.ImageFavoritesWindowState;
+            _imageFavoritesWindow = new ImageFavoritesWindow
+            {
+                Top = imageFavoritesWindowState.Top,
+                Left = imageFavoritesWindowState.Left,
+                Width = imageFavoritesWindowState.Width,
+                Height = imageFavoritesWindowState.Height,
+                Owner = this
+            };
+            _imageFavoritesWindow.LoadCollectedImages(imageFavoritesWindowState.FavoritesPath);
             #endregion
 
         }
@@ -467,6 +477,18 @@ namespace EasyImage.Windows
             window.ShowDialog();
         }
 
+        public void AddFavorites(IEnumerable<ImageSource> imageSources)
+        {
+            foreach (var item in imageSources)
+            {
+                _imageFavoritesWindow.ImageItemsSource.Add(new Image
+                {
+                    Source = item,
+                });
+            }
+           
+        }
+
         #endregion
 
         #region Private methods
@@ -474,11 +496,20 @@ namespace EasyImage.Windows
         private void SaveCurrentState()
         {
             var mainMenuIconInfo = _userConfigution.ImageSetting.MainMenuInfo;
+            //先保存宽高（需按顺序）
             mainMenuIconInfo.Width = _mainMenu.Width;
             mainMenuIconInfo.Height = _mainMenu.Height;
             var translate = _mainMenu.GetTransform<TranslateTransform>();
             mainMenuIconInfo.TranslateX = translate.X;
             mainMenuIconInfo.TranslateY = translate.Y;
+            var imageFavoritesWindowState = _userConfigution.WindowState.ImageFavoritesWindowState;
+            //先保存宽高（需按顺序）
+            imageFavoritesWindowState.Height = _imageFavoritesWindow.Height;
+            imageFavoritesWindowState.Width = _imageFavoritesWindow.Width;
+            imageFavoritesWindowState.Top = _imageFavoritesWindow.Top;
+            imageFavoritesWindowState.Left = _imageFavoritesWindow.Left;
+
+            _imageFavoritesWindow.SaveCollectedImages(_userConfigution.WindowState.ImageFavoritesWindowState.FavoritesPath);
         }
 
         private async void InitMainMenu()
@@ -584,6 +615,13 @@ namespace EasyImage.Windows
 
             item = new MenuItem { Header = "设置", Tag = "Setting" };
             item.Click += SettingWindow;
+            contextMenu.Items.Add(item);
+
+            item = new MenuItem { Header = "收藏夹", Tag = "Favorites" };
+            item.Click += (sender, e) =>
+            {
+                _imageFavoritesWindow.ShowWindow();
+            };
             contextMenu.Items.Add(item);
 
             contextMenu.Items.Add(new Separator());//分割线

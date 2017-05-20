@@ -6,7 +6,7 @@
         xmlns:ai="clr-namespace:AnimatedImage;assembly=AnimatedImage"
         x:Name="ImageWin" 
         x:Class="EasyImage.Windows.ImageWindow"
-    mc:Ignorable="d"
+        mc:Ignorable="d"
         Title="WingStudio.ForCheng.EasyImage" Top="0" Left="0"  Height="300" Width="600" Background="Transparent" WindowStyle="None" AllowsTransparency="True" Topmost="True" ShowInTaskbar="False" AllowDrop="True"  Loaded="WindowLoaded" KeyDown="WindowKeyDown" KeyUp="WindowKeyUp" Closing="WindowClosing"  Drop="WindowDrop" DragEnter="WindowDragEnter">
     <Window.Resources>
         <ResourceDictionary>

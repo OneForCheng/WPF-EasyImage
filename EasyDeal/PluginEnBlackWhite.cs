@@ -11,7 +11,7 @@ namespace EasyDeal
 
         public string GetPluginName()
         {
-            return "黑白(增强)处理[GIF]";
+            return "黑白(增强)处理";
         }
 
         public Bitmap GetPluginIcon()

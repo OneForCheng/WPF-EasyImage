@@ -1,9 +1,10 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using IPlugins;
 
 namespace Beauty
 {
-    public class PluginSoften : ISingleFilter
+    public class PluginSoften : IMultiFilter
     {
         public string GetPluginName()
         {
@@ -20,9 +21,9 @@ namespace Beauty
 
         }
 
-        public HandleResult ExecHandle(Bitmap bitmap)
+        public HandleResult ExecHandle(IEnumerable<Bitmap> bitmaps)
         {
-            var window = new SoftenWindow(bitmap);
+            var window = new SoftenWindow(bitmaps);
             window.ShowDialog();
             return window.HandleResult;
 

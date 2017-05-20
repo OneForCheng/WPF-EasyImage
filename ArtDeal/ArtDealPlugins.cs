@@ -8,7 +8,7 @@ namespace ArtDeal
     {
         public string GetPluginName()
         {
-            return "艺术处理";
+            return "艺术处理[GIF]";
         }
 
         public Bitmap GetPluginIcon()

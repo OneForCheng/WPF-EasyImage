@@ -1,9 +1,10 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 using IPlugins;
 
 namespace ArtDeal
 {
-    public class PluginAtomized : ISingleFilter
+    public class PluginAtomized : IMultiFilter
     {
         public string GetPluginName()
         {
@@ -20,10 +21,10 @@ namespace ArtDeal
 
         }
 
-        public HandleResult ExecHandle(Bitmap bitmap)
+        public HandleResult ExecHandle(IEnumerable<Bitmap> bitmaps)
         {
 
-            var window = new AtomizedWindow(bitmap);
+            var window = new AtomizedWindow(bitmaps);
             window.ShowDialog();
             return window.HandleResult;
         }

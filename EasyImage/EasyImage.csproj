@@ -153,6 +153,9 @@
     <Compile Include="Windows\GifCropWindow.xaml.cs">
       <DependentUpon>GifCropWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Windows\ImageFavoritesWindow.xaml.cs">
+      <DependentUpon>ImageFavoritesWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Windows\SettingWindow.xaml.cs">
       <DependentUpon>SettingWindow.xaml</DependentUpon>
     </Compile>
@@ -165,6 +168,10 @@
     <Page Include="Windows\GifCropWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Windows\ImageFavoritesWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Windows\SettingWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
