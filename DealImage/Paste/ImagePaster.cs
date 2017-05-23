@@ -87,7 +87,6 @@ namespace DealImage.Paste
             var imageSources = await GetImageFromIDataObject(Clipboard.GetDataObject());
             if (imageSources.Count > 0) return imageSources;
 
-
             //兼容
             if (System.Windows.Forms.Clipboard.ContainsImage())
             {

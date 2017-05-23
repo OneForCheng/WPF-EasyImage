@@ -6,12 +6,12 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Brushes = System.Windows.Media.Brushes;
 using Color = System.Drawing.Color;
 using PixelFormat = System.Drawing.Imaging.PixelFormat;
 using Point = System.Drawing.Point;
@@ -110,17 +110,28 @@ namespace GifDrawing
             return resizeBitmap;
         }
 
-        public static async Task CopyImageToClipboard(this BitmapImage bitmapSource)
+        public static async Task CopyImageToClipboard(this BitmapImage bitmapImage)
         {
             using (var stream = new MemoryStream())
             {
-                bitmapSource.StreamSource.Position = 0;
-                await bitmapSource.StreamSource.CopyToAsync(stream);
+                bitmapImage.StreamSource.Position = 0;
+                await bitmapImage.StreamSource.CopyToAsync(stream);
 
                 var dataObject = new DataObject();
-               
+
                 //普通图片格式
-                dataObject.SetData(ImageDataFormats.Bitmap, bitmapSource, true);
+                var width = (int)bitmapImage.Width;
+                var height = (int)bitmapImage.Height;
+                var rect = new Rect(0, 0, width, height);
+                var drawingVisual = new DrawingVisual();
+                using (var context = drawingVisual.RenderOpen())
+                {
+                    context.DrawRectangle(Brushes.White, null, rect);
+                    context.DrawImage(bitmapImage, rect);
+                }
+                var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                renderBitmap.Render(drawingVisual);
+                dataObject.SetData(ImageDataFormats.Bitmap, renderBitmap, true);
 
                 //兼容PNG透明格式图片
                 dataObject.SetData(ImageDataFormats.Png, stream, true);

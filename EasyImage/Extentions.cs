@@ -252,6 +252,7 @@ namespace EasyImage
         }
 
         #region 元素是否相交
+
         public static bool IsOverlapped(this FrameworkElement element, FrameworkElement otherElement)
         {
             var rect = VisualTreeHelper.GetDescendantBounds(element);

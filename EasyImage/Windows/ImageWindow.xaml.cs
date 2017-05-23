@@ -368,10 +368,7 @@ namespace EasyImage.Windows
         {
             var menuItem = sender as MenuItem;
             var flag = menuItem?.Tag?.ToString() ?? "Square";
-            var bitmapSource = ((BitmapSource)Resources[flag]).GetBitmapImage();
-            _controlManager.SelectNone();
-            _addInternalImgCount++;
-            _controlManager.AddElement(PackageBitmapSourceToControl(bitmapSource));
+            AddImageFromInternal(((BitmapSource)Resources[flag]).GetBitmapImage(), true);
         }
 
         private void SaveEasyImageToFile(object sender, RoutedEventArgs e)
@@ -477,7 +474,7 @@ namespace EasyImage.Windows
             window.ShowDialog();
         }
 
-        public void AddFavorites(IEnumerable<ImageSource> imageSources)
+        public void AddToFavorites(IEnumerable<ImageSource> imageSources)
         {
             foreach (var item in imageSources)
             {
@@ -487,6 +484,12 @@ namespace EasyImage.Windows
                 });
             }
            
+        }
+
+        public void AddImageFromInternal(BitmapSource bitmapSource, bool autoAdjust)
+        {
+            _controlManager.SelectNone();
+            _controlManager.AddElement(PackageBitmapSourceToControl(bitmapSource, autoAdjust));
         }
 
         #endregion
@@ -798,7 +801,7 @@ namespace EasyImage.Windows
             return imageControl;
         }
 
-        private ImageControl PackageBitmapSourceToControl(BitmapSource imageSource)
+        private ImageControl PackageBitmapSourceToControl(BitmapSource imageSource, bool autoAdjust)
         {
             var animatedImage = new AnimatedGif { Source = imageSource, Stretch = Stretch.Fill };
             var imageControl = new ImageControl(_controlManager)
@@ -814,28 +817,33 @@ namespace EasyImage.Windows
             transformGroup.Children.Add(new ScaleTransform(1, 1));
             transformGroup.Children.Add(new RotateTransform(0));
             double moveX = 0, moveY = 0;
-            switch (_addInternalImgCount)
+            if (autoAdjust)
             {
-                case 1:
-                    break;
-                case 2:
-                    moveX = -imageSource.Width / 2;
-                    moveY = -imageSource.Height / 2;
-                    break;
-                case 3:
-                    moveX = imageSource.Width / 2;
-                    moveY = -imageSource.Height / 2;
-                    break;
-                case 4:
-                    moveX = imageSource.Width / 2;
-                    moveY = imageSource.Height / 2;
-                    break;
-                case 5:
-                    moveX = -imageSource.Width / 2;
-                    moveY = imageSource.Height / 2;
-                    _addInternalImgCount = 0;
-                    break;
+                _addInternalImgCount++;
+                switch (_addInternalImgCount)
+                {
+                    case 1:
+                        break;
+                    case 2:
+                        moveX = -imageSource.Width / 2;
+                        moveY = -imageSource.Height / 2;
+                        break;
+                    case 3:
+                        moveX = imageSource.Width / 2;
+                        moveY = -imageSource.Height / 2;
+                        break;
+                    case 4:
+                        moveX = imageSource.Width / 2;
+                        moveY = imageSource.Height / 2;
+                        break;
+                    case 5:
+                        moveX = -imageSource.Width / 2;
+                        moveY = imageSource.Height / 2;
+                        _addInternalImgCount = 0;
+                        break;
+                }
             }
+            
             transformGroup.Children.Add(new TranslateTransform(Math.Round((SystemParameters.VirtualScreenWidth - imageControl.Width) / 2 + moveX), Math.Round((SystemParameters.VirtualScreenHeight - imageControl.Height) / 2 + moveY)));
             imageControl.RenderTransform = transformGroup;
 

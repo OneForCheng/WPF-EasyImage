@@ -5,7 +5,6 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -33,7 +32,6 @@ using IPlugins;
 using Brushes = System.Windows.Media.Brushes;
 using Color = System.Drawing.Color;
 using Image = System.Windows.Controls.Image;
-using ImageDataFormats = DealImage.ImageDataFormats;
 using Point = System.Windows.Point;
 
 namespace EasyImage
@@ -261,7 +259,11 @@ namespace EasyImage
                 baseInfos.Add(new ImageControlBaseInfo(element));
             }
             SetIsSelected(dict.Keys, false);
-            dict.CopyChildElementsToClipBoard(baseInfos);
+
+            var rect = dict.Values.GetMinContainRect();
+            var bitmapImage = dict.GetCombinedBitmap(rect);//获取合并后图片（支持单张动态图的合并）
+            bitmapImage.CopyToClipBoard(baseInfos);
+
             SetIsSelected(dict.Keys, true);
         }
 
@@ -769,7 +771,6 @@ namespace EasyImage
             element.Visibility = Visibility.Visible;
         }
 
-
         private void Menu_ZIndexTop(object sender, RoutedEventArgs e)
         {
             var elements = SelectedElements.OrderByDescending(Panel.GetZIndex);
@@ -1109,7 +1110,11 @@ namespace EasyImage
             var filePath = dialog.FileName;
             var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
             SetIsSelected(dict.Keys, false);
-            dict.SaveChildElementsToImage(filePath);
+
+            var rect = dict.Values.GetMinContainRect();
+            var bitmapImage = dict.GetCombinedBitmap(rect);//获取合并后图片（支持单张动态图的合并）
+            bitmapImage.SaveToFile(filePath);
+
             SetIsSelected(dict.Keys, true);
 
         }
@@ -1193,123 +1198,6 @@ namespace EasyImage
                 }
 
             }
-        }
-
-        private void MenuItem_GifClip(object sender, RoutedEventArgs e)
-        {
-            if (SelectedElements.Count() != 1) return;
-            MenuItem_GifCopy(null, null);
-            _actionManager.Execute(new AddItemAction<ImageControl>(_panelContainer.Children.Remove, m => _panelContainer.Children.Add(m), SelectedElements.First()));
-        }
-
-        private async void MenuItem_GifCopy(object sender, RoutedEventArgs e)
-        {
-            if (SelectedElements.Count() != 1) return;
-            var element = SelectedElements.First();
-            var animatedImage = (AnimatedGif)element.Content;
-            var bitmapFrames = animatedImage.BitmapFrames;
-            if (bitmapFrames.Count < 2) return;
-
-            var width = (int)Math.Round(element.Width);
-            var height = (int)Math.Round(element.Height);
-            var angle = element.GetTransform<RotateTransform>().Angle;
-            var scaleTransform = element.GetTransform<ScaleTransform>();
-            var scaleX = scaleTransform.ScaleX;
-            var scaleY = scaleTransform.ScaleY;
-
-            var rect = ((Image)(element.Content)).GetMinContainRect();
-            var visualWidth = (int)Math.Round(rect.Width);
-            var visualHeight = (int)Math.Round(rect.Height);
-
-            using (var stream = new MemoryStream())
-            {
-                using (var encoder = new GifEncoder(stream, visualWidth, visualHeight, animatedImage.RepeatCount))
-                {
-                    var delays = animatedImage.Delays;
-                    for (var i = 0; i < bitmapFrames.Count; i++)
-                    {
-                        using (var bitmap = bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight).GetBitmap())
-                        {
-                            encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
-                        }
-                    }
-                }
-                stream.Position = 0;
-
-                var tempFilePath = Path.GetTempFileName();
-                using (var fs = File.OpenWrite(tempFilePath))
-                {
-                    var data = stream.ToArray();
-                    await fs.WriteAsync(data, 0, data.Length);
-                }
-                var byteData = Encoding.UTF8.GetBytes("<QQRichEditFormat><Info version=\"1001\"></Info><EditElement type=\"1\" filepath=\"" + tempFilePath + "\" shortcut=\"\"></EditElement><EditElement type=\"0\"><![CDATA[]]></EditElement></QQRichEditFormat>");
-                var dataObject = new DataObject();
-                dataObject.SetData(ImageDataFormats.QqUnicodeRichEditFormat, new MemoryStream(byteData), true);
-                dataObject.SetData(ImageDataFormats.QqRichEditFormat, new MemoryStream(byteData), true);
-                dataObject.SetData(ImageDataFormats.FileDrop, new[] { tempFilePath }, true);
-                dataObject.SetData(ImageDataFormats.FileNameW, new[] { tempFilePath }, true);
-                dataObject.SetData(ImageDataFormats.FileName, new[] { tempFilePath }, true);
-
-                Clipboard.Clear();
-                Clipboard.SetDataObject(dataObject, true);
-
-            }
-
-        }
-
-        private async void MenuItem_GifSave(object sender, RoutedEventArgs e)
-        {
-            if (SelectedElements.Count() != 1) return;
-            var element = SelectedElements.First();
-            var animatedImage = (AnimatedGif)element.Content;
-            var bitmapFrames = animatedImage.BitmapFrames;
-            if (bitmapFrames.Count < 2) return;
-
-            var dialog = new SaveFileDialog
-            {
-                CheckPathExists = true,
-                AddExtension = true,
-                FileName = "图形1",
-                Filter = "GIF 可交换的图形格式 (*.gif)|*.gif",
-                ValidateNames = true,
-            };
-
-            var showDialog = dialog.ShowDialog().GetValueOrDefault();
-            if (!showDialog) return;
-            var filePath = dialog.FileName;
-
-            var width = (int)Math.Round(element.Width);
-            var height = (int)Math.Round(element.Height);
-            var angle = element.GetTransform<RotateTransform>().Angle;
-            var scaleTransform = element.GetTransform<ScaleTransform>();
-            var scaleX = scaleTransform.ScaleX;
-            var scaleY = scaleTransform.ScaleY;
-
-            var rect = ((Image)(element.Content)).GetMinContainRect();
-            var visualWidth = (int)Math.Round(rect.Width);
-            var visualHeight = (int)Math.Round(rect.Height);
-
-            using (var stream = new MemoryStream())
-            {
-                using (var encoder = new GifEncoder(stream, visualWidth, visualHeight, animatedImage.RepeatCount))
-                {
-                    var delays = animatedImage.Delays;
-                    for (var i = 0; i < bitmapFrames.Count; i++)
-                    {
-                        using (var bitmap = bitmapFrames[i].GetMinContainBitmap(width, height, angle, scaleX, scaleY, visualWidth, visualHeight).GetBitmap())
-                        {
-                            encoder.AppendFrame(bitmap, (int)delays[i].TotalMilliseconds);
-                        }
-                    }
-                }
-                stream.Position = 0;
-                using (var file = File.Create(filePath))
-                {
-                    await stream.CopyToAsync(file);
-                    //stream.WriteTo(file);
-                }
-            }
-
         }
 
         private void MenuItem_GifSplit(object sender, RoutedEventArgs e)
@@ -1407,7 +1295,7 @@ namespace EasyImage
         private void MenuItem_CollectImage(object sender, RoutedEventArgs e)
         {
             if (!SelectedElements.Any()) return;
-            _imageWindow.AddFavorites(SelectedElements.Select(m => ((AnimatedGif)m.Content).Source));
+            _imageWindow.AddToFavorites(SelectedElements.Select(m => ((AnimatedGif)m.Content).Source));
         }
 
         private void Menu_Setting(object sender, RoutedEventArgs e)
@@ -1715,33 +1603,6 @@ namespace EasyImage
             };
 
             #region 二级菜单
-
-            subItem = new MenuItem
-            {
-                Header = "剪切",
-                Tag = "GifClip",
-                ToolTip = "剪切当前GIF动态图"
-            };
-            subItem.Click += MenuItem_GifClip;
-            item.Items.Add(subItem);
-
-            subItem = new MenuItem
-            {
-                Header = "复制",
-                Tag = "GifCopy",
-                ToolTip = "复制当前GIF动态图"
-            };
-            subItem.Click += MenuItem_GifCopy;
-            item.Items.Add(subItem);
-
-            subItem = new MenuItem
-            {
-                Header = "保存",
-                Tag = "GifSave",
-                ToolTip = "保存当前GIF动态图"
-            };
-            subItem.Click += MenuItem_GifSave;
-            item.Items.Add(subItem);
 
             subItem = new MenuItem
             {

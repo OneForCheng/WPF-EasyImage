@@ -28,6 +28,7 @@ namespace EasyImage.Windows
         private bool _canTextChange;
         private TextboxFlag _textboxFlag;
         private bool _isModified;
+        private const double Factor = 0.01;
 
         public SetPropertyAction SetPropertyAction { get; private set; }
 
@@ -111,26 +112,7 @@ namespace EasyImage.Windows
 
         private void LeftBtn_Click(object sender, RoutedEventArgs e)
         {
-            _canTextChange = false;
-
-            _imageControl.Height = _oldHeight;
-            _imageControl.Width = _oldWidth;
-            _rotateTransform.Angle = _oldAngle;
-            _translateTransform.X = _oldTranslateX;
-            _translateTransform.Y = _oldTranslateY;
-            _imageControl.IsLockAspect = _oldIsLockAspect;
-
-            HeightTbx.Text = _oldHeight.ToString(CultureInfo.InvariantCulture);
-            WidthTbx.Text = _oldWidth.ToString(CultureInfo.InvariantCulture);
-            AngleTbx.Text = _oldAngle.ToString(CultureInfo.InvariantCulture);
-            LocationXTbx.Text = _oldTranslateX.ToString(CultureInfo.InvariantCulture);
-            LocationYTbx.Text = _oldTranslateY.ToString(CultureInfo.InvariantCulture);
-            CheckBox.IsChecked = _oldIsLockAspect;
-
-            PixelRbn.IsChecked = true;
-            _isModified = false;
-
-            _canTextChange = true;
+            Reset();
         }
 
         private void RightBtn_Click(object sender, RoutedEventArgs e)
@@ -140,6 +122,7 @@ namespace EasyImage.Windows
 
         private void CloseBtn_Click(object sender, RoutedEventArgs e)
         {
+            Reset();
             Close();
         }
 
@@ -148,43 +131,196 @@ namespace EasyImage.Windows
             _imageControl.IsLockAspect = CheckBox.IsChecked.GetValueOrDefault();
         }
 
+        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if(!_canTextChange) return;
+            var textbox = sender as TextBox;
+            if (textbox == null) return;
+            _textboxFlag = (TextboxFlag)textbox.Tag;
+            _textChanged = true;
+        }
+
         private void TextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            var textbox = sender as TextBox;
-            if (textbox == null || !_textChanged) return;
-            var textboxFlag = (TextboxFlag)textbox.Tag;
-            try
-            {
-                switch (textboxFlag)
-                {
-                    case TextboxFlag.First:
-                        SetHeightValue();
-                        break;
-                    case TextboxFlag.Second:
-                        SetWidthValue();
-                        break;
-                    case TextboxFlag.Third:
-                        SetAngleValue();
-                        break;
-                    case TextboxFlag.Forth:
-                        SetTranslateXValue();
-                        break;
-                    case TextboxFlag.Fifth:
-                        SetTranslateYValue();
-                        break;
-                }
-                _textChanged = false;
-            }
-            catch (Exception ex)
-            {
-                App.Log.Error(ex.ToString());
-                Extentions.ShowMessageBox("无效的输入!");
-            }
+            if (!_textChanged) return;
+            SetValue();
         }
 
         private void Grid_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (!_textChanged) return;
+            SetValue();
+        }
+
+        private void SetHeightValue()
+        {
+            double height, newWidth = 0;
+            if (double.TryParse(HeightTbx.Text, out height))
+            {
+                height = Math.Round(height, 2);
+                if (height > 0)
+                {
+                    if (_selectedPixelRbn)
+                    {
+                        if (Math.Abs(_imageControl.Height - height) >= Factor)
+                        {
+                            if (_imageControl.IsLockAspect)
+                            {
+                                newWidth = Math.Round(height / _imageControl.Height * _imageControl.Width, 2);
+                            }
+                            _imageControl.Height = height;
+                            _isModified = true;
+                        }
+                    }
+                    else
+                    {
+                        height = Math.Round(height/100*_originHeight, 2);
+                        if (height > 0 && Math.Abs(_imageControl.Height - height) >= Factor)
+                        {
+                            if (_imageControl.IsLockAspect)
+                            {
+                                newWidth = Math.Round(height / _imageControl.Height * _imageControl.Width, 2);
+                            }
+                            _imageControl.Height = height;
+                            _isModified = true;
+                           
+                        }
+                    }
+                }
+            }
+          
+            _canTextChange = false;
+            HeightTbx.Text = _selectedPixelRbn ? Math.Round(_imageControl.Height, 2).ToString(CultureInfo.InvariantCulture) : Math.Round(_imageControl.Height / _originHeight * 100, 2).ToString(CultureInfo.InvariantCulture);
+            if (newWidth > 0)
+            {
+                //同步修改宽度
+                _imageControl.Width = newWidth;
+                WidthTbx.Text = _selectedPixelRbn ? newWidth.ToString(CultureInfo.InvariantCulture) : Math.Round(newWidth / _originWidth * 100, 2).ToString(CultureInfo.InvariantCulture);
+            }
+            _canTextChange = true;
+        }
+
+        private void SetWidthValue()
+        {
+           
+            double width, newHeight = 0;
+            if (double.TryParse(WidthTbx.Text, out width))
+            {
+                width = Math.Round(width, 2);
+                if (width > 0)
+                {
+                    if (_selectedPixelRbn)
+                    {
+                        if (Math.Abs(_imageControl.Width - width) >= Factor)
+                        {
+                            if (_imageControl.IsLockAspect)
+                            {
+                                newHeight = Math.Round(width / _imageControl.Width * _imageControl.Height, 2);
+                            }
+                            _imageControl.Width = width;
+                            _isModified = true;
+                        }
+                    }
+                    else
+                    {
+                        width = Math.Round(width / 100 * _originWidth, 2);
+                        if (width > 0 && Math.Abs(_imageControl.Width - width) >= Factor)
+                        {
+                            if (_imageControl.IsLockAspect)
+                            {
+                                newHeight = Math.Round(width / _imageControl.Width * _imageControl.Height, 2);
+                            }
+                            _imageControl.Width = width;
+                            _isModified = true;
+                        }
+                    }
+                }
+            }
+            _canTextChange = false;
+            WidthTbx.Text = _selectedPixelRbn ? Math.Round(_imageControl.Width, 2).ToString(CultureInfo.InvariantCulture) : Math.Round(_imageControl.Width / _originWidth * 100, 2).ToString(CultureInfo.InvariantCulture);
+            if (newHeight > 0)
+            {
+                //同步修改高度
+                _imageControl.Height = newHeight;
+                HeightTbx.Text = _selectedPixelRbn ? newHeight.ToString(CultureInfo.InvariantCulture) : Math.Round(newHeight / _originHeight * 100, 2).ToString(CultureInfo.InvariantCulture);
+            }
+            _canTextChange = true;
+        }
+
+        private void SetAngleValue()
+        {
+            double angle;
+            ReviseRotateCenter();//重置旋转中心
+            if (double.TryParse(AngleTbx.Text, out angle))
+            {
+                angle = Math.Round(angle) % 360;
+                if (angle < 0)
+                {
+                    angle += 360;
+                }
+                if (Math.Abs(_rotateTransform.Angle - angle) >= Factor)
+                {
+                    _rotateTransform.Angle = angle;
+                    _isModified = true;
+                }
+            }
+            _canTextChange = false;
+            AngleTbx.Text = _rotateTransform.Angle.ToString(CultureInfo.InvariantCulture);
+            _canTextChange = true;
+        }
+
+        private void SetTranslateXValue()
+        {
+            double translateX;
+            if (double.TryParse(LocationXTbx.Text, out translateX))
+            {
+                translateX = Math.Round(translateX, 2);
+                if (Math.Abs(_translateTransform.X - translateX) >= Factor)
+                {
+                    _translateTransform.X = translateX;
+                    _isModified = true;
+                }
+            }
+            _canTextChange = false;
+            LocationXTbx.Text = Math.Round(_translateTransform.X, 2).ToString(CultureInfo.InvariantCulture);
+            _canTextChange = true;
+
+        }
+
+        private void SetTranslateYValue()
+        {
+            double translateY;
+            if (double.TryParse(LocationYTbx.Text, out translateY))
+            {
+                translateY = Math.Round(translateY, 2);
+                if (Math.Abs(_translateTransform.Y - translateY) >= Factor)
+                {
+                    _translateTransform.Y = translateY;
+                    _isModified = true;
+                }
+            }
+            _canTextChange = false;
+            LocationYTbx.Text = Math.Round(_translateTransform.Y, 2).ToString(CultureInfo.InvariantCulture);
+            _canTextChange = true;
+
+        }
+
+        /// <summary>
+        /// 校正旋转中心
+        /// </summary>
+        private void ReviseRotateCenter()
+        {
+            var center = _imageControl.TranslatePoint(new Point(_imageControl.Width / 2, _imageControl.Height / 2), null);
+            var centerX = _imageControl.Width*_scaleTransform.ScaleX/2;
+            var centerY = _imageControl.Height*_scaleTransform.ScaleY/2;
+            _rotateTransform.CenterX = centerX;
+            _rotateTransform.CenterY = centerY;
+            _translateTransform.X = center.X - centerX;
+            _translateTransform.Y = center.Y - centerY;
+        }
+
+        private void SetValue()
+        {
             try
             {
                 switch (_textboxFlag)
@@ -214,144 +350,28 @@ namespace EasyImage.Windows
             }
         }
 
-        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
+        private void Reset()
         {
-            if(!_canTextChange) return;
-            var textbox = sender as TextBox;
-            if (textbox == null) return;
-            _textboxFlag = (TextboxFlag)textbox.Tag;
-            _textChanged = true;
-        }
-
-        private void SetHeightValue()
-        {
-            double height;
-            if (double.TryParse(HeightTbx.Text, out height))
-            {
-                height = Math.Round(height, 2);
-                if (height > 0)
-                {
-                    if (_selectedPixelRbn)
-                    {
-                        _imageControl.Height = height;
-                        _isModified = true;
-                        return;
-                    }
-                    else
-                    {
-                        height = Math.Round(height/100*_originHeight, 2);
-                        if (height > 0)
-                        {
-                            _imageControl.Height = height;
-                            _isModified = true;
-                            return;
-                        }
-                    }
-                }
-            }
-          
             _canTextChange = false;
-            HeightTbx.Text = _selectedPixelRbn ? Math.Round(_imageControl.Height, 2).ToString(CultureInfo.InvariantCulture) : Math.Round(_imageControl.Height / _originHeight * 100, 2).ToString(CultureInfo.InvariantCulture);
+
+            _imageControl.Height = _oldHeight;
+            _imageControl.Width = _oldWidth;
+            _rotateTransform.Angle = _oldAngle;
+            _translateTransform.X = _oldTranslateX;
+            _translateTransform.Y = _oldTranslateY;
+            _imageControl.IsLockAspect = _oldIsLockAspect;
+
+            HeightTbx.Text = _oldHeight.ToString(CultureInfo.InvariantCulture);
+            WidthTbx.Text = _oldWidth.ToString(CultureInfo.InvariantCulture);
+            AngleTbx.Text = _oldAngle.ToString(CultureInfo.InvariantCulture);
+            LocationXTbx.Text = _oldTranslateX.ToString(CultureInfo.InvariantCulture);
+            LocationYTbx.Text = _oldTranslateY.ToString(CultureInfo.InvariantCulture);
+            CheckBox.IsChecked = _oldIsLockAspect;
+
+            PixelRbn.IsChecked = true;
+            _isModified = false;
+
             _canTextChange = true;
         }
-
-        private void SetWidthValue()
-        {
-           
-            double width;
-
-            if (double.TryParse(WidthTbx.Text, out width))
-            {
-                width = Math.Round(width, 2);
-                if (width > 0)
-                {
-                    if (_selectedPixelRbn)
-                    {
-                        _imageControl.Width = width;
-                        _isModified = true;
-                        return;
-                    }
-                    else
-                    {
-                        width = Math.Round(width / 100 * _originWidth, 2);
-                        if (width > 0)
-                        {
-                            _imageControl.Width = width;
-                            _isModified = true;
-                            return;
-                        }
-                    }
-                }
-            }
-            _canTextChange = false;
-            WidthTbx.Text = _selectedPixelRbn ? Math.Round(_imageControl.Width, 2).ToString(CultureInfo.InvariantCulture) : Math.Round(_imageControl.Width / _originWidth * 100, 2).ToString(CultureInfo.InvariantCulture);
-            _canTextChange = true;
-        }
-
-        private void SetAngleValue()
-        {
-           
-            double angle;
-            ReviseRotateCenter();//重置旋转中心
-            if (double.TryParse(AngleTbx.Text, out angle))
-            {
-                angle = Math.Round(angle) % 360;
-                if (angle >= 0)
-                {
-                    _rotateTransform.Angle = angle;
-                }
-                else
-                {
-                    angle += 360;
-                    _rotateTransform.Angle = angle;
-                }
-                _isModified = true;
-            }
-            _canTextChange = false;
-            AngleTbx.Text = _rotateTransform.Angle.ToString(CultureInfo.InvariantCulture);
-            _canTextChange = true;
-        }
-
-        private void SetTranslateXValue()
-        {
-            
-            double translateX;
-            if (double.TryParse(LocationXTbx.Text, out translateX))
-            {
-                _translateTransform.X = Math.Round(translateX, 2);
-                _isModified = true;
-            }
-            _canTextChange = false;
-            LocationXTbx.Text = Math.Round(_translateTransform.X, 2).ToString(CultureInfo.InvariantCulture);
-            _canTextChange = true;
-
-        }
-
-        private void SetTranslateYValue()
-        {
-            
-            double translateY;
-            if (double.TryParse(LocationYTbx.Text, out translateY))
-            {
-                _translateTransform.Y = Math.Round(translateY, 2);
-                _isModified = true;
-            }
-            _canTextChange = false;
-            LocationYTbx.Text = Math.Round(_translateTransform.Y, 2).ToString(CultureInfo.InvariantCulture);
-            _canTextChange = true;
-
-        }
-
-        private void ReviseRotateCenter()
-        {
-            var elementCenter = _imageControl.TranslatePoint(new Point(_imageControl.Width / 2, _imageControl.Height / 2), null);
-            var centerX = _imageControl.Width*_scaleTransform.ScaleX/2;
-            var centerY = _imageControl.Height*_scaleTransform.ScaleY/2;
-            _rotateTransform.CenterX = centerX;
-            _rotateTransform.CenterY = centerY;
-            _translateTransform.X = elementCenter.X - centerX;
-            _translateTransform.Y = elementCenter.Y - centerY;
-        }
-
     }
 }

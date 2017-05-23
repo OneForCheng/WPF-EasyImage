@@ -9,6 +9,12 @@ using EasyImage.Config;
 using EasyImage.Enum;
 using EasyImage.UnmanagedToolkit;
 using Microsoft.Win32;
+using CheckBox = System.Windows.Controls.CheckBox;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+using Shortcut = EasyImage.Config.Shortcut;
+using TextBox = System.Windows.Controls.TextBox;
+using UserControl = System.Windows.Controls.UserControl;
 
 namespace EasyImage.Windows
 {
@@ -91,7 +97,6 @@ namespace EasyImage.Windows
                 var registry = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true) ??
                                Registry.LocalMachine.CreateSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
                 registry?.SetValue(fileName,Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, AppDomain.CurrentDomain.SetupInformation.ApplicationName));
-                
             }
             else
             {
@@ -99,7 +104,7 @@ namespace EasyImage.Windows
                 registry?.DeleteValue(fileName, false);
             }
         }
-            
+        
         private void DragMoveWindow(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
@@ -110,37 +115,7 @@ namespace EasyImage.Windows
 
         private void LeftBtn_Click(object sender, RoutedEventArgs e)
         {
-            _canTextChange = false;
-
-            _imageControl.Height = _oldHeight;
-            _imageControl.Width = _oldWidth;
-            _translateTransform.X = _oldTranslateX;
-            _translateTransform.Y = _oldTranslateY;
-            _userConfig.ImageSetting.InitMaxImgSize = _oldInitMaxImgSize;
-            _userConfig.ImageSetting.MainMenuInfo.Path = _oldPath;
-            _userConfig.ShortcutSetting.GlobelAddShortcut = (Shortcut)_oldGlobelAddShortcut.Clone();
-            _userConfig.ShortcutSetting.GlobelPasteShortcut = (Shortcut)_oldGlobelPasteShortcut.Clone();
-            _userConfig.AppSetting.AutoRun = _oldAutoRun;
-
-            _imageControl.Content = _oldAnimatedGif;
-            HeightTbx.Text = _oldHeight.ToString(CultureInfo.InvariantCulture);
-            WidthTbx.Text = _oldWidth.ToString(CultureInfo.InvariantCulture);
-            LocationXTbx.Text = _oldTranslateX.ToString(CultureInfo.InvariantCulture);
-            LocationYTbx.Text = _oldTranslateY.ToString(CultureInfo.InvariantCulture);
-            MaxSizeTbx.Text = _oldInitMaxImgSize.ToString(CultureInfo.InvariantCulture);
-            AutoRunCk.IsChecked = _oldAutoRun;
-
-            CtrlCbx1.IsChecked = _oldGlobelAddShortcut.IsCtrl;
-            AltCbx1.IsChecked = _oldGlobelAddShortcut.IsAlt;
-            ShiftCbx1.IsChecked = _oldGlobelAddShortcut.IsShift;
-            KeyTbx1.Text = _oldGlobelAddShortcut.Key.ToString();
-
-            CtrlCbx2.IsChecked = _oldGlobelPasteShortcut.IsCtrl;
-            AltCbx2.IsChecked = _oldGlobelPasteShortcut.IsAlt;
-            ShiftCbx2.IsChecked = _oldGlobelPasteShortcut.IsShift;
-            KeyTbx2.Text = _oldGlobelPasteShortcut.Key.ToString();
-
-            _canTextChange = true;
+            Reset();
         }
 
         private void RightBtn_Click(object sender, RoutedEventArgs e)
@@ -150,73 +125,8 @@ namespace EasyImage.Windows
 
         private void CloseBtn_Click(object sender, RoutedEventArgs e)
         {
+            Reset();
             Close();
-        }
-
-        private void TextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
-        {
-            var textbox = sender as TextBox;
-            if (textbox == null || !_textChanged) return;
-            var textboxFlag = (TextboxFlag)textbox.Tag;
-            try
-            {
-                switch (textboxFlag)
-                {
-                    case TextboxFlag.First:
-                        SetHeightValue();
-                        break;
-                    case TextboxFlag.Second:
-                        SetWidthValue();
-                        break;
-                    case TextboxFlag.Third:
-                        SetTranslateXValue();
-                        break;
-                    case TextboxFlag.Forth:
-                        SetTranslateYValue();
-                        break;
-                    case TextboxFlag.Fifth:
-                        SetInitMaxImgSize();
-                        break;
-                }
-                _textChanged = false;
-            }
-            catch (Exception ex)
-            {
-                App.Log.Error(ex.ToString());
-                Extentions.ShowMessageBox("无效的输入!");
-            }
-        }
-
-        private void Grid_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (!_textChanged) return;
-            try
-            {
-                switch (_textboxFlag)
-                {
-                    case TextboxFlag.First:
-                        SetHeightValue();
-                        break;
-                    case TextboxFlag.Second:
-                        SetWidthValue();
-                        break;
-                    case TextboxFlag.Third:
-                        SetTranslateXValue();
-                        break;
-                    case TextboxFlag.Forth:
-                        SetTranslateYValue();
-                        break;
-                    case TextboxFlag.Fifth:
-                        SetInitMaxImgSize();
-                        break;
-                }
-                _textChanged = false;
-            }
-            catch (Exception ex)
-            {
-                App.Log.Error(ex.ToString());
-                Extentions.ShowMessageBox("无效的输入!");
-            }
         }
 
         private async void ReplaceBtn_Click(object sender, RoutedEventArgs e)
@@ -267,21 +177,16 @@ namespace EasyImage.Windows
             _textChanged = true;
         }
 
-        private void SetHeightValue()
+        private void TextBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            double height;
-            if (double.TryParse(HeightTbx.Text, out height))
-            {
-                height = Math.Round(height, 2);
-                if (height > 0)
-                {
-                    _imageControl.Height = height;
-                    return;
-                }
-            }
-            _canTextChange = false;
-            HeightTbx.Text = Math.Round(_imageControl.Height, 2).ToString(CultureInfo.InvariantCulture);
-            _canTextChange = true;
+            if (!_textChanged) return;
+            SetValue();
+        }
+
+        private void Grid_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!_textChanged) return;
+            SetValue();
         }
 
         private void Checkbox_Click(object sender, RoutedEventArgs e)
@@ -323,24 +228,47 @@ namespace EasyImage.Windows
                 Extentions.ShowMessageBox("不能有[Ctrl,Alt,Shift]等按键");
                 return;
             }
-
+            
             var flag = (int)textbox.Tag;
             switch (flag)
             {
                 case 0:
-                    _userConfig.ShortcutSetting.GlobelAddShortcut.Key = e.ImeProcessedKey;
-                    KeyTbx1.Text = e.ImeProcessedKey.ToString();
+                    if (e.ImeProcessedKey != Key.None)
+                    {
+                        _userConfig.ShortcutSetting.GlobelAddShortcut.Key = e.ImeProcessedKey;
+                        KeyTbx1.Text = e.ImeProcessedKey.ToString();
+                    }
                     break;
                 case 1:
-                    _userConfig.ShortcutSetting.GlobelPasteShortcut.Key = e.ImeProcessedKey;
-                    KeyTbx2.Text = e.ImeProcessedKey.ToString();
+                    if (e.ImeProcessedKey != Key.None)
+                    {
+                        _userConfig.ShortcutSetting.GlobelPasteShortcut.Key = e.ImeProcessedKey;
+                        KeyTbx2.Text = e.ImeProcessedKey.ToString();
+                    }
                     break;
             }
+            
         }
 
         private void AutoRunCk_Click(object sender, RoutedEventArgs e)
         {
             _userConfig.AppSetting.AutoRun = AutoRunCk.IsChecked.GetValueOrDefault();
+        }
+
+        private void SetHeightValue()
+        {
+            double height;
+            if (double.TryParse(HeightTbx.Text, out height))
+            {
+                height = Math.Round(height, 2);
+                if (height > 0)
+                {
+                    _imageControl.Height = height;
+                }
+            }
+            _canTextChange = false;
+            HeightTbx.Text = Math.Round(_imageControl.Height, 2).ToString(CultureInfo.InvariantCulture);
+            _canTextChange = true;
         }
 
         private void SetWidthValue()
@@ -354,7 +282,6 @@ namespace EasyImage.Windows
                 if (width > 0)
                 {
                     _imageControl.Width = width;
-                    return;
                 }
             }
             _canTextChange = false;
@@ -369,7 +296,6 @@ namespace EasyImage.Windows
             if (double.TryParse(LocationXTbx.Text, out translateX))
             {
                 _translateTransform.X = Math.Round(translateX, 2);
- 
             }
             _canTextChange = false;
             LocationXTbx.Text = Math.Round(_translateTransform.X, 2).ToString(CultureInfo.InvariantCulture);
@@ -419,6 +345,72 @@ namespace EasyImage.Windows
                 ShortcutGrid.Visibility = Visibility.Visible;
                 NormalGrid.Visibility = Visibility.Hidden;
             }
+        }
+
+        private void SetValue()
+        {
+            try
+            {
+                switch (_textboxFlag)
+                {
+                    case TextboxFlag.First:
+                        SetHeightValue();
+                        break;
+                    case TextboxFlag.Second:
+                        SetWidthValue();
+                        break;
+                    case TextboxFlag.Third:
+                        SetTranslateXValue();
+                        break;
+                    case TextboxFlag.Forth:
+                        SetTranslateYValue();
+                        break;
+                    case TextboxFlag.Fifth:
+                        SetInitMaxImgSize();
+                        break;
+                }
+                _textChanged = false;
+            }
+            catch (Exception ex)
+            {
+                App.Log.Error(ex.ToString());
+                Extentions.ShowMessageBox("无效的输入!");
+            }
+        }
+
+        private void Reset()
+        {
+            _canTextChange = false;
+
+            _imageControl.Height = _oldHeight;
+            _imageControl.Width = _oldWidth;
+            _translateTransform.X = _oldTranslateX;
+            _translateTransform.Y = _oldTranslateY;
+            _userConfig.ImageSetting.InitMaxImgSize = _oldInitMaxImgSize;
+            _userConfig.ImageSetting.MainMenuInfo.Path = _oldPath;
+            _userConfig.ShortcutSetting.GlobelAddShortcut = (Shortcut)_oldGlobelAddShortcut.Clone();
+            _userConfig.ShortcutSetting.GlobelPasteShortcut = (Shortcut)_oldGlobelPasteShortcut.Clone();
+            _userConfig.AppSetting.AutoRun = _oldAutoRun;
+
+            _imageControl.Content = _oldAnimatedGif;
+            HeightTbx.Text = _oldHeight.ToString(CultureInfo.InvariantCulture);
+            WidthTbx.Text = _oldWidth.ToString(CultureInfo.InvariantCulture);
+            LocationXTbx.Text = _oldTranslateX.ToString(CultureInfo.InvariantCulture);
+            LocationYTbx.Text = _oldTranslateY.ToString(CultureInfo.InvariantCulture);
+            MaxSizeTbx.Text = _oldInitMaxImgSize.ToString(CultureInfo.InvariantCulture);
+            AutoRunCk.IsChecked = _oldAutoRun;
+
+            CtrlCbx1.IsChecked = _oldGlobelAddShortcut.IsCtrl;
+            AltCbx1.IsChecked = _oldGlobelAddShortcut.IsAlt;
+            ShiftCbx1.IsChecked = _oldGlobelAddShortcut.IsShift;
+            KeyTbx1.Text = _oldGlobelAddShortcut.Key.ToString();
+
+            CtrlCbx2.IsChecked = _oldGlobelPasteShortcut.IsCtrl;
+            AltCbx2.IsChecked = _oldGlobelPasteShortcut.IsAlt;
+            ShiftCbx2.IsChecked = _oldGlobelPasteShortcut.IsShift;
+            KeyTbx2.Text = _oldGlobelPasteShortcut.Key.ToString();
+
+            _canTextChange = true;
         }
     }
 }

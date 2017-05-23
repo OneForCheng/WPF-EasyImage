@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -9,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using DealImage;
+using DealImage.Copy;
 using DealImage.Paste;
 using EasyImage.Behaviors;
 using Point = System.Drawing.Point;
@@ -164,7 +166,7 @@ namespace EasyImage.Windows
                 if(!Directory.Exists(path))return;
             }
             var folder = new DirectoryInfo(path);
-            foreach (var item in folder.GetFiles())
+            foreach (var item in folder.GetFiles().OrderBy(m => m.CreationTime))
             {
                 try
                 {
@@ -226,6 +228,7 @@ namespace EasyImage.Windows
         #endregion
 
         #region 主窗口事件
+
         private void WindowLoaded(object sender, RoutedEventArgs e)
         {this.DisableMaxmize(true); //禁用窗口最大化功能
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.Restore | Win32.SystemMenuItems.Minimize | Win32.SystemMenuItems.Maximize | Win32.SystemMenuItems.SpliteLine | Win32.SystemMenuItems.Close); //去除窗口指定的系统菜单
@@ -245,7 +248,20 @@ namespace EasyImage.Windows
 
         private void WindowKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Delete)
+            
+            if ((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                switch (e.Key)
+                {
+                    case Key.C:
+                        CopyImageToClipBoard();
+                        break;
+                    case Key.V:
+                        PasteImagesFromClipboard();
+                        break;
+                }
+            }
+            else if (e.Key == Key.Delete)
             {
                 var index = ImageListBox.SelectedIndex;
                 if (index != -1)
@@ -304,43 +320,50 @@ namespace EasyImage.Windows
             var bitmapImage = image?.Source as BitmapImage;
             if (bitmapImage != null)
             {
-                _isDragDrop = true;
-                using (var stream = new MemoryStream())
+                if ((Keyboard.Modifiers & ModifierKeys.Control) > 0)
                 {
-
-                    bitmapImage.StreamSource.Position = 0;
-                    await bitmapImage.StreamSource.CopyToAsync(stream);
-
-                    var dataObject = new DataObject();
-
-                    //普通图片格式
-                    dataObject.SetData(ImageDataFormats.Bitmap, bitmapImage, true);
-
-                    //若想取消注释，则不能释放stream，否则会报错
-                    ////兼容PNG透明格式图片
-                    //dataObject.SetData(ImageDataFormats.Png, stream, true);
-
-                    //兼容QQ
-                    var tempFilePath = Path.GetTempFileName();
-                    using (var fs = File.OpenWrite(tempFilePath))
-                    {
-                        var data = stream.ToArray();
-                        fs.Write(data, 0, data.Length);
-                    }
-
-                    var byteData = Encoding.UTF8.GetBytes("<QQRichEditFormat><Info version=\"1001\"></Info><EditElement type=\"1\" filepath=\"" + tempFilePath + "\" shortcut=\"\"></EditElement><EditElement type=\"0\"><![CDATA[]]></EditElement></QQRichEditFormat>");
-                    dataObject.SetData(ImageDataFormats.QqUnicodeRichEditFormat, new MemoryStream(byteData), true);
-                    dataObject.SetData(ImageDataFormats.QqRichEditFormat, new MemoryStream(byteData), true);
-                    dataObject.SetData(ImageDataFormats.FileDrop, new[] { tempFilePath }, true);
-                    dataObject.SetData(ImageDataFormats.FileNameW, new[] { tempFilePath }, true);
-                    dataObject.SetData(ImageDataFormats.FileName, new[] { tempFilePath }, true);
-                    DragDrop.DoDragDrop(image, dataObject, DragDropEffects.Copy);
-
+                    (Owner as ImageWindow)?.AddImageFromInternal(bitmapImage, false);
                 }
-                _isDragDrop = false;
+                else
+                {
+                    _isDragDrop = true;
+                    using (var stream = new MemoryStream())
+                    {
+
+                        bitmapImage.StreamSource.Position = 0;
+                        await bitmapImage.StreamSource.CopyToAsync(stream);
+
+                        var dataObject = new DataObject();
+
+                        //普通图片格式
+                        dataObject.SetData(ImageDataFormats.Bitmap, bitmapImage, true);
+
+                        //若想取消注释，则不能释放stream，否则会报错
+                        ////兼容PNG透明格式图片
+                        //dataObject.SetData(ImageDataFormats.Png, stream, true);
+
+                        //兼容QQ
+                        var tempFilePath = Path.GetTempFileName();
+                        using (var fs = File.OpenWrite(tempFilePath))
+                        {
+                            var data = stream.ToArray();
+                            fs.Write(data, 0, data.Length);
+                        }
+
+                        var byteData = Encoding.UTF8.GetBytes("<QQRichEditFormat><Info version=\"1001\"></Info><EditElement type=\"1\" filepath=\"" + tempFilePath + "\" shortcut=\"\"></EditElement><EditElement type=\"0\"><![CDATA[]]></EditElement></QQRichEditFormat>");
+                        dataObject.SetData(ImageDataFormats.QqUnicodeRichEditFormat, new MemoryStream(byteData), true);
+                        dataObject.SetData(ImageDataFormats.QqRichEditFormat, new MemoryStream(byteData), true);
+                        dataObject.SetData(ImageDataFormats.FileDrop, new[] { tempFilePath }, true);
+                        dataObject.SetData(ImageDataFormats.FileNameW, new[] { tempFilePath }, true);
+                        dataObject.SetData(ImageDataFormats.FileName, new[] { tempFilePath }, true);
+                        DragDrop.DoDragDrop(image, dataObject, DragDropEffects.Copy);
+
+                    }
+                    _isDragDrop = false;
+                }
+                
             }
         }
-
 
         //private void CloseBtn_Click(object sender, RoutedEventArgs e)
         //{
@@ -349,5 +372,37 @@ namespace EasyImage.Windows
         #endregion
 
 
+        #region Private methods
+
+        private async void PasteImagesFromClipboard()
+        {
+            if (!ImagePaster.CanPasteImageFromClipboard()) return;
+            try
+            {
+                var imageSources = await ImagePaster.GetPasteImagesFromClipboard();
+                if (imageSources.Count <= 0) return;
+                imageSources.ForEach(m => ImageItemsSource.Add(new Image
+                {
+                    Source = m,
+                }));
+            }
+            catch (Exception ex)
+            {
+                App.Log.Error(ex.ToString());
+                Extentions.ShowMessageBox("无效的粘贴!");
+            }
+        }
+
+        private void CopyImageToClipBoard()
+        {
+            var index = ImageListBox.SelectedIndex;
+            if (index != -1)
+            {
+                var bitmapImage = ImageItemsSource[index].Source as BitmapImage;
+                bitmapImage?.CopyToClipBoard();
+            }
+        }
+
+        #endregion
     }
 }

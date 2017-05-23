@@ -1,51 +1,76 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace DealImage.Save
 {
     public static class ImageSaver
     {
-        public static void SaveChildElementsToImage(this IDictionary<FrameworkElement, FrameworkElement> dictionary, String outputPath)
+        public static async void SaveToFile(this BitmapImage bitmapImage, string outputPath)
         {
-            SaveChildElementsToImage(dictionary, GetEncoderByFileExt(outputPath.Split('.').Last()), outputPath);
-        }
-
-        public static void SaveChildElementsToImage(this IDictionary<FrameworkElement, FrameworkElement> dictionary, BitmapEncoder encoder, String outputPath)
-        {
-            if (encoder is JpegBitmapEncoder || encoder is BmpBitmapEncoder)
+            BitmapSource bitmapSource = bitmapImage;
+            var encoder = GetEncoderByFileExt(outputPath.Split('.').Last());
+            if (encoder is GifBitmapEncoder && ImageHelper.GetImageExtension(bitmapImage.StreamSource) == ImageExtension.Gif)
             {
-                SaveBitmapToFile(dictionary.GetMinContainBitmap(System.Windows.Media.Brushes.White), encoder, outputPath);
+                try
+                {
+                    var folder = Path.GetDirectoryName(outputPath);
+                    if (!Directory.Exists(folder))
+                    {
+                        if (folder != null) Directory.CreateDirectory(folder);
+                    }
+                    using (var file = File.Create(outputPath))
+                    {
+                        bitmapImage.StreamSource.Position = 0;
+                        await bitmapImage.StreamSource.CopyToAsync(file);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine(ex.ToString());
+                }
             }
             else
             {
-                SaveBitmapToFile(dictionary.GetMinContainBitmap(), encoder, outputPath);
-            }
-        }
-
-        private static void SaveBitmapToFile(BitmapSource bitmap, BitmapEncoder encoder, String outputPath)
-        {
-            try
-            {
-                var folder = Path.GetDirectoryName(outputPath);
-                if (!Directory.Exists(folder))
+                if (encoder is JpegBitmapEncoder || encoder is BmpBitmapEncoder)
                 {
-                    if (folder != null) Directory.CreateDirectory(folder);
+                    //若存在透明色，则设置白色的
+                    var width = (int)bitmapImage.Width;
+                    var height = (int)bitmapImage.Height;
+                    var rect = new Rect(0, 0, width, height);
+                    var drawingVisual = new DrawingVisual();
+                    using (var context = drawingVisual.RenderOpen())
+                    {
+                        context.DrawRectangle(Brushes.White, null, rect);
+                        context.DrawImage(bitmapImage, rect);
+                    }
+                    var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+                    renderBitmap.Render(drawingVisual);
+                    bitmapSource = renderBitmap;
                 }
-                encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                using (var file = File.Create(outputPath))
+                try
                 {
-                    encoder.Save(file);
+                    var folder = Path.GetDirectoryName(outputPath);
+                    if (!Directory.Exists(folder))
+                    {
+                        if (folder != null) Directory.CreateDirectory(folder);
+                    }
+                    encoder.Frames.Add(BitmapFrame.Create(bitmapSource));
+                    using (var file = File.Create(outputPath))
+                    {
+                        encoder.Save(file);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine(ex.ToString());
                 }
             }
-            catch (Exception ex)
-            {
-                Trace.WriteLine(ex.ToString());
-            }
+            
         }
 
         private static BitmapEncoder GetEncoderByFileExt(string fileExt)
@@ -55,7 +80,6 @@ namespace DealImage.Save
             {
                 case "GIF":
                     encoder = new GifBitmapEncoder();
-                    
                     break;
                 case "JPG":
                 case "JPEG":
