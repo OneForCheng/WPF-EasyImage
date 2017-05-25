@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows;
@@ -9,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Drawing.Config;
 using IPlugins;
 using Brush = System.Drawing.Brush;
 using Brushes = System.Windows.Media.Brushes;
@@ -31,6 +33,8 @@ namespace Drawing
     {
         #region Private fields
 
+        private const string ConfigPathKey = "DrawingConfigPath";
+
         private bool _isSave;
         private readonly DrawingManager _drawingManager;
         private Button _selectedButton;
@@ -41,6 +45,7 @@ namespace Drawing
         private Point _drawCurrentPoint;
         private readonly List<Point> _linePoints;
         private Color _pickedColor;
+        private readonly DrawingConfig _drawingConfigution;
 
         #endregion
 
@@ -52,20 +57,20 @@ namespace Drawing
             var screenHeight = SystemParameters.VirtualScreenHeight;
             var screenWidth = SystemParameters.VirtualScreenWidth;
             
-            var height = bitmap.Height + 210.0;
+            var height = bitmap.Height + 140.0;
             var width = bitmap.Width + 40.0;
 
-            if (height < 370)
+            if (height < 400)
             {
-                height = 370;
+                height = 400;
             }
             else if (height > screenHeight)
             {
                 height = screenHeight;
             }
-            if (width < 370)
+            if (width < 400)
             {
-                width = 370;
+                width = 400;
             }
             else if (width > screenWidth)
             {
@@ -85,6 +90,9 @@ namespace Drawing
                 RedoButtuon =  RedoButton,
                 UndoButton =  UndoButton,
             };
+
+            _drawingConfigution = new DrawingConfig();
+            _drawingConfigution.LoadConfigFromXml(ConfigurationManager.AppSettings[ConfigPathKey]);
         }
 
         #endregion
@@ -208,8 +216,9 @@ namespace Drawing
         {
             this.DisableMaxmize(true); //禁用窗口最大化功能
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.Restore | Win32.SystemMenuItems.Minimize | Win32.SystemMenuItems.Maximize | Win32.SystemMenuItems.SpliteLine); //去除窗口指定的系统菜单
-            DrawingInfo_ColorChanged(null, null);
-            DrawingInfo_FontChanged(null, null);
+            SetCurrentState();
+            //DrawingInfo_ColorChanged(null, null);
+            //DrawingInfo_FontChanged(null, null);
         }
 
         private void WindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -218,6 +227,7 @@ namespace Drawing
             {
                 HandleResult = new HandleResult(new [] { (Bitmap)_drawingManager.LastRecordedBitmap.Clone()}, true);
             }
+            SaveCurrentState();
         }
 
         private void WindowKeyDown(object sender, KeyEventArgs e)
@@ -247,19 +257,6 @@ namespace Drawing
             }
         }
 
-        private void LeftBtn_Click(object sender, RoutedEventArgs e)
-        {
-            _isSave = false;
-            Close();
-        }
-
-        private void RightBtn_Click(object sender, RoutedEventArgs e)
-        {
-            
-            _isSave = true;
-            Close();
-        }
-
         private void SettingBtn_Click(object sender, RoutedEventArgs e)
         {
             //...
@@ -271,21 +268,6 @@ namespace Drawing
             Close();
         }
 
-        private void ToggleLbl_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (ToggleLbl.Content.ToString() == "︿")
-            {
-                ToggleLbl.Content = "﹀";
-                ToggleLbl.ToolTip = "显示";
-                DrawingMainGrid.RowDefinitions[1].Height = new GridLength(105, GridUnitType.Pixel);
-            }
-            else
-            {
-                ToggleLbl.Content = "︿";
-                ToggleLbl.ToolTip = "隐藏";
-                DrawingMainGrid.RowDefinitions[1].Height = new GridLength(155, GridUnitType.Pixel);
-            }
-        }
 
         private void DrawingInfo_ColorChanged(object sender, EventArgs e)
         {
@@ -379,6 +361,14 @@ namespace Drawing
                     break;
                 case DrawingTool.RedoTool:
                     _drawingManager.Redo();
+                    break;
+                case DrawingTool.CancelTool:
+                    _isSave = false;
+                    Close();
+                    break;
+                case DrawingTool.FinishTool:
+                    _isSave = true;
+                    Close();
                     break;
             }
         }
@@ -745,9 +735,98 @@ namespace Drawing
             }
         }
 
+        private void SetCurrentState()
+        {
+            var drawingPickerInfo = _drawingConfigution.DrawingPickerInfo;
+
+            Button selectedButton;
+            switch (drawingPickerInfo.DrawingTool)
+            {
+                case DrawingTool.RectTool:
+                    selectedButton = RectToolBtn;
+                    break;
+                case DrawingTool.EllipseTool:
+                    selectedButton = EllipseToolBtn;
+                    break;
+                case DrawingTool.ArrowTool:
+                    selectedButton = ArrowToolBtn;
+                    break;
+                case DrawingTool.PenTool:
+                    selectedButton = PenToolBtn;
+                    break;
+                case DrawingTool.TextTool:
+                    selectedButton = TextToolBtn;
+                    break;
+                case DrawingTool.EraserTool:
+                    selectedButton = EraserToolBtn;
+                    break;
+                case DrawingTool.PickerTool:
+                    selectedButton = PickerToolBtn;
+                    break;
+                default:
+                    selectedButton = PenToolBtn;
+                    break;
+            }
+            SetDrawingTool(selectedButton, drawingPickerInfo.DrawingTool);
+
+            DrawingInfo.SelectedMosaic = drawingPickerInfo.SelectedMosaic;
+            DrawingInfo.SelectedLeftRadioBtn = drawingPickerInfo.SelectedLeftRadioBtn;
+
+            DrawingInfo.LeftSliderValue = drawingPickerInfo.LeftSliderValue;
+            DrawingInfo.RightSliderValue = drawingPickerInfo.RightSliderValue;
+
+            var color = drawingPickerInfo.ColorInfo;
+            DrawingInfo.CurrentColor = System.Windows.Media.Color.FromArgb(255, color.R, color.G, color.B);
+
+            var font = drawingPickerInfo.FontInfo;
+            var fontStyle = System.Drawing.FontStyle.Regular;
+            if (font.Bold)
+            {
+                fontStyle = fontStyle | System.Drawing.FontStyle.Bold;
+            }
+            if (font.Italic)
+            {
+                fontStyle = fontStyle | System.Drawing.FontStyle.Italic;
+            }
+            if (font.Underline)
+            {
+                fontStyle = fontStyle | System.Drawing.FontStyle.Underline;
+            }
+            if (font.Strikeout)
+            {
+                fontStyle = fontStyle | System.Drawing.FontStyle.Strikeout;
+            }
+            DrawingInfo.CurrentFont = new Font(new FontFamily(font.FontFamilyName), (float)font.FontSize, fontStyle);
+
+        }
+
+        private void SaveCurrentState()
+        {
+            var drawingPickerInfo = _drawingConfigution.DrawingPickerInfo;
+            drawingPickerInfo.DrawingTool = _drawingTool;
+            drawingPickerInfo.SelectedMosaic = DrawingInfo.SelectedMosaic;
+            drawingPickerInfo.SelectedLeftRadioBtn = DrawingInfo.SelectedLeftRadioBtn;
+            drawingPickerInfo.LeftSliderValue = DrawingInfo.LeftSliderValue;
+            drawingPickerInfo.RightSliderValue = DrawingInfo.RightSliderValue;
+
+            var color = DrawingInfo.CurrentColor;
+            drawingPickerInfo.ColorInfo.R = color.R;
+            drawingPickerInfo.ColorInfo.G = color.G;
+            drawingPickerInfo.ColorInfo.B = color.B;
+
+            var font = DrawingInfo.CurrentFont;
+            drawingPickerInfo.FontInfo.FontFamilyName = font.FontFamily.Name;
+            drawingPickerInfo.FontInfo.FontSize = font.Size;
+            drawingPickerInfo.FontInfo.Bold = font.Bold;
+            drawingPickerInfo.FontInfo.Italic = font.Italic;
+            drawingPickerInfo.FontInfo.Strikeout = font.Strikeout;
+            drawingPickerInfo.FontInfo.Underline = font.Underline;
+
+            _drawingConfigution.SaveConfigToXml(ConfigurationManager.AppSettings[ConfigPathKey]);
+        }
 
         #endregion
 
-        
+
     }
 }

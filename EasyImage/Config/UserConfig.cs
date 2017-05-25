@@ -58,6 +58,7 @@ namespace EasyImage.Config
         {
             if (!File.Exists(path))
             {
+                if(path == null)path = "Config/UserConfig.xml";
                 path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, path);
                 if(!File.Exists(path))return;
             }
@@ -66,11 +67,11 @@ namespace EasyImage.Config
                 using (var fs = new FileStream(path, FileMode.Open))
                 {
                     var xmldes = new XmlSerializer(typeof(UserConfig));
-                    var userConfg = (UserConfig)xmldes.Deserialize(fs);
-                    _imageSetting = userConfg._imageSetting;
-                    _windowState = userConfg._windowState;
-                    _appSetting = userConfg.AppSetting;
-                    _shortcutSetting = userConfg.ShortcutSetting;
+                    var config = (UserConfig)xmldes.Deserialize(fs);
+                    _imageSetting = config._imageSetting;
+                    _windowState = config._windowState;
+                    _appSetting = config.AppSetting;
+                    _shortcutSetting = config.ShortcutSetting;
                 }
             }
             catch (Exception ex)

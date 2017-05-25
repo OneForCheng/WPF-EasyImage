@@ -42,7 +42,7 @@ namespace EasyImage.Config
 
         public ImageFavoritesWindowState()
         {
-            _favoritesPath = "./Favorites";
+            _favoritesPath = "Favorites";
             _top = _left = 0;
             _width = _height = 300;
 

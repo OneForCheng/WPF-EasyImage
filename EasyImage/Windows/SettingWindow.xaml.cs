@@ -228,19 +228,29 @@ namespace EasyImage.Windows
                 Extentions.ShowMessageBox("不能有[Ctrl,Alt,Shift]等按键");
                 return;
             }
-            
+           
             var flag = (int)textbox.Tag;
             switch (flag)
             {
                 case 0:
-                    if (e.ImeProcessedKey != Key.None)
+                    if (e.Key != Key.None && e.Key != Key.ImeProcessed)
+                    {
+                        _userConfig.ShortcutSetting.GlobelAddShortcut.Key = e.Key;
+                        KeyTbx1.Text = e.Key.ToString();
+                    }
+                    else if (e.ImeProcessedKey != Key.None)
                     {
                         _userConfig.ShortcutSetting.GlobelAddShortcut.Key = e.ImeProcessedKey;
                         KeyTbx1.Text = e.ImeProcessedKey.ToString();
                     }
                     break;
                 case 1:
-                    if (e.ImeProcessedKey != Key.None)
+                    if (e.Key != Key.None && e.Key != Key.ImeProcessed)
+                    {
+                        _userConfig.ShortcutSetting.GlobelPasteShortcut.Key = e.Key;
+                        KeyTbx2.Text = e.Key.ToString();
+                    }
+                    else if (e.ImeProcessedKey != Key.None)
                     {
                         _userConfig.ShortcutSetting.GlobelPasteShortcut.Key = e.ImeProcessedKey;
                         KeyTbx2.Text = e.ImeProcessedKey.ToString();

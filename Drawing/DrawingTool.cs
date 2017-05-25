@@ -13,5 +13,7 @@ namespace Drawing
         CopyTool,
         UndoTool,
         RedoTool,
+        CancelTool,
+        FinishTool,
     }
 }

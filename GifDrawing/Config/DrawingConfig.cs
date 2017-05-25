@@ -8,15 +8,32 @@ namespace GifDrawing.Config
     [Serializable]
     public class DrawingConfig
     {
+
+        private DrawingPickerInfo _drawingPickerInfo;
+
         public DrawingConfig()
         {
-            
+            DrawingPickerInfo = new DrawingPickerInfo();
+        }
+
+        public DrawingPickerInfo DrawingPickerInfo
+        {
+            get
+            {
+                return _drawingPickerInfo;
+            }
+
+            set
+            {
+                _drawingPickerInfo = value;
+            }
         }
 
         public void LoadConfigFromXml(string path)
         {
             if (!File.Exists(path))
             {
+                if (path == null) path = "Config/GifDrawingConfig.xml";
                 path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, path);
                 if (!File.Exists(path)) return;
             }
@@ -25,8 +42,8 @@ namespace GifDrawing.Config
                 using (var fs = new FileStream(path, FileMode.Open))
                 {
                     var xmldes = new XmlSerializer(typeof(DrawingConfig));
-                    var userConfg = (DrawingConfig)xmldes.Deserialize(fs);
-                   
+                    var config = (DrawingConfig)xmldes.Deserialize(fs);
+                    _drawingPickerInfo = config._drawingPickerInfo;
                 }
             }
             catch (Exception ex)
@@ -39,7 +56,7 @@ namespace GifDrawing.Config
         {
             if (!File.Exists(path))
             {
-                path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, "Config/UserConfig.xml");
+                path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, "Config/GifDrawingConfig.xml");
             }
 
             var xmlsz = new XmlSerializer(typeof(DrawingConfig));
@@ -55,5 +72,8 @@ namespace GifDrawing.Config
                 xmlsz.Serialize(sw, this);
             }
         }
+
     }
+
+  
 }

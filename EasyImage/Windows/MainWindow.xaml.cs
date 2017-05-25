@@ -12,16 +12,18 @@ namespace EasyImage.Windows
     /// </summary>
     public partial class MainWindow
     {
+        private const string ConfigPathKey = "UserConfigPath";
+
         private System.Windows.Forms.NotifyIcon _trayIcon;
         private ImageWindow _imgWin;
         
-        public UserConfig UserConfigution { get; set; }
+        public UserConfig UserConfigution { get;}
         
         public MainWindow()
         {
             InitializeComponent();
             UserConfigution = new UserConfig();
-            UserConfigution.LoadConfigFromXml(ConfigurationManager.AppSettings["UserConfigPath"]);
+            UserConfigution.LoadConfigFromXml(ConfigurationManager.AppSettings[ConfigPathKey]);
         }
 
         #region 主窗口事件
@@ -44,7 +46,7 @@ namespace EasyImage.Windows
         /// <param name="e"></param>
         private void WindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            UserConfigution.SaveConfigToXml(ConfigurationManager.AppSettings["UserConfigPath"]);
+            UserConfigution.SaveConfigToXml(ConfigurationManager.AppSettings[ConfigPathKey]);
             if (_trayIcon != null)
             {
                 _trayIcon.Visible = false;

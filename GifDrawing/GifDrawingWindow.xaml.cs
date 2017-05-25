@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
@@ -11,6 +12,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using AnimatedImage.Encoding;
+using GifDrawing.Config;
 using Brush = System.Drawing.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using Button = System.Windows.Controls.Button;
@@ -32,6 +34,8 @@ namespace GifDrawing
     {
         #region Private fields
 
+        private const string ConfigPathKey = "GifDrawingConfigPath";
+
         private bool _isSave;
         private readonly DrawingManager _drawingManager;
         private Button _selectedButton;
@@ -43,12 +47,12 @@ namespace GifDrawing
         private readonly List<Point> _linePoints;
         private Color _pickedColor;
 
+        private readonly DrawingConfig _drawingConfigution;
         private readonly AnimatedImage.AnimatedGif _animatedGif;
         private readonly int _imageWidth;
         private readonly int _imageHeight;
 
         public AnimatedImage.AnimatedGif NewAnimatedGif { get; private set; }
-
 
         #endregion
 
@@ -65,20 +69,20 @@ namespace GifDrawing
             _imageWidth = width;
             _imageHeight = height;
 
-            var winHeight = _imageHeight + 210.0;
+            var winHeight = _imageHeight + 140.0;
             var winWidth = _imageWidth + 40.0;
 
-            if (winHeight < 370)
+            if (winHeight < 400)
             {
-                winHeight = 370;
+                winHeight = 400;
             }
             else if (winHeight > screenHeight)
             {
                 winHeight = screenHeight;
             }
-            if (winWidth < 370)
+            if (winWidth < 400)
             {
-                winWidth = 370;
+                winWidth = 400;
             }
             else if (winWidth > screenWidth)
             {
@@ -100,6 +104,9 @@ namespace GifDrawing
                 RedoButtuon = RedoButton,
                 UndoButton = UndoButton,
             };
+
+            _drawingConfigution = new DrawingConfig();
+            _drawingConfigution.LoadConfigFromXml(ConfigurationManager.AppSettings[ConfigPathKey]);
         }
 
         #endregion
@@ -213,6 +220,8 @@ namespace GifDrawing
 
         #region Public properties
 
+        
+
         #endregion
 
         #region Event
@@ -221,8 +230,9 @@ namespace GifDrawing
         {
             this.DisableMaxmize(true); //禁用窗口最大化功能
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.Restore | Win32.SystemMenuItems.Minimize | Win32.SystemMenuItems.Maximize | Win32.SystemMenuItems.SpliteLine); //去除窗口指定的系统菜单
-            DrawingInfo_ColorChanged(null, null);
-            DrawingInfo_FontChanged(null, null);
+            SetCurrentState();
+            //DrawingInfo_ColorChanged(null, null);
+            //DrawingInfo_FontChanged(null, null);
         }
 
         private void WindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -231,6 +241,7 @@ namespace GifDrawing
             {
                 NewAnimatedGif = new AnimatedImage.AnimatedGif() { Source = GetAnimatedGif(), Stretch = Stretch.Fill };
             }
+            SaveCurrentState();
         }
 
         private async void WindowKeyDown(object sender, KeyEventArgs e)
@@ -260,19 +271,6 @@ namespace GifDrawing
             }
         }
 
-        private void LeftBtn_Click(object sender, RoutedEventArgs e)
-        {
-            _isSave = false;
-            Close();
-        }
-
-        private void RightBtn_Click(object sender, RoutedEventArgs e)
-        {
-            
-            _isSave = true;
-            Close();
-        }
-
         private void SettingBtn_Click(object sender, RoutedEventArgs e)
         {
             //...
@@ -282,22 +280,6 @@ namespace GifDrawing
         {
             _isSave = false;
             Close();
-        }
-
-        private void ToggleLbl_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            if (ToggleLbl.Content.ToString() == "︿")
-            {
-                ToggleLbl.Content = "﹀";
-                ToggleLbl.ToolTip = "显示";
-                DrawingMainGrid.RowDefinitions[1].Height = new GridLength(105, GridUnitType.Pixel);
-            }
-            else
-            {
-                ToggleLbl.Content = "︿";
-                ToggleLbl.ToolTip = "隐藏";
-                DrawingMainGrid.RowDefinitions[1].Height = new GridLength(155, GridUnitType.Pixel);
-            }
         }
 
         private void DrawingInfo_ColorChanged(object sender, EventArgs e)
@@ -393,6 +375,14 @@ namespace GifDrawing
                 case DrawingTool.RedoTool:
                     _drawingManager.Redo();
                     break;
+                case DrawingTool.CancelTool:
+                    _isSave = false;
+                    Close();
+                    break;
+                case DrawingTool.FinishTool:
+                    _isSave = true;
+                    Close();
+                    break;
             }
         }
 
@@ -431,7 +421,7 @@ namespace GifDrawing
             _drawCurrentPoint.Y = (int)Math.Ceiling(position.Y);
             if (_drawCurrentPoint.X > 0) _drawCurrentPoint.X--;
             if (_drawCurrentPoint.Y > 0) _drawCurrentPoint.Y--;
-            TitleLbl.Content = $"Drawing: ({_drawCurrentPoint.X},{ _drawCurrentPoint.Y})";
+            TitleLbl.Content = $"GifDrawing: ({_drawCurrentPoint.X},{ _drawCurrentPoint.Y})";
             if (_mouseCaptured && e.LeftButton == MouseButtonState.Pressed)
             {
                 DrawEffects(false);
@@ -458,7 +448,7 @@ namespace GifDrawing
 
         private void TargetImage_MouseLeave(object sender, MouseEventArgs e)
         {
-            TitleLbl.Content = "Drawing";
+            TitleLbl.Content = "GifDrawing";
             if (!_mouseCaptured && _drawingTool != DrawingTool.TextTool)//清除预览留下的痕迹
             {
                 _drawingManager.ResetCurrentViewBitmap();
@@ -793,8 +783,96 @@ namespace GifDrawing
             return bitmapImage;
         }
 
-        #endregion
+        private void SetCurrentState()
+        {
+            var drawingPickerInfo = _drawingConfigution.DrawingPickerInfo;
 
-        
+            Button selectedButton;
+            switch (drawingPickerInfo.DrawingTool)
+            {
+                case DrawingTool.RectTool:
+                    selectedButton = RectToolBtn;
+                    break;
+                case DrawingTool.EllipseTool:
+                    selectedButton = EllipseToolBtn;
+                    break;
+                case DrawingTool.ArrowTool:
+                    selectedButton = ArrowToolBtn;
+                    break;
+                case DrawingTool.PenTool:
+                    selectedButton = PenToolBtn;
+                    break;
+                case DrawingTool.TextTool:
+                    selectedButton = TextToolBtn;
+                    break;
+                case DrawingTool.EraserTool:
+                    selectedButton = EraserToolBtn;
+                    break;
+                case DrawingTool.PickerTool:
+                    selectedButton = PickerToolBtn;
+                    break;
+                default:
+                    selectedButton = PenToolBtn;
+                    break;
+            }
+            SetDrawingTool(selectedButton, drawingPickerInfo.DrawingTool);
+
+            DrawingInfo.SelectedMosaic = drawingPickerInfo.SelectedMosaic;
+            DrawingInfo.SelectedLeftRadioBtn = drawingPickerInfo.SelectedLeftRadioBtn;
+
+            DrawingInfo.LeftSliderValue = drawingPickerInfo.LeftSliderValue;
+            DrawingInfo.RightSliderValue = drawingPickerInfo.RightSliderValue;
+
+            var color = drawingPickerInfo.ColorInfo;
+            DrawingInfo.CurrentColor = System.Windows.Media.Color.FromArgb(255, color.R, color.G, color.B);
+
+            var font = drawingPickerInfo.FontInfo;
+            var fontStyle = System.Drawing.FontStyle.Regular;
+            if (font.Bold)
+            {
+                fontStyle = fontStyle | System.Drawing.FontStyle.Bold;
+            }
+            if (font.Italic)
+            {
+                fontStyle = fontStyle | System.Drawing.FontStyle.Italic;
+            }
+            if (font.Underline)
+            {
+                fontStyle = fontStyle | System.Drawing.FontStyle.Underline;
+            }
+            if (font.Strikeout)
+            {
+                fontStyle = fontStyle | System.Drawing.FontStyle.Strikeout;
+            }
+            DrawingInfo.CurrentFont = new Font(new FontFamily(font.FontFamilyName), (float)font.FontSize, fontStyle);
+
+        }
+
+        private void SaveCurrentState()
+        {
+            var drawingPickerInfo = _drawingConfigution.DrawingPickerInfo;
+            drawingPickerInfo.DrawingTool = _drawingTool;
+            drawingPickerInfo.SelectedMosaic = DrawingInfo.SelectedMosaic;
+            drawingPickerInfo.SelectedLeftRadioBtn = DrawingInfo.SelectedLeftRadioBtn;
+            drawingPickerInfo.LeftSliderValue = DrawingInfo.LeftSliderValue;
+            drawingPickerInfo.RightSliderValue = DrawingInfo.RightSliderValue;
+
+            var color = DrawingInfo.CurrentColor;
+            drawingPickerInfo.ColorInfo.R = color.R;
+            drawingPickerInfo.ColorInfo.G = color.G;
+            drawingPickerInfo.ColorInfo.B = color.B;
+
+            var font = DrawingInfo.CurrentFont;
+            drawingPickerInfo.FontInfo.FontFamilyName = font.FontFamily.Name;
+            drawingPickerInfo.FontInfo.FontSize = font.Size;
+            drawingPickerInfo.FontInfo.Bold = font.Bold;
+            drawingPickerInfo.FontInfo.Italic = font.Italic;
+            drawingPickerInfo.FontInfo.Strikeout = font.Strikeout;
+            drawingPickerInfo.FontInfo.Underline = font.Underline;
+
+            _drawingConfigution.SaveConfigToXml(ConfigurationManager.AppSettings[ConfigPathKey]);
+        }
+
+        #endregion
     }
 }

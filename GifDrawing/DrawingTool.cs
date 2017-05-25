@@ -13,5 +13,7 @@ namespace GifDrawing
         CopyTool,
         UndoTool,
         RedoTool,
+        CancelTool,
+        FinishTool,
     }
 }

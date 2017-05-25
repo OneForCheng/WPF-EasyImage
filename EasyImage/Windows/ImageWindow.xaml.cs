@@ -186,7 +186,7 @@ namespace EasyImage.Windows
             }
             else if ((e.KeyboardDevice.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
             {
-                switch (e.Key)
+                switch (e.Key)  
                 {
                     case Key.S:
                         SaveEasyImageToFile(null,null);

@@ -39,6 +39,7 @@
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
@@ -57,6 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Config\DrawingConfig.cs" />
+    <Compile Include="Config\DrawingPickerInfo.cs" />
     <Compile Include="DrawingManager.cs" />
     <Compile Include="DrawingPlugins.cs" />
     <Compile Include="DrawingTool.cs" />
@@ -131,6 +133,13 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\Images\icon_eraser.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\Images\icon_close.png" />
+    <Resource Include="Resources\Images\icon_ok.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

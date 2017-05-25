@@ -21,6 +21,7 @@ namespace Drawing.Resources.Controls
         private bool _rightSliderBlockCaptured;
         private double _minRightSliderValue;
         private double _maxRightSliderValue;
+        private Font _currentFont;
 
         #endregion
 
@@ -32,7 +33,7 @@ namespace Drawing.Resources.Controls
             InitializeComponent();
             _minRightSliderValue = 1.0;
             _maxRightSliderValue = 20.0;
-            CurrentFont = new Font(new FontFamily("宋体"), 20);
+            _currentFont = new Font(new FontFamily("宋体"), 20);
             CommandBindings.Add(new CommandBinding(SelectColorCommand, SelectColorCommandExecute));
         }
 
@@ -40,17 +41,47 @@ namespace Drawing.Resources.Controls
 
         #region Public properties
 
-        public bool SelectedMosaic => MosaicCheckBox.IsChecked.GetValueOrDefault();
+        public bool SelectedMosaic
+        {
+            get
+            {
+                return MosaicCheckBox.IsChecked.GetValueOrDefault();
+            }
+            set
+            {
+                MosaicCheckBox.IsChecked = value;
+            }
+        }
 
-        public bool SelectedLeftRadioBtn => LeftRadioButton.IsChecked.GetValueOrDefault();
+        public bool SelectedLeftRadioBtn
+        {
+            get
+            {
+                return LeftRadioButton.IsChecked.GetValueOrDefault();
+            }
+            set
+            {
+                LeftRadioButton.IsChecked = value;
+                RightRadioButton.IsChecked = !value;
+            }
+        }
 
-        public Font CurrentFont { get;private set;}
+        public Font CurrentFont
+        {
+            get { return _currentFont; }
+            set
+            {
+                _currentFont = value;
+                FontChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
 
         public double MinRightSliderValue => _minRightSliderValue;
 
         public double MaxRightSliderValue => _maxRightSliderValue;
 
-        public object LeftRadioBtnContent {
+        public object LeftRadioBtnContent
+        {
             get { return LeftRadioButton.Content; }
             set { LeftRadioButton.Content = value; }
         }
@@ -179,7 +210,7 @@ namespace Drawing.Resources.Controls
         {
             var convertColor = ColorConverter.ConvertFromString(e.Parameter.ToString());
             if (convertColor == null) return;
-            CurrentColor = (Color) convertColor;
+            CurrentColor = (Color)convertColor;
         }
 
         private void SelectColor_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -192,10 +223,10 @@ namespace Drawing.Resources.Controls
 
         private void SelectFont_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            var dialog = new FontDialog {Font = CurrentFont };
+            var dialog = new FontDialog { Font = CurrentFont };
             if (dialog.ShowDialog() != DialogResult.OK) return;
             CurrentFont = dialog.Font;
-            FontChanged?.Invoke(this, EventArgs.Empty);
+
         }
 
         private void LeftSliderBlock_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -231,7 +262,7 @@ namespace Drawing.Resources.Controls
 
         private void RightSliderBlock_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if(!_rightSliderBlockCaptured)return;
+            if (!_rightSliderBlockCaptured) return;
             RightSliderBlock.ReleaseMouseCapture();
             _rightSliderBlockCaptured = false;
         }
@@ -273,6 +304,6 @@ namespace Drawing.Resources.Controls
 
         #endregion
 
-       
+
     }
 }

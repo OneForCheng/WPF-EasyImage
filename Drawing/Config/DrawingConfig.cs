@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Xml.Serialization;
 
 namespace Drawing.Config
@@ -12,15 +8,32 @@ namespace Drawing.Config
     [Serializable]
     public class DrawingConfig
     {
+
+        private DrawingPickerInfo _drawingPickerInfo;
+
         public DrawingConfig()
         {
-            
+            DrawingPickerInfo = new DrawingPickerInfo();
+        }
+
+        public DrawingPickerInfo DrawingPickerInfo
+        {
+            get
+            {
+                return _drawingPickerInfo;
+            }
+
+            set
+            {
+                _drawingPickerInfo = value;
+            }
         }
 
         public void LoadConfigFromXml(string path)
         {
             if (!File.Exists(path))
             {
+                if (path == null) path = "Config/DrawingConfig.xml";
                 path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, path);
                 if (!File.Exists(path)) return;
             }
@@ -29,13 +42,13 @@ namespace Drawing.Config
                 using (var fs = new FileStream(path, FileMode.Open))
                 {
                     var xmldes = new XmlSerializer(typeof(DrawingConfig));
-                    var userConfg = (DrawingConfig)xmldes.Deserialize(fs);
-                   
+                    var config = (DrawingConfig)xmldes.Deserialize(fs);
+                    _drawingPickerInfo = config._drawingPickerInfo;
                 }
             }
             catch (Exception ex)
             {
-               Trace.WriteLine(ex.ToString());
+                Trace.WriteLine(ex.ToString());
             }
         }
 
@@ -43,7 +56,7 @@ namespace Drawing.Config
         {
             if (!File.Exists(path))
             {
-                path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, "Config/UserConfig.xml");
+                path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, "Config/DrawingConfig.xml");
             }
 
             var xmlsz = new XmlSerializer(typeof(DrawingConfig));
@@ -59,5 +72,7 @@ namespace Drawing.Config
                 xmlsz.Serialize(sw, this);
             }
         }
+
     }
+
 }

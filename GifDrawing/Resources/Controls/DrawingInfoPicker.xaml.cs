@@ -21,6 +21,7 @@ namespace GifDrawing.Resources.Controls
         private bool _rightSliderBlockCaptured;
         private double _minRightSliderValue;
         private double _maxRightSliderValue;
+        private Font _currentFont;
 
         #endregion
 
@@ -32,7 +33,7 @@ namespace GifDrawing.Resources.Controls
             InitializeComponent();
             _minRightSliderValue = 1.0;
             _maxRightSliderValue = 20.0;
-            CurrentFont = new Font(new FontFamily("宋体"), 20);
+            _currentFont = new Font(new FontFamily("宋体"), 20);
             CommandBindings.Add(new CommandBinding(SelectColorCommand, SelectColorCommandExecute));
         }
 
@@ -40,11 +41,40 @@ namespace GifDrawing.Resources.Controls
 
         #region Public properties
 
-        public bool SelectedMosaic => MosaicCheckBox.IsChecked.GetValueOrDefault();
+        public bool SelectedMosaic
+        {
+            get
+            {
+                return MosaicCheckBox.IsChecked.GetValueOrDefault();
+            }
+            set
+            {
+                MosaicCheckBox.IsChecked = value;
+            }
+        }
 
-        public bool SelectedLeftRadioBtn => LeftRadioButton.IsChecked.GetValueOrDefault();
+        public bool SelectedLeftRadioBtn
+        {
+            get
+            {
+                return LeftRadioButton.IsChecked.GetValueOrDefault();
+            }
+            set
+            {
+                LeftRadioButton.IsChecked = value;
+                RightRadioButton.IsChecked = !value;
+            }
+        }
 
-        public Font CurrentFont { get;private set;}
+        public Font CurrentFont
+        {
+            get { return _currentFont; }
+            set
+            {
+                _currentFont = value;
+                FontChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
 
         public double MinRightSliderValue => _minRightSliderValue;
 
@@ -195,7 +225,7 @@ namespace GifDrawing.Resources.Controls
             var dialog = new FontDialog {Font = CurrentFont };
             if (dialog.ShowDialog() != DialogResult.OK) return;
             CurrentFont = dialog.Font;
-            FontChanged?.Invoke(this, EventArgs.Empty);
+            
         }
 
         private void LeftSliderBlock_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
