@@ -65,8 +65,8 @@ namespace EasyImage.Config
             _mainMenuIconPath = string.Empty;
             _width = 150;
             _height = 190;
-            _translateX = SystemParameters.VirtualScreenWidth / 2;
-            _translateY = SystemParameters.VirtualScreenHeight / 2;
+            _translateX = (SystemParameters.VirtualScreenWidth - _width) / 2;
+            _translateY = (SystemParameters.VirtualScreenHeight - _height) / 2;
         }
 
         public string Path

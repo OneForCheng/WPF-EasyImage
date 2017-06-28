@@ -43,8 +43,8 @@ namespace EasyImage.Windows
         private ClipboardMonitor _clipboardMonitor;
         private UserControl _mainMenu;
         private AutoHideElementBehavior _autoHideBehavior;
-        private int _addInternalImgCount;
         private ImageFavoritesWindow _imageFavoritesWindow;
+        private Win32.Point _curPosition;
 
         #endregion
 
@@ -72,7 +72,6 @@ namespace EasyImage.Windows
             _controlManager.LoadPlugins(_userConfigution.AppSetting.PluginPath);
             _clipboardMonitor = new ClipboardMonitor();
             _clipboardMonitor.OnClipboardContentChanged += OnClipboardContentChanged;
-            _addInternalImgCount = 0;
 
             #endregion
 
@@ -138,7 +137,8 @@ namespace EasyImage.Windows
                 Left = imageFavoritesWindowState.Left,
                 Width = imageFavoritesWindowState.Width,
                 Height = imageFavoritesWindowState.Height,
-                Owner = this
+                AutoHideFactor = _userConfigution.WindowState.ImageWindowState.AutoHideFactor,
+                Owner = this,
             };
             _imageFavoritesWindow.LoadCollectedImages(imageFavoritesWindowState.FavoritesPath);
             #endregion
@@ -229,12 +229,12 @@ namespace EasyImage.Windows
         {
             try
             {
-                Win32.Point curPosition;
-                Win32.GetCursorPos(out curPosition);
+               
+                Win32.GetCursorPos(out _curPosition);
                 var imageSources = await ImagePaster.GetImageFromIDataObject(e.Data);
                 if (imageSources.Count <= 0) return;
                 _controlManager.SelectNone();
-                var translate = new Point(curPosition.X - SystemParameters.VirtualScreenWidth / 2, curPosition.Y - SystemParameters.VirtualScreenHeight / 2);
+                var translate = new Point(_curPosition.X - SystemParameters.VirtualScreenWidth / 2, _curPosition.Y - SystemParameters.VirtualScreenHeight / 2);
                 var controls = new List<ImageControl>(imageSources.Count);
                 controls.AddRange(imageSources.Select(imageSource => PackageImageToControl(new AnimatedGif { Source = imageSource, Stretch = Stretch.Fill }, translate)));
                 _controlManager.AddElements(controls);
@@ -460,6 +460,18 @@ namespace EasyImage.Windows
 
         #region Public methods
 
+        public string PreviousSaveImagePath
+        {
+            get
+            {
+                return _userConfigution.WindowState.ImageWindowState.PreviousSaveImagePath;
+            }
+            set
+            {
+                _userConfigution.WindowState.ImageWindowState.PreviousSaveImagePath = value;
+            }
+        } 
+
         public void ShowMainMenu()
         {
             if (_autoHideBehavior != null && _autoHideBehavior.IsHide)
@@ -542,7 +554,10 @@ namespace EasyImage.Windows
             };
             dragBehavior.Attach(_mainMenu);
 
-            _autoHideBehavior = new AutoHideElementBehavior();
+            _autoHideBehavior = new AutoHideElementBehavior
+            {
+                AutoHideFactor = _userConfigution.WindowState.ImageWindowState.AutoHideFactor,
+            };
             _autoHideBehavior.Attach(_mainMenu);
 
             #endregion
@@ -816,35 +831,17 @@ namespace EasyImage.Windows
             var transformGroup = new TransformGroup();
             transformGroup.Children.Add(new ScaleTransform(1, 1));
             transformGroup.Children.Add(new RotateTransform(0));
-            double moveX = 0, moveY = 0;
+      
             if (autoAdjust)
             {
-                _addInternalImgCount++;
-                switch (_addInternalImgCount)
-                {
-                    case 1:
-                        break;
-                    case 2:
-                        moveX = -imageSource.Width / 2;
-                        moveY = -imageSource.Height / 2;
-                        break;
-                    case 3:
-                        moveX = imageSource.Width / 2;
-                        moveY = -imageSource.Height / 2;
-                        break;
-                    case 4:
-                        moveX = imageSource.Width / 2;
-                        moveY = imageSource.Height / 2;
-                        break;
-                    case 5:
-                        moveX = -imageSource.Width / 2;
-                        moveY = imageSource.Height / 2;
-                        _addInternalImgCount = 0;
-                        break;
-                }
+                Win32.GetCursorPos(out _curPosition);
+                transformGroup.Children.Add(new TranslateTransform(Math.Round(_curPosition.X - imageControl.Width / 2), Math.Round(_curPosition.Y - imageControl.Height / 2)));
             }
-            
-            transformGroup.Children.Add(new TranslateTransform(Math.Round((SystemParameters.VirtualScreenWidth - imageControl.Width) / 2 + moveX), Math.Round((SystemParameters.VirtualScreenHeight - imageControl.Height) / 2 + moveY)));
+            else
+            {
+                transformGroup.Children.Add(new TranslateTransform(Math.Round((SystemParameters.VirtualScreenWidth - imageControl.Width) / 2), Math.Round((SystemParameters.VirtualScreenHeight - imageControl.Height) / 2)));
+            }
+
             imageControl.RenderTransform = transformGroup;
 
             return imageControl;

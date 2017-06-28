@@ -184,7 +184,6 @@ namespace DealImage.Paste
                 var html = dataObject.GetData(ImageDataFormats.Html)?.ToString();
                 if (html != null)
                 {
-                    
                     html = HttpUtility.HtmlDecode(html);
                     var reg = new Regex(RegexImgLable, RegexOptions.IgnoreCase);//正则表达式的类实例化
                     var mc = reg.Matches(html);

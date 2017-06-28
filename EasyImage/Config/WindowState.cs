@@ -10,10 +10,12 @@ namespace EasyImage.Config
         [XmlIgnore]
         public string InitEasyImagePath;
 
+        private ImageWindowState _imageWindowState;
         private ImageFavoritesWindowState _imageFavoritesWindowState;
 
         public WindowState()
         {
+            _imageWindowState = new ImageWindowState();
             _imageFavoritesWindowState = new ImageFavoritesWindowState();
         }
 
@@ -27,6 +29,58 @@ namespace EasyImage.Config
             set
             {
                 _imageFavoritesWindowState = value;
+            }
+        }
+
+        public ImageWindowState ImageWindowState
+        {
+            get
+            {
+                return _imageWindowState;
+            }
+
+            set
+            {
+                _imageWindowState = value;
+            }
+        }
+    }
+
+    [Serializable]
+    public class ImageWindowState
+    {
+        private double _autoHideFactor;
+        private string _previousSaveImagePath;
+
+        public ImageWindowState()
+        {
+            _autoHideFactor = 10.0;
+            _previousSaveImagePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        }
+
+        public double AutoHideFactor
+        {
+            get
+            {
+                return _autoHideFactor;
+            }
+
+            set
+            {
+                _autoHideFactor = value;
+            }
+
+        }
+        public string PreviousSaveImagePath
+        {
+            get
+            {
+                return _previousSaveImagePath;
+            }
+
+            set
+            {
+                _previousSaveImagePath = value;
             }
         }
     }

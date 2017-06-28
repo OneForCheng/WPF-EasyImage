@@ -13,12 +13,12 @@
         </ResourceDictionary>
     </Window.Resources>
             <Grid x:Name="BasicGrid">
-        <Rectangle Fill="#FF6A96E4" Height="15" Stroke="#FF6A96E4" VerticalAlignment="Top"  MouseLeftButtonDown="DragMoveWindow"/>
-        <Rectangle Fill="#FF6A96E4" Stroke="#FF6A96E4" HorizontalAlignment="Right" Width="15" MouseLeftButtonDown="DragMoveWindow"/>
-        <Rectangle Fill="#FF6A96E4" Stroke="#FF6A96E4" HorizontalAlignment="Left" Width="15" MouseLeftButtonDown="DragMoveWindow"/>
-        <Rectangle Fill="#FF6A96E4" Height="15" Stroke="#FF6A96E4" VerticalAlignment="Bottom" MouseLeftButtonDown="DragMoveWindow"/>
+        <Rectangle Fill="#FF6A96E4" Height="20" Stroke="#FF6A96E4" VerticalAlignment="Top"  MouseLeftButtonDown="DragMoveWindow"/>
+        <Rectangle Fill="#FF6A96E4" Stroke="#FF6A96E4" HorizontalAlignment="Right" Width="20" MouseLeftButtonDown="DragMoveWindow"/>
+        <Rectangle Fill="#FF6A96E4" Stroke="#FF6A96E4" HorizontalAlignment="Left" Width="20" MouseLeftButtonDown="DragMoveWindow"/>
+        <Rectangle Fill="#FF6A96E4" Height="20" Stroke="#FF6A96E4" VerticalAlignment="Bottom" MouseLeftButtonDown="DragMoveWindow"/>
         <!--<Button x:Name="CloseBtn" Content="×" Style="{StaticResource CloseBtnStyle}" VerticalAlignment="Top" HorizontalAlignment="Right" Width="15" Height="15" BorderThickness="0"  Click="CloseBtn_Click" Margin="0,2,2,0"/>-->
-        <ListBox  Margin="15" Padding="5" x:Name="ImageListBox">
+        <ListBox  Margin="20" Padding="5" x:Name="ImageListBox">
             <ListBox.Resources>
                 <Style TargetType="{x:Type Image}">
                     <Setter Property="Width" Value="80"/>

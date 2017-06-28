@@ -29,68 +29,79 @@ namespace GifDrawing
             {
                 return targetTransform;
             }
-            else
+            var group = transform as TransformGroup;
+            if (@group != null)
             {
-                var group = transform as TransformGroup;
-                if (group != null)
+                var count = @group.Children.Count;
+                for (var i = count - 1; i >= 0; i--)
                 {
-                    var count = group.Children.Count;
-                    for (var i = count - 1; i >= 0; i--)
+                    targetTransform = @group.Children[i] as T;
+                    if (targetTransform != null)
                     {
-                        targetTransform = group.Children[i] as T;
-                        if (targetTransform != null)
-                        {
-                            break;
-                        }
+                        break;
                     }
-                    if (targetTransform != null) return targetTransform;
-                    targetTransform = new T();
-                    group.Children.Add(targetTransform);
-                    return targetTransform;
                 }
-                else
-                {
-                    group = new TransformGroup();
-                    if (transform != null)
-                    {
-                        group.Children.Add(transform);
-                    }
-                    targetTransform = new T();
-                    group.Children.Add(targetTransform);
-                    element.RenderTransform = group;
-
-                    return targetTransform;
-                }
+                if (targetTransform != null) return targetTransform;
+                targetTransform = new T();
+                @group.Children.Add(targetTransform);
+                return targetTransform;
             }
+            @group = new TransformGroup();
+            if (transform != null)
+            {
+                @group.Children.Add(transform);
+            }
+            targetTransform = new T();
+            @group.Children.Add(targetTransform);
+            element.RenderTransform = @group;
+
+            return targetTransform;
         }
+
+        //public static Bitmap GetBitmap(this BitmapSource source)
+        //{
+        //    var bmp = new Bitmap
+        //    (
+        //      source.PixelWidth,
+        //      source.PixelHeight,
+        //      PixelFormat.Format32bppArgb
+        //    );
+
+        //    var data = bmp.LockBits
+        //     (
+        //         new Rectangle(Point.Empty, bmp.Size),
+        //         ImageLockMode.WriteOnly,
+        //         PixelFormat.Format32bppArgb
+        //     );
+
+        //    source.CopyPixels
+        //    (
+        //      Int32Rect.Empty,
+        //      data.Scan0,
+        //      data.Height * data.Stride,
+        //      data.Stride
+        //    );
+
+        //    bmp.UnlockBits(data);
+
+        //    return bmp;
+        //}
 
         public static Bitmap GetBitmap(this BitmapSource source)
         {
-            var bmp = new Bitmap
-            (
-              source.PixelWidth,
-              source.PixelHeight,
-              PixelFormat.Format32bppArgb
-            );
+            //判断source.Format是否是PixelFormats.Bgra32没有什么用的，必须转换一次才能保证
+            var formatBitmap = new FormatConvertedBitmap();
+            formatBitmap.BeginInit();
+            formatBitmap.Source = source;
+            formatBitmap.DestinationFormat = PixelFormats.Bgra32;
+            formatBitmap.EndInit();
 
-            var data = bmp.LockBits
-             (
-                 new Rectangle(Point.Empty, bmp.Size),
-                 ImageLockMode.WriteOnly,
-                 PixelFormat.Format32bppArgb
-             );
+            var bitmap = new Bitmap(formatBitmap.PixelWidth, formatBitmap.PixelHeight, PixelFormat.Format32bppArgb);
+            var data = bitmap.LockBits(new Rectangle(Point.Empty, bitmap.Size), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+            formatBitmap.CopyPixels(Int32Rect.Empty, data.Scan0, data.Height * data.Stride, data.Stride);
+            bitmap.UnlockBits(data);
 
-            source.CopyPixels
-            (
-              Int32Rect.Empty,
-              data.Scan0,
-              data.Height * data.Stride,
-              data.Stride
-            );
-
-            bmp.UnlockBits(data);
-
-            return bmp;
+            return bitmap;
         }
 
         public static Bitmap ResizeBitmap(this Bitmap bitmap, int width, int height)
@@ -138,6 +149,7 @@ namespace GifDrawing
 
                 //兼容QQ
                 var tempFilePath = Path.GetTempFileName();
+                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 4) + ".gif";
                 using (var fs = File.OpenWrite(tempFilePath))
                 {
                     var data = stream.ToArray();

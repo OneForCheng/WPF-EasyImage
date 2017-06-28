@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Windows;
@@ -40,6 +39,25 @@ namespace DealImage.Copy
 
                 //兼容QQ
                 var tempFilePath = Path.GetTempFileName();
+                var fileExt = ImageHelper.GetImageExtension(stream);
+                var ext = ".png";
+                switch (fileExt)
+                {
+                    case ImageExtension.Gif:
+                        ext = ".gif";
+                        break;
+                    case ImageExtension.Jpg:
+                        ext = ".jpg";
+                        break;
+                    case ImageExtension.Tif:
+                        ext = ".tif";
+                        break;
+                    case ImageExtension.Bmp:
+                        ext = ".bmp";
+                        break;
+                }
+               
+                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 4) + ext;
                 using (var fs = File.OpenWrite(tempFilePath))
                 {
                     var data = stream.ToArray();
@@ -95,6 +113,24 @@ namespace DealImage.Copy
 
                 //兼容QQ
                 var tempFilePath = Path.GetTempFileName();
+                var fileExt = ImageHelper.GetImageExtension(stream);
+                var ext = ".png";
+                switch (fileExt)
+                {
+                    case ImageExtension.Gif:
+                        ext = ".gif";
+                        break;
+                    case ImageExtension.Jpg:
+                        ext = ".jpg";
+                        break;
+                    case ImageExtension.Tif:
+                        ext = ".tif";
+                        break;
+                    case ImageExtension.Bmp:
+                        ext = ".bmp";
+                        break;
+                }
+                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 4) + ext;
                 using (var fs = File.OpenWrite(tempFilePath))
                 {
                     var data = stream.ToArray();

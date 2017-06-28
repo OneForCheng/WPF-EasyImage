@@ -279,14 +279,10 @@ namespace Drawing
             var font = DrawingInfo.CurrentFont;
             ImageTextBox.FontFamily = new System.Windows.Media.FontFamily(font.FontFamily.Name);
             ImageTextBox.FontSize = font.Size;
-            if (font.Bold)
-            {
-                ImageTextBox.FontWeight = FontWeights.Bold;
-            }
-            if (font.Italic)
-            {
-                ImageTextBox.FontStyle = FontStyles.Italic;
-            }
+
+            ImageTextBox.FontWeight = font.Bold ? FontWeights.Bold : FontWeights.Normal;
+            ImageTextBox.FontStyle = font.Italic ? FontStyles.Italic : FontStyles.Normal;
+
             var textDecorations = new TextDecorationCollection();
             if (font.Strikeout)
             {

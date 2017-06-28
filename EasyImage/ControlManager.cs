@@ -1062,12 +1062,20 @@ namespace EasyImage
         {
             var selectCount = SelectedElements.Count();
             if (selectCount == 0) return;
+
+            var path = _imageWindow.PreviousSaveImagePath;
+            if (path == null || !Directory.Exists(path))
+            {
+                path = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            }
+          
             var dialog = new SaveFileDialog
             {
+                Title = "另存为图片",
+                InitialDirectory = path,
                 CheckPathExists = true,
                 AddExtension = true,
                 FilterIndex = 3,
-                FileName = "图形1",
                 Filter = "GIF 可交换的图形格式 (*.gif)|*.gif"
                         + "|JPEG 文件交换格式 (*.jpg)|*.jpg"
                         + "|PNG 可移植网络图形格式 (*.png)|*.png"
@@ -1075,6 +1083,7 @@ namespace EasyImage
                         + "|设备无关位图 (*.bmp)|*.bmp",
                 ValidateNames = true,
             };
+            var ext = ".png";
             if (selectCount == 1)
             {
                 var element = SelectedElements.First();
@@ -1086,18 +1095,22 @@ namespace EasyImage
                     {
                         case ImageExtension.Gif:
                             dialog.FilterIndex = 1;
+                            ext = ".gif";
                             break;
                         case ImageExtension.Jpg:
                             dialog.FilterIndex = 2;
+                            ext = ".jpg";
                             break;
                         case ImageExtension.Png:
                             dialog.FilterIndex = 3;
                             break;
                         case ImageExtension.Tif:
                             dialog.FilterIndex = 4;
+                            ext = ".tif";
                             break;
                         case ImageExtension.Bmp:
                             dialog.FilterIndex = 5;
+                            ext = ".bmp";
                             break;
                         default:
                             dialog.FilterIndex = 3;
@@ -1105,8 +1118,16 @@ namespace EasyImage
                     }
                 }
             }
+            var index = 1;
+            while (File.Exists(Path.Combine(path, $"图片{index}{ext}")))
+            {
+                index++;
+            }
+            dialog.FileName = $"图片{index}";
+
             var showDialog = dialog.ShowDialog().GetValueOrDefault();
             if (!showDialog) return;
+            
             var filePath = dialog.FileName;
             var dict = SelectedElements.OrderBy(Panel.GetZIndex).ToDictionary<ImageControl, FrameworkElement, FrameworkElement>(element => element, element => (Image)element.Content);
             SetIsSelected(dict.Keys, false);
@@ -1117,6 +1138,7 @@ namespace EasyImage
 
             SetIsSelected(dict.Keys, true);
 
+            _imageWindow.PreviousSaveImagePath = Path.GetDirectoryName(dialog.FileName);
         }
 
         private void Menu_SaveToIcon(object sender, RoutedEventArgs e)

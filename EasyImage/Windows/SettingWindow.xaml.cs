@@ -89,20 +89,41 @@ namespace EasyImage.Windows
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            var autoRun = AutoRunCk.IsChecked.GetValueOrDefault();
-            var fileName = AppDomain.CurrentDomain.SetupInformation.ApplicationName;
-            fileName = fileName.Substring(0, fileName.LastIndexOf('.'));
-            if (autoRun)
+            try
             {
-                var registry = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true) ??
-                               Registry.LocalMachine.CreateSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
-                registry?.SetValue(fileName,Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, AppDomain.CurrentDomain.SetupInformation.ApplicationName));
+                var autoRun = AutoRunCk.IsChecked.GetValueOrDefault();
+                //var fileName = AppDomain.CurrentDomain.SetupInformation.ApplicationName;
+                //fileName = fileName.Substring(0, fileName.LastIndexOf('.'));
+                if (autoRun)
+                {
+                    var sourceFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), @"EasyImage\EasyImage.appref-ms");
+                    var targetFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), @"EasyImage.appref-ms");
+                    if (!File.Exists(targetFile) && File.Exists(sourceFile))
+                    {
+                        File.Copy(sourceFile, targetFile, true);
+                    }
+                    
+                    //var registry = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true) ??
+                    //               Registry.LocalMachine.CreateSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
+                    //registry?.SetValue(fileName, Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, AppDomain.CurrentDomain.SetupInformation.ApplicationName));
+                }
+                else
+                {
+                    var tartgetFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), @"EasyImage.appref-ms");
+                    if (File.Exists(tartgetFile))
+                    {
+                        File.Delete(tartgetFile);
+                    }
+                    //var registry = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                    //registry?.DeleteValue(fileName, false);
+                }
             }
-            else
+            catch(Exception ex)
             {
-                var registry = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-                registry?.DeleteValue(fileName, false);
+                App.Log.Error(ex.ToString());
+                Extentions.ShowMessageBox("设置开机自启失败,请查看日志了解详细情况!");
             }
+            
         }
         
         private void DragMoveWindow(object sender, MouseButtonEventArgs e)

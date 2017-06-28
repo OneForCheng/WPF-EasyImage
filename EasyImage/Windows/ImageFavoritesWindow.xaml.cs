@@ -24,6 +24,8 @@ namespace EasyImage.Windows
     public partial class ImageFavoritesWindow
     {
         #region Private fields
+
+        private double _autoHideFactor;
         private AutoHideWindowBehavior _autoHideBehavior;
         private bool _isDragDrop;
 
@@ -33,6 +35,7 @@ namespace EasyImage.Windows
         public ImageFavoritesWindow()
         {
             InitializeComponent();
+            _autoHideFactor = 10.0;
             ImageItemsSource = new ObservableCollection<Image>();
         }
 
@@ -147,6 +150,18 @@ namespace EasyImage.Windows
 
         #region Public properties
 
+        public double AutoHideFactor
+        {
+            get { return _autoHideFactor; }
+            set
+            {
+                if (value > 0)
+                {
+                    _autoHideFactor = value;
+                }
+            }
+        }
+
         public ObservableCollection<Image> ImageItemsSource { get; }
 
         public void ShowWindow()
@@ -233,7 +248,10 @@ namespace EasyImage.Windows
         {this.DisableMaxmize(true); //禁用窗口最大化功能
             this.RemoveSystemMenuItems(Win32.SystemMenuItems.Restore | Win32.SystemMenuItems.Minimize | Win32.SystemMenuItems.Maximize | Win32.SystemMenuItems.SpliteLine | Win32.SystemMenuItems.Close); //去除窗口指定的系统菜单
 
-            _autoHideBehavior = new AutoHideWindowBehavior();
+            _autoHideBehavior = new AutoHideWindowBehavior
+            {
+               AutoHideFactor = AutoHideFactor,
+            };
             _autoHideBehavior.Attach(this);
 
             ImageListBox.ItemsSource = ImageItemsSource;
@@ -344,6 +362,24 @@ namespace EasyImage.Windows
 
                         //兼容QQ
                         var tempFilePath = Path.GetTempFileName();
+                        var fileExt = ImageHelper.GetImageExtension(stream);
+                        var ext = ".png";
+                        switch (fileExt)
+                        {
+                            case ImageExtension.Gif:
+                                ext = ".gif";
+                                break;
+                            case ImageExtension.Jpg:
+                                ext = ".jpg";
+                                break;
+                            case ImageExtension.Tif:
+                                ext = ".tif";
+                                break;
+                            case ImageExtension.Bmp:
+                                ext = ".bmp";
+                                break;
+                        }
+                        tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 4) + ext;
                         using (var fs = File.OpenWrite(tempFilePath))
                         {
                             var data = stream.ToArray();
@@ -357,7 +393,6 @@ namespace EasyImage.Windows
                         dataObject.SetData(ImageDataFormats.FileNameW, new[] { tempFilePath }, true);
                         dataObject.SetData(ImageDataFormats.FileName, new[] { tempFilePath }, true);
                         DragDrop.DoDragDrop(image, dataObject, DragDropEffects.Copy);
-
                     }
                     _isDragDrop = false;
                 }

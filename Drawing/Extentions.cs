@@ -123,6 +123,7 @@ namespace Drawing
 
                 //兼容QQ
                 var tempFilePath = Path.GetTempFileName();
+                tempFilePath = tempFilePath.Substring(0, tempFilePath.Length - 4) + ".png";
                 using (var fs = File.OpenWrite(tempFilePath))
                 {
                     var data = stream.ToArray();
