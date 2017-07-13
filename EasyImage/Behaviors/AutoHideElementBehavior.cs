@@ -351,6 +351,10 @@ namespace EasyImage.Behaviors
                             break;
                     }
                 }
+                else
+                {
+                    _lockTimer = false;
+                }
             }
         }
 
@@ -723,6 +727,10 @@ namespace EasyImage.Behaviors
                             }
                             break;
                     }
+                }
+                else
+                {
+                    _lockTimer = false;
                 }
             }
         }

@@ -123,7 +123,6 @@ namespace EasyImage.Windows
 
             InitMainMenu();
 
-           
             var filePath = _userConfigution.WindowState.InitEasyImagePath;
             if (filePath != null)
             {

@@ -24,6 +24,9 @@ namespace EasyImage.Config
         private AppSetting _appSetting;
         private ShortcutSetting _shortcutSetting;
 
+        [XmlIgnore]
+        public string DataFilePath { get; private set; }
+
         public ImageSetting ImageSetting
         {
             get
@@ -54,7 +57,7 @@ namespace EasyImage.Config
             set { _shortcutSetting = value; }
         }
 
-        public void LoadConfigFromXml(string path)
+        public void Load(string path)
         {
             if (!File.Exists(path))
             {
@@ -62,6 +65,7 @@ namespace EasyImage.Config
                 path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, path);
                 if(!File.Exists(path))return;
             }
+            DataFilePath = path;
             try
             {
                 using (var fs = new FileStream(path, FileMode.Open))
@@ -80,13 +84,14 @@ namespace EasyImage.Config
             }
         }
 
-        public void SaveConfigToXml(string path)
+        public void SaveChanged()
         {
+            var path = DataFilePath;
             if (!File.Exists(path))
             {
                 path = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, "Config/UserConfig.xml");
-            }   
-  
+            }
+
             var xmlsz = new XmlSerializer(typeof(UserConfig));
 
             var file = new FileInfo(path);

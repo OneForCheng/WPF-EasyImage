@@ -8,7 +8,6 @@ using System.Windows.Media;
 using EasyImage.Config;
 using EasyImage.Enum;
 using EasyImage.UnmanagedToolkit;
-using Microsoft.Win32;
 using CheckBox = System.Windows.Controls.CheckBox;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
@@ -96,7 +95,7 @@ namespace EasyImage.Windows
                 //fileName = fileName.Substring(0, fileName.LastIndexOf('.'));
                 if (autoRun)
                 {
-                    var sourceFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), @"EasyImage\EasyImage.appref-ms");
+                    var sourceFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), @"Forcheng\EasyImage.appref-ms");
                     var targetFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), @"EasyImage.appref-ms");
                     if (!File.Exists(targetFile) && File.Exists(sourceFile))
                     {

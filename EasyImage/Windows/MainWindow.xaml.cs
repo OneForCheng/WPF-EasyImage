@@ -23,7 +23,7 @@ namespace EasyImage.Windows
         {
             InitializeComponent();
             UserConfigution = new UserConfig();
-            UserConfigution.LoadConfigFromXml(ConfigurationManager.AppSettings[ConfigPathKey]);
+            UserConfigution.Load(ConfigurationManager.AppSettings[ConfigPathKey]);
         }
 
         #region 主窗口事件
@@ -46,7 +46,7 @@ namespace EasyImage.Windows
         /// <param name="e"></param>
         private void WindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            UserConfigution.SaveConfigToXml(ConfigurationManager.AppSettings[ConfigPathKey]);
+            UserConfigution.SaveChanged();
             if (_trayIcon != null)
             {
                 _trayIcon.Visible = false;
@@ -71,14 +71,14 @@ namespace EasyImage.Windows
            
             trayIcon.MouseClick += TrayIcon_MouseClick;
 
-            var conntextMenu = new System.Windows.Forms.ContextMenuStrip();
+            var contextMenu = new System.Windows.Forms.ContextMenuStrip();
 
             var item = new System.Windows.Forms.ToolStripMenuItem("帮助与反馈");
             item.Click += (sender, e) =>
             {
                 
             };
-            conntextMenu.Items.Add(item);
+            contextMenu.Items.Add(item);
 
             item = new System.Windows.Forms.ToolStripMenuItem("查看日志");
             item.Click += (sender, e) =>
@@ -93,7 +93,7 @@ namespace EasyImage.Windows
                     Extentions.ShowMessageBox("找不到日志文件!");
                 }
             };
-            conntextMenu.Items.Add(item);
+            contextMenu.Items.Add(item);
 
             item = new System.Windows.Forms.ToolStripMenuItem("设置");
             item.Click += (sender, e) =>
@@ -102,15 +102,15 @@ namespace EasyImage.Windows
                 _imgWin.Activate();
                 _imgWin.ShowSettingWindow();
             };
-            conntextMenu.Items.Add(item);
+            contextMenu.Items.Add(item);
 
-            conntextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
+            contextMenu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
 
             item = new System.Windows.Forms.ToolStripMenuItem("退出");
             item.Click += (sender, e) => {_imgWin.Close();};
-            conntextMenu.Items.Add(item);
+            contextMenu.Items.Add(item);
 
-            trayIcon.ContextMenuStrip = conntextMenu;
+            trayIcon.ContextMenuStrip = contextMenu;
             trayIcon.ShowBalloonTip(500);//设置显示提示气球时间
             trayIcon.Visible = true;
 
